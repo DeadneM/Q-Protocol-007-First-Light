@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip"
+      - ".release_payload/u49/**"
       - "docs/RELEASE_U49.md"
       - ".github/workflows/publish-u49.yml"
   workflow_dispatch:
@@ -20,7 +20,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Create or refresh U49 prerelease
+      - name: Reconstruct and verify U49 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cat .release_payload/u49/part*.b64 | base64 --decode > dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip
+          test "$(stat -c%s dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip)" -eq 70900
+          echo "42594a782f0166794163d4536ad2a52bd9cb94667278015e8a527409a1aa0cd8  dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip" | sha256sum -c -
+
+      - name: Recreate verified U49 prerelease
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: v0.8.12U49
@@ -29,8 +38,10 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ASSET" --clobber
-            gh release edit "$TAG"               --title "Q Protocol v0.8.12U49 — Test Build"               --notes-file docs/RELEASE_U49.md               --prerelease
-          else
-            gh release create "$TAG" "$ASSET"               --target "$GITHUB_SHA"               --title "Q Protocol v0.8.12U49 — Test Build"               --notes-file docs/RELEASE_U49.md               --prerelease
+            gh release delete "$TAG" --yes --cleanup-tag
           fi
+          gh release create "$TAG" "$ASSET" \
+            --target "$GITHUB_SHA" \
+            --title "Q Protocol v0.8.12U49 - Test Build" \
+            --notes-file docs/RELEASE_U49.md \
+            --prerelease
