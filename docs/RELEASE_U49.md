@@ -27,20 +27,18 @@ The legacy `AutoSpawnGadget` direct writer remains disabled.
 
 Initial in-game testing is positive, but U49 remains a prerelease until broader level, respawn, checkpoint and transition testing is complete.
 
-## Package
+## Release ZIP
 
-The release archive contains:
+The downloadable ZIP intentionally contains **exactly three files at the archive root**, with no parent folder and no extra metadata files:
 
+- `README.txt`
 - `QProtocol.asi`
 - `QProtocol.ini`
-- cumulative `README.txt`
-- `SHA256.txt`
-- `BUILD_INFO.txt`
 
-## Checksums
+## File checksums
 
 ```text
+094d07139fa858f34955bc32812a7d90c60bf1a27a32b4d74e3b5ae7c144fc91  README.txt
 ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03  QProtocol.asi
 b354812f3d32cf5bdba349976f0eb86d109ce9b2f6023fa4c835fe00fcfba207  QProtocol.ini
-42594a782f0166794163d4536ad2a52bd9cb94667278015e8a527409a1aa0cd8  Q-Protocol_v0.8.12U49_GitHub_BUILD.zip
 ```

@@ -7,6 +7,7 @@ on:
     paths:
       - ".release_payload/u49/**"
       - "docs/RELEASE_U49.md"
+      - "checksums/SHA256.txt"
       - ".github/workflows/publish-u49.yml"
   workflow_dispatch:
 
@@ -20,16 +21,65 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Reconstruct and verify U49 package
+      - name: Reconstruct verified U49 source package
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist
-          cat .release_payload/u49/part*.b64 | base64 --decode > dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip
-          test "$(stat -c%s dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip)" -eq 70900
-          echo "42594a782f0166794163d4536ad2a52bd9cb94667278015e8a527409a1aa0cd8  dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip" | sha256sum -c -
+          cat .release_payload/u49/part*.b64 | base64 --decode > /tmp/u49-source.zip
+          test "$(stat -c%s /tmp/u49-source.zip)" -eq 70900
+          echo "42594a782f0166794163d4536ad2a52bd9cb94667278015e8a527409a1aa0cd8  /tmp/u49-source.zip" | sha256sum -c -
 
-      - name: Recreate verified U49 prerelease
+      - name: Build clean three-file release ZIP
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          import zipfile
+
+          src = Path("/tmp/u49-source.zip")
+          out = Path("dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip")
+          out.parent.mkdir(parents=True, exist_ok=True)
+
+          prefix = "Q-Protocol_v0.8.12U49_GitHub_BUILD/"
+          names = ["README.txt", "QProtocol.asi", "QProtocol.ini"]
+          expected = {
+              "README.txt": "094d07139fa858f34955bc32812a7d90c60bf1a27a32b4d74e3b5ae7c144fc91",
+              "QProtocol.asi": "ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03",
+              "QProtocol.ini": "b354812f3d32cf5bdba349976f0eb86d109ce9b2f6023fa4c835fe00fcfba207",
+          }
+
+          with zipfile.ZipFile(src, "r") as zsrc, zipfile.ZipFile(out, "w") as zout:
+              for name in names:
+                  source_name = prefix + name
+                  data = zsrc.read(source_name)
+                  actual = hashlib.sha256(data).hexdigest()
+                  if actual != expected[name]:
+                      raise SystemExit(f"{name}: SHA-256 mismatch: {actual}")
+
+                  src_info = zsrc.getinfo(source_name)
+                  info = zipfile.ZipInfo(name, date_time=src_info.date_time)
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.external_attr = src_info.external_attr
+                  info.create_system = src_info.create_system
+                  zout.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
+
+          with zipfile.ZipFile(out, "r") as z:
+              if z.namelist() != names:
+                  raise SystemExit(f"Unexpected ZIP entries: {z.namelist()!r}")
+              if len(z.infolist()) != 3:
+                  raise SystemExit("Release ZIP must contain exactly three entries")
+              for name in names:
+                  actual = hashlib.sha256(z.read(name)).hexdigest()
+                  if actual != expected[name]:
+                      raise SystemExit(f"{name}: final SHA-256 mismatch: {actual}")
+
+          print(f"Release ZIP size: {out.stat().st_size} bytes")
+          print(f"Release ZIP SHA-256: {hashlib.sha256(out.read_bytes()).hexdigest()}")
+          print("Entries:")
+          for name in names:
+              print(f"  {name}")
+
+      - name: Recreate clean U49 prerelease
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: v0.8.12U49
