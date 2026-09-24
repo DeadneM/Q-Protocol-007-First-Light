@@ -1,0 +1,36 @@
+name: Publish U49 prerelease
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip"
+      - "docs/RELEASE_U49.md"
+      - ".github/workflows/publish-u49.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create or refresh U49 prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v0.8.12U49
+          ASSET: dist/Q-Protocol_v0.8.12U49_GitHub_BUILD.zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+            gh release edit "$TAG"               --title "Q Protocol v0.8.12U49 — Test Build"               --notes-file docs/RELEASE_U49.md               --prerelease
+          else
+            gh release create "$TAG" "$ASSET"               --target "$GITHUB_SHA"               --title "Q Protocol v0.8.12U49 — Test Build"               --notes-file docs/RELEASE_U49.md               --prerelease
+          fi
