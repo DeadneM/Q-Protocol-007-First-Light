@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/banner.webp" alt="Q Protocol - 007 First Light" width="100%">
+</p>
+
 # Q Protocol — 007 First Light
 
 Q Protocol is an experimental PC gameplay patch for **007 First Light** focused on reusing game-native weapon, gadget, ability, ammo, and License To Kill systems.
@@ -96,6 +100,8 @@ The builder validates the input hash, every binary preimage, and the final U49 h
 - `docs/STATUS.md` — current technical state.
 - `docs/HISTORY.md` — development lineage and rejected branches.
 - `checksums/SHA256.txt` — current package/output hashes.
+- `docs/images/banner.webp` — current project banner.
+- `docs/images/archive/` — archived Q Protocol artwork.
 
 The downloadable packaged build is generated from these verified inputs. The cumulative reverse-engineering notebook remains bundled in the ZIP build as `README.txt`.
 
