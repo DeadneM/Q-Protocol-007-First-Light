@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/ChatGPT%20Image%2018%20sept.%202026,%2018_57_16.png" alt="Q Protocol banner" width="100%">
+</p>
+
+<p align="center">
   <img src="docs/images/banner.webp" alt="Q Protocol - 007 First Light" width="100%">
 </p>
 
