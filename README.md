@@ -54,13 +54,29 @@ The first user test reported that U49 **appears to work**: AUTO weapons run, the
 
 The U30/U31 gadget remapper still learns runtime gadget tokens by **vanilla slot position**, not by gadget identity. This can produce the wrong quartet in levels whose vanilla gadget layout differs. U39 proved an identity-based runtime-token approach is possible, including resolving a non-equipped MissilePen token, but that work is deliberately not merged into U49 yet.
 
-## Installation
+## Reproducible U49 build
 
-1. Back up your existing Q Protocol files.
-2. Extract the current ZIP from `dist/`.
-3. Copy `QProtocol.asi` and `QProtocol.ini` to the game's ASI/mod location.
-4. Do not mix old experimental diagnostic ASIs with the current build.
-5. Review `QProtocol.ini` before launching.
+The repository contains a dependency-free builder that reconstructs U49 from the canonical U33 `QProtocol.asi`.
+
+Canonical U33 SHA-256:
+
+```text
+a0ac354d7c7f2c96ceae2fa3da6cadc0756d325d9fb796a4da2083a223f10dce
+```
+
+Expected U49 SHA-256:
+
+```text
+ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03
+```
+
+Build command:
+
+```bash
+python tools/build_u49.py /path/to/U33/QProtocol.asi -o QProtocol.asi
+```
+
+The builder validates the input hash, every binary preimage, and the final U49 hash.
 
 ## Default controls
 
@@ -74,11 +90,14 @@ The U30/U31 gadget remapper still learns runtime gadget tokens by **vanilla slot
 
 ## Repository layout
 
-- `bin/QProtocol.asi` — current U49 test binary.
-- `config/QProtocol.ini` — current U49 configuration.
-- `docs/STATUS.md` — concise technical state and lineage.
-- `checksums/SHA256.txt` — U49 package hashes.
-- `dist/` — packaged test build. The ZIP also contains the full cumulative reverse-engineering notebook as `README.txt`.
+- `config/QProtocol.ini` — exact U49 configuration.
+- `tools/build_u49.py` — reproducible U33 → U49 builder.
+- `patches/U49_PATCH.md` — exact byte/RVA patch record.
+- `docs/STATUS.md` — current technical state.
+- `docs/HISTORY.md` — development lineage and rejected branches.
+- `checksums/SHA256.txt` — current package/output hashes.
+
+The downloadable packaged build is generated from these verified inputs. The cumulative reverse-engineering notebook remains bundled in the ZIP build as `README.txt`.
 
 ## Development rules
 
