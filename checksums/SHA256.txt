@@ -1,3 +1,13 @@
-094d07139fa858f34955bc32812a7d90c60bf1a27a32b4d74e3b5ae7c144fc91  README.txt
-ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03  QProtocol.asi
-b354812f3d32cf5bdba349976f0eb86d109ce9b2f6023fa4c835fe00fcfba207  QProtocol.ini
+# Canonical / current Q Protocol hashes
+
+# Stable lifecycle fallback
+e0e3cf2df49d03b422fbdfcb868d3ca107619b26d004078d5b3f3eb65f31f192  U57/QProtocol.asi
+
+# Identity-mapping base
+a35dacbca68b0b02b1b266b8d52e7e35718753fa4c511f1e328ff2d7a8300eaa  U60/QProtocol.asi
+
+# Current integration/test build
+8c6859628d64641fb0c57010f782b35307fa425364b22cc46e0aa70b9b7d07cb  U67/QProtocol.asi
+b354812f3d32cf5bdba349976f0eb86d109ce9b2f6023fa4c835fe00fcfba207  U67/QProtocol.ini
+32de9005ef4539218398112473bcc7388b8a692c7cf69dcf05b057a88fd1cb01  U67/README.txt
+66def588819f76926030a4ae46e60cd049d803003ec612d91b67c7d15309eec1  Q-Protocol_v0.8.12U67_PlayerAnchoredGadgetList_FromU60_TEST.zip

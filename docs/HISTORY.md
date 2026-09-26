@@ -132,3 +132,69 @@ First gameplay feedback: **appears to work**.
 3. Promote U49 only after those tests.
 4. Then separate MANUAL/AUTO gadget configuration if still desired.
 5. Finally address cross-level gadget identity using U39 findings, while preserving the validated U30/U31 producer path.
+
+
+## 2026-09-25/26 — game-update rebase and post-update gadget work
+
+### U54
+
+Full post-update rebase rebuilt directly from U49. Restored the existing architecture after the game executable changed.
+
+### U55 / U56
+
+Rejected AUTO gadget timing experiments.
+
+U56 proved that direct F2 at weapon completion is unsafe when the runtime player exists before the new mission gadget loadout is valid.
+
+### U57
+
+Validated safe AUTO gadget lifecycle. AUTO sets a pending latch; the existing F2 path is synthesized only after live gadget loadout + runtime player readiness are both valid. The second-level transition crash was fixed.
+
+U57 remains the canonical stable lifecycle fallback.
+
+### U58
+
+Diagnostic event trace proving selected runtime gadget objects can be recovered from the retail caller and matched to current tokens.
+
+### U59
+
+Identity-based four-target token learning using selected-object fingerprints instead of native slot position.
+
+### U60
+
+Corrected the real target-record order with a four-byte table change:
+
+```text
+0 Left
+1 Up
+2 Down
+3 Right
+```
+
+### U61
+
+Diagnostic seven-gadget memory census. Proved a non-equipped MissilePen can remain resident with a valid current-session token. Added a read-only scanner section and dedicated scan buffer.
+
+### U62–U65
+
+Rejected resolver/retry experiments. They introduced unnecessary post-F2 state and retry complexity.
+
+### U66
+
+Rejected prebuilt-list experiment. It anchored the bounded scan to the live mission loadout in the wrong allocation region and also gated manual F2 when the list stayed empty.
+
+### U67
+
+Current working integration/test base.
+
+- U60 gameplay mapping retained.
+- U61 scanner plumbing reused without the B-key diagnostic flow.
+- scan anchor moved to the exact runtime-player-ready object;
+- scan window widened to ±512 MiB;
+- manual F2 remains independent of scanner readiness;
+- AUTO may wait only while the one-shot list scan is running;
+- scan results populate the existing U60 four-target identity-token table.
+
+Latest gameplay feedback: all major systems work again, but the gadget wheel remains wrong. The U67 log reports target mask `0x0F`, so the remaining blocker is the name/identity catalogue rather than F2 execution or AUTO lifecycle.
+
+U67 is accepted as the current working test/integration base, while U57 remains the stable canonical fallback until the seven gadget identities are recaptured authoritatively.

@@ -2,97 +2,123 @@
 
 ## Current branch state
 
-- **Canonical fallback:** U33.
-- **Current proof build:** U49.
-- **U49 first user result:** appears to work.
-- **Promotion status:** not yet canonical; needs broader level/respawn validation.
+- **Canonical stable lifecycle fallback:** U57.
+- **Current integration/test build:** U67.
+- **U67 gameplay result:** core systems are working again; manual F2 executes; AUTO lifecycle executes; level/player readiness remains stable.
+- **Known blocker:** gadget identity/name mapping is still wrong. U67 resolves a four-target runtime-token set mechanically, but the catalogue assigning those tokens to gadget names is not yet authoritative.
+- **Promotion status:** U67 is accepted as the current working test/integration base, but is **not promoted over U57 as the final canonical gadget build** until all seven gadget identities are recaptured from explicit runtime selections.
 
-## Validated gadget lineage
+## U57 validated lifecycle
 
-### U30
-Validated four-gadget runtime-token remapper. In the known-good level the desired mapping is:
-
-- Up = Dartgun
-- Right = Quick Hack
-- Down = SmokePellets
-- Left = MissilePen
-
-### U31
-Integrated the U30 remapper into Q Protocol.
-
-### U33
-Current canonical fallback. Manual F2 works in known-good levels. Legacy AUTO gadget writer is disabled in configuration.
-
-### U39
-Diagnostic milestone. Runtime gadget identities can be resolved independently of vanilla slot position. U39 also proved that a non-equipped MissilePen can still have a valid runtime token.
-
-## Rejected AUTO gadget branches
-
-U44–U48 are documented as rejected experiments and must not be used as foundations.
-
-The main lesson from those builds is that gadget AUTO should not invent a second readiness system or a second writer while the weapon AUTO path already has a working runtime-ready moment.
-
-## U49 architecture
-
-U49 is rebuilt strictly from U33.
-
-The existing weapon helper is shared by MANUAL F4 and AUTO. U49 hooks only the AUTO success path. When the AUTO weapon package has been accepted successfully, U49 calls the exact existing MANUAL F2 wrapper from the same gameplay frame.
+U57 is the stable lifecycle foundation after the 2026-09-25 game update.
 
 ```text
-AUTO weapon helper success
-        |
-        v
-exact F2 wrapper (.q25)
-        |
-        +--> System 13: Q-Lens
-        +--> System 14: GadgetActivation
-        |
-        v
-native 4-record gadget spawner
-        |
-        v
-U30/U31 remapper
-        |
-        v
-retail producer
+AUTO native weapon set COMPLETE
+        ↓
+AUTO_GADGET_PENDING = 1
+        ↓
+validated live gadget loadout + runtime player READY
+        ↓
+synthesize the existing F2 edge
+        ↓
+exact existing F2/native gadget path
 ```
 
-### Frozen U33 paths preserved by U49
+This fixed the U56 second-level crash caused by calling F2 before the new mission gadget loadout existed.
 
-- MANUAL F2 call site: RVA 0x00007967
-- exact MANUAL F2 wrapper: RVA 0x00216000
-- native four-record spawner: RVA 0x00216200
-- U30/U31 remapper: unchanged
-- retail producer hook: unchanged
+U57 ASI SHA-256:
 
-### U49 patch
+`e0e3cf2df49d03b422fbdfcb868d3ca107619b26d004078d5b3f3eb65f31f192`
 
-The AUTO weapon path uses the same shared weapon-package helper as F4.
+## U59 / U60 identity mapping
 
-- MANUAL F4: helper mode 1
-- AUTO: helper mode 2
-- only the AUTO success path reaches the U49 patch point
+U59 changed token learning from vanilla slot position to selected-object fingerprint identity for four target gadgets.
 
-U49 replaces the 7-byte instruction at RVA 0x000087D4 with a jump to a small trampoline in pre-existing executable cave space at RVA 0x00216310.
+U60 corrected the real target-record order:
 
-The trampoline:
+```text
+0 = Left
+1 = Up
+2 = Down
+3 = Right
+```
 
-1. calls the exact MANUAL F2 wrapper at RVA 0x00216000;
-2. replays the displaced original MOV;
-3. jumps back to RVA 0x000087DB.
+Desired mapping:
 
-No new PE section, no new producer hook, no alternate gadget writer, and no extra timer/readiness detector are introduced.
+```text
+Left  = MissilePen
+Up    = Dartgun
+Down  = SmokePellets
+Right = Quick Hack
+```
 
-## Current known limitation
+U60 ASI SHA-256:
 
-The U30/U31 remapper learns tokens by **vanilla slot position**, not by gadget identity. This works in the known-good level but can map the wrong gadgets in levels with a different vanilla quartet.
+`a35dacbca68b0b02b1b266b8d52e7e35718753fa4c511f1e328ff2d7a8300eaa`
 
-Identity-based correction is a later stage. Do not merge the rejected U40–U43 resolver/hook experiments back into the functional base.
+## U61 diagnostic milestone
 
-## Next validation
+U61 proved that a non-equipped MissilePen can exist as a valid runtime object and token in TacSim. It also provided the read-only scanner infrastructure later reused by U67.
 
-1. Confirm U49 AUTO gadgets across more than one level.
-2. Confirm respawn / player replacement.
-3. Confirm MANUAL F2 remains unchanged after AUTO.
-4. Only after U49 survives those tests, separate MANUAL/AUTO gadget profiles.
-5. Then revisit cross-level identity using the U39 findings without replacing the validated U30/U31 producer path.
+U61 itself remains diagnostic-only.
+
+## Rejected U62–U66 experiments
+
+U62–U65 accumulated post-F2 resolver/retry logic and were rejected.
+
+U66 attempted a simpler prebuilt gadget list but anchored its bounded scan to the live mission loadout in a different memory region, producing an empty list and inadvertently gating manual F2. Rejected.
+
+## U67 current integration base
+
+U67 returns to U60 gameplay semantics and reuses only the proven U61 scanner infrastructure.
+
+Changes:
+- scanner anchored to the actual `RUNTIME PLAYER READY object`;
+- one asynchronous read-only scan per player generation;
+- ±512 MiB bounded scan;
+- dedicated 64-KiB buffer;
+- manual F2 left ungated;
+- only AUTO may briefly wait for list construction;
+- scanner result is published into the existing U60 identity-token table.
+
+U67 ASI SHA-256:
+
+`8c6859628d64641fb0c57010f782b35307fa425364b22cc46e0aa70b9b7d07cb`
+
+U67 test ZIP SHA-256:
+
+`66def588819f76926030a4ae46e60cd049d803003ec612d91b67c7d15309eec1`
+
+Latest log:
+
+```text
+U67 GadgetList loaded mask = 0x75
+U67 GadgetList target mask = 0x0F
+U67 GadgetList READY = 1
+U67 Dartgun token = 0x0A010000
+U67 SmokePellets token = 0x0A010001
+U67 MissilePen token = 0x0A010008
+U67 QuickHack token = 0x0A010002
+```
+
+Manual F2 is confirmed to execute the native path, but the resulting gadget wheel is incorrect.
+
+## Current diagnosis
+
+The remaining problem is not AUTO readiness and not the F2 call path.
+
+The scanner is publishing runtime tokens under gadget names that cannot yet be trusted. Stable resource RIDs and runtime `0x0A0100XX` tokens must not be treated as interchangeable identities.
+
+## Next work
+
+Recapture all seven gadget identities from explicit in-game selections/equips and record, for each gadget:
+
+- selectedObject;
+- `+0x108` fingerprint;
+- `+0x110`;
+- `+0x118`;
+- `+0x120` runtime token;
+- `+0x128` signature;
+- resource/definition RID evidence where useful.
+
+Only after that table is authoritative should the U67 publisher be corrected and promoted.

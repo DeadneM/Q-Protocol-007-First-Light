@@ -10,8 +10,9 @@
 
 Q Protocol is an experimental PC gameplay patch for **007 First Light** focused on reusing game-native weapon, gadget, ability, ammo, and License To Kill systems.
 
-> **Current test build:** v0.8.12U49 — Auto Weapon Success → Exact F2  
-> **Canonical fallback:** U33. U49 has an initial positive in-game result, but it remains a test build until broader level/respawn validation is complete.
+> **Current integration/test build:** v0.8.12U67 — Player-Anchored Gadget List  
+> **Canonical stable lifecycle fallback:** U57  
+> **Known blocker:** the current gadget name/identity catalogue is not yet trustworthy enough for final promotion.
 
 ## Highlights
 
@@ -24,67 +25,143 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** focused 
 - U49 proof: after the validated AUTO weapon package succeeds, the exact existing F2 gadget wrapper is called from the same gameplay frame.
 - Game-native systems are reused wherever possible instead of reimplementing gameplay logic externally.
 
-## U49 architecture
+## Current post-update lineage
 
-U49 is deliberately small. It is rebuilt from the U33 canonical ASI and does **not** reuse the rejected U44–U48 gadget-auto experiments.
-
-```text
-AUTO weapon package succeeds
-        ↓
-exact MANUAL F2 wrapper
-        ↓
-Q-Lens + GadgetActivation
-        ↓
-native four-record gadget spawner
-        ↓
-U30/U31 runtime-token remapper
-```
-
-The legacy `AutoSpawnGadget` direct writer remains disabled in U49 so it cannot compete with this path.
-
-## Current status
-
-### Working / previously validated
-
-- Manual F4 package and weapon spawning.
-- Manual F2 gadget path in known-good levels.
-- Four usable gadget slots through the U30/U31 remapper.
-- Q-Lens / gadget activation path.
-- Runtime pair-clone weapon spawning.
-- Manual and automatic ammo infrastructure.
-- License To Kill research / work-in-progress path.
-
-### U49 preliminary result
-
-The first user test reported that U49 **appears to work**: AUTO weapons run, then the existing F2 gadget path is invoked automatically. More testing is required before promoting U49 over U33 as the canonical stable base.
-
-### Known limitation
-
-The U30/U31 gadget remapper still learns runtime gadget tokens by **vanilla slot position**, not by gadget identity. This can produce the wrong quartet in levels whose vanilla gadget layout differs. U39 proved an identity-based runtime-token approach is possible, including resolving a non-equipped MissilePen token, but that work is deliberately not merged into U49 yet.
-
-## Reproducible U49 build
-
-The repository contains a dependency-free builder that reconstructs U49 from the canonical U33 `QProtocol.asi`.
-
-Canonical U33 SHA-256:
+The 2026-09-25 game update invalidated the old U49 addresses. Q Protocol was fully rebased in U54, then the gadget lifecycle was stabilized in U57.
 
 ```text
-a0ac354d7c7f2c96ceae2fa3da6cadc0756d325d9fb796a4da2083a223f10dce
+U49 validated architecture
+        ↓
+U54 full game-update rebase
+        ↓
+U57 safe AUTO gadget lifecycle
+        ↓
+U59 identity-based four-target learning
+        ↓
+U60 corrected target-record order
+        ↓
+U67 player-anchored one-shot gadget census
 ```
 
-Expected U49 SHA-256:
+### What is working in U67
+
+- current game-update compatibility;
+- manual F4 package and native weapon spawning;
+- automatic weapon package;
+- reserve-ammo infrastructure;
+- abilities / Q-Lens path;
+- License To Kill path;
+- manual F2 reaches the normal native gadget path;
+- AUTO uses the U57 safe loadout/player lifecycle;
+- the U67 one-shot scanner resolves a complete four-target runtime-token set in the latest test.
+
+### Remaining blocker
+
+The actual gadget wheel is still wrong even though U67 reports a complete target mask.
+
+Latest user log:
 
 ```text
-ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03
+U67 GadgetList loaded mask = 0x75
+U67 GadgetList target mask = 0x0F
+U67 GadgetList READY = 1
+U67 Dartgun token = 0x0A010000
+U67 SmokePellets token = 0x0A010001
+U67 MissilePen token = 0x0A010008
+U67 QuickHack token = 0x0A010002
 ```
 
-Build command:
+Manual F2 also reaches the existing path:
 
-```bash
-python tools/build_u49.py /path/to/U33/QProtocol.asi -o QProtocol.asi
+```text
+F2 native gadgets requested.
+F2 native gadgets + Q-Lens applied directly.
 ```
 
-The builder validates the input hash, every binary preimage, and the final U49 hash.
+Therefore the remaining problem is **identity data**, not whether F2 executes. Session-local `0x0A0100XX` tokens and resource RIDs must not be treated as interchangeable gadget identities.
+
+## U57 canonical lifecycle
+
+U57 fixed the post-update transition crash by removing the direct F2 call from weapon completion.
+
+```text
+AUTO native weapon set COMPLETE
+        ↓
+AUTO_GADGET_PENDING = 1
+        ↓
+validated live gadget loadout + runtime player READY
+        ↓
+synthesize existing F2 edge
+        ↓
+exact existing F2/native gadget path
+```
+
+U57 remains the stable lifecycle fallback while the identity catalogue is corrected.
+
+## U60 identity mapping
+
+U59 changed token learning from vanilla slot position to selected-object fingerprint identity for the four target gadgets.
+
+U60 corrected the real native target-record order:
+
+```text
+0 = Left
+1 = Up
+2 = Down
+3 = Right
+```
+
+Desired Q Protocol quartet:
+
+```text
+Left  = MissilePen
+Up    = Dartgun
+Down  = SmokePellets
+Right = Quick Hack
+```
+
+## U67 architecture
+
+U67 preserves U60's `.q31` remapper byte-for-byte and layers a one-shot read-only census around the validated runtime-player-ready object.
+
+- scan anchor: actual `RUNTIME PLAYER READY object`;
+- maximum window: ±512 MiB;
+- `VirtualQuery` + `ReadProcessMemory`;
+- committed readable pages only;
+- dedicated 64-KiB scan buffer;
+- one scan per player generation;
+- no B-key diagnostic flow;
+- manual F2 is not gated by scanner readiness;
+- AUTO may wait only while the one-shot scan is running;
+- scanner results populate the existing U60 identity-token table.
+
+The exact binary comparison is documented in [`patches/U67_DELTA.md`](patches/U67_DELTA.md).
+
+## Exact current hashes
+
+U57 canonical lifecycle ASI:
+
+```text
+e0e3cf2df49d03b422fbdfcb868d3ca107619b26d004078d5b3f3eb65f31f192
+```
+
+U60 identity-mapping ASI:
+
+```text
+a35dacbca68b0b02b1b266b8d52e7e35718753fa4c511f1e328ff2d7a8300eaa
+```
+
+U67 current test ASI:
+
+```text
+8c6859628d64641fb0c57010f782b35307fa425364b22cc46e0aa70b9b7d07cb
+```
+
+U67 current test ZIP:
+
+```text
+66def588819f76926030a4ae46e60cd049d803003ec612d91b67c7d15309eec1
+```
 
 ## Default controls
 
@@ -98,16 +175,14 @@ The builder validates the input hash, every binary preimage, and the final U49 h
 
 ## Repository layout
 
-- `config/QProtocol.ini` — exact U49 configuration.
-- `tools/build_u49.py` — reproducible U33 → U49 builder.
-- `patches/U49_PATCH.md` — exact byte/RVA patch record.
+- `config/QProtocol.ini` — packaged configuration.
+- `patches/U67_DELTA.md` — exact U67 vs U57/U60 audit.
+- `patches/U49_PATCH.md` — historical U49 byte-level patch record.
+- `tools/build_u49.py` — historical reproducible U33 → U49 builder.
 - `docs/STATUS.md` — current technical state.
-- `docs/HISTORY.md` — development lineage and rejected branches.
-- `checksums/SHA256.txt` — current package/output hashes.
-- `docs/images/banner.webp` — current project banner.
-- `docs/images/archive/` — archived Q Protocol artwork.
-
-The downloadable packaged build is generated from these verified inputs. The cumulative reverse-engineering notebook remains bundled in the ZIP build as `README.txt`.
+- `docs/HISTORY.md` — cumulative development lineage and rejected branches.
+- `checksums/SHA256.txt` — canonical/current hashes.
+- `docs/images/banner.webp` — project banner.
 
 ## Development rules
 
@@ -122,12 +197,17 @@ Q Protocol deliberately favors surgical changes:
 
 ## Important lineage
 
-- **U30:** four-gadget native remapper validated in game.
-- **U31:** integrated the U30 remapper into Q Protocol.
-- **U33:** canonical gadget fallback, manual-only with legacy AUTO gadget disabled.
-- **U39:** identity-based runtime-token census proved the cross-level problem can be solved by identity.
-- **U44–U48:** rejected AUTO gadget integration experiments.
-- **U49:** rebuilt from U33; AUTO weapon success calls the exact MANUAL F2 wrapper.
+- **U30/U31:** validated native four-gadget remapper lineage.
+- **U33:** historical pre-update canonical fallback.
+- **U39:** identity/runtime census milestone.
+- **U44–U48:** rejected AUTO integration experiments.
+- **U49:** pre-update AUTO success → exact F2 architecture.
+- **U54:** full rebase after the 2026-09-25 game update.
+- **U57:** validated safe AUTO gadget lifecycle; current stable lifecycle fallback.
+- **U59/U60:** identity-based four-target mapping and corrected record order.
+- **U61:** diagnostic seven-gadget census / scanner infrastructure.
+- **U62–U66:** rejected resolver/list experiments.
+- **U67:** current working integration/test base; gadget identity catalogue still under audit.
 
 ## Disclaimer
 
