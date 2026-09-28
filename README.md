@@ -10,9 +10,10 @@
 
 Q Protocol is an experimental PC gameplay patch for **007 First Light** focused on reusing game-native weapon, gadget, ability, ammo, and License To Kill systems.
 
-> **Current integration/test build:** v0.8.12U67 — Player-Anchored Gadget List  
-> **Canonical stable lifecycle fallback:** U57  
-> **Known blocker:** the current gadget name/identity catalogue is not yet trustworthy enough for final promotion.
+> **Current functional base:** v0.8.12U74 — Fixed Gadget Runtime Scan  
+> **Current diagnostic build:** U77 — Vanilla Gadget Object Debugger  
+> **Canonical lifecycle lineage:** U57 → U67 → U74  
+> **Current blocker:** the stable gadget identities are now confirmed; the remaining work is reproducing the vanilla slot-assignment path reliably for F2/AUTO.
 
 ## Highlights
 
@@ -24,6 +25,67 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** focused 
 - Automatic weapon package using the live runtime player.
 - U49 proof: after the validated AUTO weapon package succeeds, the exact existing F2 gadget wrapper is called from the same gameplay frame.
 - Game-native systems are reused wherever possible instead of reimplementing gameplay logic externally.
+
+## 2026-09-28 gadget identity breakthrough
+
+U74 fixed the scanner regression caused by anchoring the gadget census to the player allocation. The scanner now uses a bounded fixed runtime arena:
+
+```text
+0x150000000 .. 0x1B0000000
+```
+
+This restored AUTO gadget discovery after player relocation while preserving the U67/U57 gameplay lifecycle.
+
+U76 then proved that the retail producer record itself is too late to recover stable gadget identity: vanilla deliberately writes `FFFFFFFFFFFFFFFF` into `record+0x08`, while `record+0x10` only contains a session-local runtime handle.
+
+U77 moved the diagnostic hook upstream to the vanilla selected gadget object at `EXE+0x16CDC60`. Controlled before/after wheel tests confirmed that:
+
+```text
+selectedObject +0x08 -> child
+child +0x48          -> stable gadget Definition RID
+selectedObject+0x120 -> temporary runtime handle only, NOT an ID
+```
+
+Confirmed stable gadget Definition RIDs:
+
+```text
+Dartgun / Flechettes  = 01BA073B3AF0DF1A
+Flash Mine            = 01996C3564BAC637
+Laser                 = 01DAA5F042213007
+Shockwave Camera      = 017B6AC5904D1002
+Smoke Pellets         = 01806F52640773E4
+Missile Pen           = 01793C25053E8A06
+Hack                  = 01C3E1A95580C73B
+```
+
+Controlled U77 test mapping:
+
+```text
+SET A
+Left  = Laser
+Up    = Flash Mine
+Down  = Smoke Pellets
+Right = Shockwave Camera
+
+SET B
+Left  = Hack
+Up    = Dartgun / Flechettes
+Down  = Missile Pen
+Right = Empty
+```
+
+The second snapshot produced exactly three vanilla assignment events, one for each changed non-empty slot. Clearing the Right slot produced no replacement assignment event, so removal follows a different branch.
+
+The active Q Protocol target wheel remains:
+
+```text
+Left  = MissilePen
+Up    = Dartgun
+Down  = SmokePellets
+Right = Hack
+```
+
+The INI catalogue now records the confirmed Definition RIDs. `FlashMine` and `ShockwaveCamera` are the preferred new canonical names, but parser support for those two names is still pending. Existing aliases remain active until that parser change is made.
 
 ## Current post-update lineage
 
