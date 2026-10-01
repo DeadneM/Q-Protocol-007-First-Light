@@ -79,7 +79,17 @@ GiveWeapon(player, weapon)
 
 Manual and AUTO share these exact primitives.
 
-### AUTO
+### Manual and AUTO profiles
+
+Both profiles are editable independently in the overlay and INI.
+
+**Manual**
+- choose the weapons used by F3;
+- choose the ammo quantities used by F2.
+
+**AUTO**
+- choose the automatic weapon list;
+- choose the automatic ammo quantities.
 
 ```text
 player available
