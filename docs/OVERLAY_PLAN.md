@@ -106,6 +106,56 @@ Parameter:
 
 - Weapon alias/RID
 
+## Manual / AUTO profile editors
+
+The overlay must expose two parallel profile editors.
+
+### Manual
+
+```text
+ManualLoadout
+  Weapon1
+  Weapon2
+  Weapon3
+  ...
+
+ManualAmmo
+  QPistol
+  SMG
+  AssaultRifle
+  Shotgun
+  Sniper
+  HeavyPistol
+```
+
+F3 consumes `ManualLoadout`.
+
+F2 consumes `ManualAmmo`.
+
+### AUTO
+
+```text
+AutoLoadout
+  Weapon1
+  Weapon2
+  Weapon3
+  ...
+
+AutoAmmo
+  QPistol
+  SMG
+  AssaultRifle
+  Shotgun
+  Sniper
+  HeavyPistol
+```
+
+AUTO consumes both profiles through the exact same gameplay primitives used manually.
+
+Weapon slots may be set to `None`.
+
+Ammo quantities are editable independently for Manual and AUTO.
+
 ## Overlay controls
 
 ### Save
@@ -126,6 +176,11 @@ F2 Ammo / Manual
 F3 ManualLoadout / Manual
 F4 SwapQPistol
 F5-F12 Weapon
+
+ManualLoadout -> default manual weapon list
+ManualAmmo    -> default manual ammo quantities
+AutoLoadout   -> default automatic weapon list
+AutoAmmo      -> default automatic ammo quantities
 ```
 
 ## Status area
