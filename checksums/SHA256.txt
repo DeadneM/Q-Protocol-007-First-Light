@@ -1,13 +1,13 @@
-# Canonical / current Q Protocol hashes
+# Q Protocol reference hashes
 
-# Stable lifecycle fallback
-e0e3cf2df49d03b422fbdfcb868d3ca107619b26d004078d5b3f3eb65f31f192  U57/QProtocol.asi
+# Current state
+# No October-2026 post-update ASI is currently validated/canonical.
 
-# Identity-mapping base
-a35dacbca68b0b02b1b266b8d52e7e35718753fa4c511f1e328ff2d7a8300eaa  U60/QProtocol.asi
+# Historical behavioral reference: validated U74 ASI
+8c442ca40cd89b34588cfe9e43801e03952af8012e3c23e5c3f09ce7d355199a  U74/QProtocol.asi
 
-# Current integration/test build
-8c6859628d64641fb0c57010f782b35307fa425364b22cc46e0aa70b9b7d07cb  U67/QProtocol.asi
-b354812f3d32cf5bdba349976f0eb86d109ce9b2f6023fa4c835fe00fcfba207  U67/QProtocol.ini
-32de9005ef4539218398112473bcc7388b8a692c7cf69dcf05b057a88fd1cb01  U67/README.txt
-66def588819f76926030a4ae46e60cd049d803003ec612d91b67c7d15309eec1  Q-Protocol_v0.8.12U67_PlayerAnchoredGadgetList_FromU60_TEST.zip
+# Current October-2026 target game executable
+9d82479246d2c2fbcbcbb94e24aeb91bc8917241148278a3288031afb5828bf2  007FirstLight.exe
+
+# Historical public U49 ASI, retained only as an archive reference
+ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03  archive/U49/QProtocol.asi
