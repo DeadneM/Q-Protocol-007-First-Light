@@ -4,6 +4,13 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins for current architecture and next steps.
 
+## Repository cleanup
+
+- Active repository surface was cleaned on 2026-10-01.
+- Gadget-era audits, U49/U67 patch records, the legacy cumulative INI, and the U49 builder were moved under `docs/archive/` and `tools/legacy/`.
+- Active README, STATUS, config and checksums now describe only the minimal-core direction.
+- Historical releases remain preserved as archives and are not current implementation bases.
+
 ## Current status
 
 - Historical validated gameplay base: **U74** on the pre-October-2026 game executable.
