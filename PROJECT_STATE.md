@@ -1,124 +1,118 @@
 # Q Protocol — Project State
 
-> **This file is the primary source of truth for the current project state.**
+> **Primary source of truth.**
 > Read this file first when resuming Q Protocol in a new conversation.
-> If older README/history notes conflict with this file, this file wins for current architecture and next steps.
-
-## Repository cleanup
-
-- Active repository surface was cleaned on 2026-10-01.
-- Gadget-era audits, U49/U67 patch records, the legacy cumulative INI, and the U49 builder were moved under `docs/archive/` and `tools/legacy/`.
-- Active README, STATUS, config and checksums now describe only the minimal-core direction.
-- Historical releases remain preserved as archives and are not current implementation bases.
+> If older README/history notes conflict with this file, this file wins.
 
 ## Current status
 
-- Historical validated gameplay base: **U74** on the pre-October-2026 game executable.
+- Historical behavioral reference: **U74** on the pre-October-2026 executable.
 - Current game executable: October 2026 update.
-- Current compatibility status: **not yet validated**.
-- U80, U81, U81B, U82, U82A, U83, U84 and U85 are **rejected diagnostic/rebase branches**.
-- **Never use U80-U85 as a new canonical base.**
-- U74 remains the behavioral reference for extracting validated primitives only.
+- Current post-update canonical build: **none yet**.
+- U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
+- Never use U80-U85 as a new base.
+- Gadget support is removed from Q Protocol and must not be reintroduced.
+- Active repository surface has been cleaned; gadget-era material is archived under `docs/archive/`.
 
-## Product direction
+## Default controls
 
-Q Protocol is being simplified deliberately.
+These defaults are now authoritative:
 
-The old accumulated architecture is not to be ported wholesale.
+| Key | Default action |
+|---|---|
+| F1 | License To Kill ON/OFF |
+| F2 | Add/refill ammo |
+| F3 | Apply manual weapon loadout |
+| F4 | Swap Q-Pistol mode |
+| F5 | Weapon slot 1 |
+| F6 | Weapon slot 2 |
+| F7 | Weapon slot 3 |
+| F8 | Weapon slot 4 |
+| F9 | Weapon slot 5 |
+| F10 | Weapon slot 6 |
+| F11 | Weapon slot 7 |
+| F12 | Weapon slot 8 |
 
-### Gadgets
+## Overlay plan
 
-- Gadget support is **removed from Q Protocol**.
-- The game now handles gadgets natively across missions.
-- Do not add gadget discovery, remapping, slot forcing, gadget scanners, gadget producer hooks, gadget AUTO logic, or gadget hotkeys.
-- **F2 is free.**
+Q Protocol will use an in-game overlay inspired by the clean Saboteur/Postal plan.
 
-## Required architecture
+### Overlay key
 
-The mod should have one simple shared core.
+- Default overlay toggle: **Insert**
+- Overlay key is independent from F1-F12 so no gameplay slot is consumed.
 
-### 1. Player availability
+### Slot model
 
-Use one function:
+Every F1-F12 key is represented as a generic configurable slot:
+
+```text
+Key -> Action -> contextual parameters
+```
+
+The default mapping is the table above, but the overlay may reassign any slot later without recompiling the ASI.
+
+Supported action categories for the new core:
+
+```text
+None
+LicenseToKill
+Ammo
+ManualLoadout
+SwapQPistol
+Weapon
+```
+
+Only parameters relevant to the selected action should be shown.
+
+Examples:
+
+- `LicenseToKill`: no extra parameter.
+- `Ammo`: choose Manual/Auto ammo profile or explicit profile.
+- `ManualLoadout`: choose configured loadout profile.
+- `SwapQPistol`: choose the two Q-Pistol variants/modes.
+- `Weapon`: choose one weapon alias/RID.
+
+### Overlay controls
+
+The overlay must provide:
+
+- **Save** -> write current settings to `QProtocol.ini`
+- **Reload** -> reload `QProtocol.ini` from disk
+- **Reset Defaults** -> restore the authoritative F1-F12 defaults
+- current player-ready state
+- current AUTO state
+- current action assigned to each key
+
+No second configuration system should exist outside the INI.
+
+## Minimal gameplay core
+
+The new ASI should expose only a small set of shared primitives:
 
 ```text
 ResolvePlayer()
-```
-
-If no usable player exists, manual weapon/ammo actions do nothing safely.
-
-AUTO watches this same player availability.
-
-When the player becomes available and AUTO has not run for that player/session:
-
-```text
-ApplyAutoProfile(player)
-```
-
-When the player disappears or changes:
-
-```text
-AutoDone = false
-```
-
-No separate AUTO readiness architecture is allowed unless proven strictly necessary.
-
-### 2. License To Kill
-
-**F1 = Toggle License To Kill ON/OFF**
-
-This feature is independent from AUTO, weapons and ammo.
-
-One function:
-
-```text
 ToggleLicenseToKill()
-```
-
-### 3. Ammo
-
-**F3 = add/refill configured ammo**
-
-One function:
-
-```text
 AddAmmo(player, profile)
-```
-
-Manual F3 uses the manual ammo values.
-
-AUTO calls the exact same `AddAmmo()` function with the AUTO ammo values.
-
-Do not maintain separate manual and AUTO ammo implementations.
-
-The October 2026 game update changed the native ammo backend. The old U74 ammo record must not be copied blindly. Re-audit and implement the current native format cleanly before enabling ammo again.
-
-### 4. Weapons
-
-**F4 through F12 = give the configured weapon if the player is available**
-
-One function:
-
-```text
+ApplyWeaponLoadout(player, profile)
+SwapQPistol(player)
 GiveWeapon(player, weapon)
 ```
 
-All weapon hotkeys call the same function.
+### Rules
 
-AUTO calls the exact same `GiveWeapon()` function with values from the AUTO profile.
-
-Do not keep separate:
-- AUTO GiveWeapon
-- manual GiveWeapon
-- special F4 package logic
-- special Q-Pistol spawn path
-- OneHanded/TwoHanded state machines
-
-A small queue/busy flag is allowed only if the native weapon spawner is asynchronous and requires serialization.
+- F1 calls `ToggleLicenseToKill()`.
+- F2 calls `AddAmmo(player, ManualAmmo)`.
+- F3 calls `ApplyWeaponLoadout(player, ManualLoadout)`.
+- F4 calls `SwapQPistol(player)`.
+- F5-F12 call `GiveWeapon(player, configuredWeapon)`.
+- All player-dependent actions first use the same `ResolvePlayer()`.
+- No separate manual/AUTO implementation of the same gameplay primitive.
+- A tiny weapon queue/busy flag is allowed only if the native spawner is asynchronous.
 
 ## AUTO contract
 
-AUTO must remain conceptually this simple:
+AUTO must remain conceptually simple:
 
 ```text
 player = ResolvePlayer()
@@ -131,74 +125,75 @@ if player changed:
     AutoDone = false
 
 if not AutoDone:
-    apply the same manual primitives using AUTO values
+    ApplyWeaponLoadout(player, AutoLoadout)
+    AddAmmo(player, AutoAmmo)
     AutoDone = true
 ```
 
-AUTO must not duplicate manual functionality.
+AUTO uses the **same** `ApplyWeaponLoadout()`, `GiveWeapon()` and `AddAmmo()` code as manual actions. Only the profile values differ.
+
+AUTO does not own a separate state machine for weapons or ammo.
+
+## Q-Pistol rule
+
+F4 is specifically the Q-Pistol swap/toggle action.
+
+The new implementation should prefer one simple `SwapQPistol()` path that switches between the configured Q-Pistol variants.
+
+Do not resurrect the old special Q-Pistol package state machine.
 
 ## Features to keep
 
-- F1: License To Kill toggle
-- F3: ammo refill/add
-- F4-F12: configurable weapon hotkeys
-- AUTO: same functions as manual, with AUTO values
-- INI persistence/configuration
-- clean logging
+- F1 License To Kill toggle
+- F2 ammo
+- F3 manual weapon loadout
+- F4 Q-Pistol swap
+- F5-F12 configurable weapon slots
+- AUTO using the same manual primitives with AUTO values
+- INI persistence
+- overlay with Save / Reload / Reset Defaults
+- clean log
 - safe player availability detection
 
-## Features to remove / not reintroduce
+## Features to remove / never reintroduce
 
 - gadget code
+- gadget remappers/scanners/producer hooks
 - F2 gadget action
-- gadget remappers
-- gadget runtime scanners
-- gadget producer hooks
-- AUTO gadget state
-- duplicate manual/AUTO implementations
+- gadget AUTO state
+- duplicate manual/AUTO weapon implementations
+- duplicate manual/AUTO ammo implementations
 - multiple player readiness lanes
-- Q-Pistol-specific state machine if generic GiveWeapon can handle it
-- recovery spawn paths unless a current native requirement proves them necessary
-- old cumulative state machines carried forward merely for compatibility
+- old F4 package state machine
+- old Q-Pistol recovery state machine
+- historical cumulative state machines copied only for compatibility
+- heavy runtime scans unless a current native primitive absolutely requires one
 
 ## Implementation rule
 
 The next implementation must be a **fresh minimal core**.
 
-Use U74 only as a reference library to identify validated native primitives:
-- player resolution
-- License To Kill
-- weapon giving
-- ammo handling
+Use U74 only as a behavioral/reference library to identify native primitives.
 
-Do **not** continue patching U80-U85.
+Do not continue patching U80-U85.
 
-Before producing a new test build:
-1. identify the current October-2026 native equivalent for each required primitive;
-2. document its inputs, outputs, state dependencies and exact executable references;
-3. implement the smallest possible shared wrapper;
-4. ensure manual and AUTO call the same wrapper;
-5. only then build the next candidate.
+Before the next numbered build:
 
-## Next exact step
-
-**Audit and extract the four primitives from U74 and map them to the October-2026 executable:**
-
-1. `ResolvePlayer()`
-2. `ToggleLicenseToKill()`
-3. `GiveWeapon()`
-4. `AddAmmo()`
-
-Then build a new minimal ASI around those primitives.
-
-No new numbered compatibility build should be created before this primitive audit is complete.
+1. map `ResolvePlayer()` to the October-2026 executable;
+2. map `ToggleLicenseToKill()`;
+3. map the native weapon primitive needed by `GiveWeapon()`;
+4. map the current ammo primitive needed by `AddAmmo()`;
+5. determine the smallest safe `SwapQPistol()`;
+6. implement `ApplyWeaponLoadout()` only as a thin caller of `GiveWeapon()`;
+7. implement AUTO only as a caller of the same manual primitives;
+8. add the overlay/config layer only after the gameplay primitives are stable.
 
 ## Documentation discipline
 
-After every meaningful test or accepted/rejected build, update this file with only:
+After every meaningful test or accepted/rejected build update this file with:
+
 - current canonical/reference base;
 - latest verdict;
 - next exact step.
 
-Keep detailed reverse-engineering history in README/docs.
-Keep this file short, current and authoritative.
+Detailed archaeology stays in `docs/HISTORY.md` and `docs/archive/`.
