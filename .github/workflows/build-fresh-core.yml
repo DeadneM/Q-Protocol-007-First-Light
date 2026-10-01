@@ -1,0 +1,70 @@
+name: Build Fresh Core
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "config/QProtocol.ini"
+      - "packaging/README.txt"
+      - ".github/workflows/build-fresh-core.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build QProtocol.asi
+        shell: cmd
+        run: |
+          if not exist dist mkdir dist
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /LD /DUNICODE /D_UNICODE src\QProtocol.cpp user32.lib kernel32.lib /link /OUT:dist\QProtocol.asi
+
+      - name: Package exact three-file test ZIP
+        shell: pwsh
+        run: |
+          Copy-Item config\QProtocol.ini dist\QProtocol.ini
+          Copy-Item packaging\README.txt dist\README.txt
+
+          @'
+          from pathlib import Path
+          import hashlib
+          import zipfile
+
+          dist = Path("dist")
+          names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
+          out = dist / "Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip"
+
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for name in names:
+                  z.write(dist / name, arcname=name)
+
+          with zipfile.ZipFile(out, "r") as z:
+              assert z.namelist() == names
+
+          for name in names:
+              data = (dist / name).read_bytes()
+              print(f"{name}: {len(data)} bytes SHA-256 {hashlib.sha256(data).hexdigest()}")
+
+          print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
+          '@ | python -
+
+      - name: Upload test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Q-Protocol_FreshCore_A1
+          path: dist/Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip
+          if-no-files-found: error
