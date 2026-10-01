@@ -1,3 +1,29 @@
+> [!NOTE]
+> **Historical notebook only.** The active architecture was reset in October 2026.  
+> Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
+> Gadget-era findings below are preserved for research and must not be treated as current product direction.
+
+## October 2026 architecture reset
+
+After the October 2026 game update, cumulative U80-U85 rebases were rejected.
+
+The project direction was simplified to four shared primitives:
+
+```text
+ResolvePlayer()
+ToggleLicenseToKill()
+GiveWeapon(player, weapon)
+AddAmmo(player, profile)
+```
+
+F1 toggles LTK, F2 is free, F3 adds ammo, F4-F12 give configured weapons, and AUTO calls the same manual primitives with AUTO values.
+
+Gadget functionality is removed from Q Protocol because the updated game now carries gadgets across missions natively.
+
+The remainder of this file is retained as historical development evidence.
+
+---
+
 # Development history and current findings
 
 This file is a compact reconstruction of the important Q Protocol gadget/weapon lineage. Rejected branches are retained so they are not accidentally reintroduced.
