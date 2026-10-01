@@ -194,6 +194,21 @@ Do not resurrect the old special Q-Pistol package state machine.
 - historical cumulative state machines copied only for compatibility
 - heavy runtime scans unless a current native primitive absolutely requires one
 
+## Primitive audit status
+
+The October-2026 primitive audit is now complete enough to start fresh source implementation.
+
+See `docs/PRIMITIVE_AUDIT_OCT2026.md`.
+
+Locked results:
+
+- `ResolvePlayer()`: current resolver/registry/playerId path mapped.
+- `ToggleLicenseToKill()`: current DL-based site mapped and gameplay-validated.
+- `GiveWeapon()`: generic pair-clone + current native trigger mapped and gameplay-validated.
+- `AddAmmo()`: current native `AddFirearmAmmunitionToPlayer` event path mapped.
+- `ApplyWeaponLoadout()`: thin shared caller of `GiveWeapon()`.
+- `SwapQPistol()`: thin shared caller of `GiveWeapon()`.
+
 ## Implementation rule
 
 The next implementation must be a **fresh minimal core**.
