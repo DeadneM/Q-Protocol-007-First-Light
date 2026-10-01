@@ -8,107 +8,108 @@
 
 # Q Protocol — 007 First Light
 
-Q Protocol is an experimental PC gameplay patch for **007 First Light** built around a deliberately small set of game-native actions.
+Q Protocol is an experimental PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
 > [!IMPORTANT]
-> **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.**  
-> It is the authoritative source for the active architecture, rejected branches, and next exact step.
+> **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 
-## Current state
+## Current direction
 
-The October 2026 game update changed the executable and invalidated the previous cumulative compatibility work.
+The old cumulative U74 architecture is no longer being ported wholesale after the October 2026 game update.
 
-- **Behavioral reference:** U74 on the pre-update executable.
-- **Current post-update build:** none validated yet.
-- **Rejected compatibility experiments:** U80 through U85.
-- **Gadgets:** removed from Q Protocol. The game now handles them natively.
-- **F2:** free.
-- **Next task:** audit and map the four minimal primitives before producing another numbered build.
+- U74 remains a behavioral/reference library.
+- U80-U85 are rejected compatibility experiments.
+- Gadgets are removed from Q Protocol.
+- A fresh minimal ASI will be built around shared native primitives.
 
-## Minimal architecture
+## Default controls
 
-Q Protocol now has only four required gameplay primitives:
+| Key | Default action |
+|---|---|
+| F1 | License To Kill ON/OFF |
+| F2 | Ammo + |
+| F3 | Manual weapon loadout |
+| F4 | Q-Pistol swap |
+| F5-F12 | Configurable weapon slots |
+
+## Overlay
+
+Default overlay key: **Insert**.
+
+The overlay follows the clean Saboteur/Postal-style model:
+
+```text
+F1-F12 slot
+    -> Action
+    -> only the parameters relevant to that action
+```
+
+Available action categories:
+
+- None
+- License To Kill
+- Ammo
+- Manual Loadout
+- Swap Q-Pistol
+- Weapon
+
+The overlay will provide:
+
+- **Save**
+- **Reload**
+- **Reset Defaults**
+- player-ready state
+- AUTO state
+- current F1-F12 bindings
+
+Settings persist in [`config/QProtocol.ini`](config/QProtocol.ini). Rebinding should not require recompiling the ASI.
+
+See [`docs/OVERLAY_PLAN.md`](docs/OVERLAY_PLAN.md).
+
+## Minimal core
 
 ```text
 ResolvePlayer()
 ToggleLicenseToKill()
-GiveWeapon(player, weapon)
 AddAmmo(player, profile)
+ApplyWeaponLoadout(player, profile)
+SwapQPistol(player)
+GiveWeapon(player, weapon)
 ```
 
-Manual and AUTO must call the **same implementation**.
-
-### Controls
-
-| Key | Action |
-|---|---|
-| F1 | Toggle License To Kill |
-| F2 | Free / unassigned |
-| F3 | Add/refill configured ammo |
-| F4–F12 | Give the configured weapon if the player is available |
+Manual and AUTO share these exact primitives.
 
 ### AUTO
 
-AUTO is intentionally simple:
-
 ```text
-player = ResolvePlayer()
-
-if no player:
-    AutoDone = false
-    return
-
-if player changed:
-    AutoDone = false
-
-if not AutoDone:
-    call the same GiveWeapon/AddAmmo primitives using [Auto] values
-    AutoDone = true
+player available
+    -> ApplyWeaponLoadout(player, AutoLoadout)
+    -> AddAmmo(player, AutoAmmo)
+    -> AutoDone = true
 ```
 
-No separate AUTO implementation is allowed unless the current game executable proves it is strictly necessary.
+If the player disappears or changes, `AutoDone` resets.
 
-## What is not coming back
+AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
-The active implementation must not reintroduce:
+## Repository
 
-- gadget remappers;
-- gadget scanners;
-- gadget producer hooks;
-- F2 gadget logic;
-- duplicate manual/AUTO weapon systems;
-- duplicate manual/AUTO ammo systems;
-- multiple player-readiness lanes;
-- special Q-Pistol state machines if generic `GiveWeapon()` can handle it;
-- old cumulative state machines merely because they existed in U74.
-
-## Configuration target
-
-The active configuration is kept in [`config/QProtocol.ini`](config/QProtocol.ini).
-
-It describes the **target minimal core**, not the old cumulative U74 parser.
-
-## Documentation
-
-- [`PROJECT_STATE.md`](PROJECT_STATE.md) — current source of truth.
+- [`PROJECT_STATE.md`](PROJECT_STATE.md) — authoritative project state.
 - [`docs/STATUS.md`](docs/STATUS.md) — concise technical status.
-- [`docs/HISTORY.md`](docs/HISTORY.md) — historical development notebook.
-- [`docs/archive/`](docs/archive/) — retired gadget-era and old patch documentation.
-- [`checksums/SHA256.txt`](checksums/SHA256.txt) — current reference hashes.
+- [`docs/OVERLAY_PLAN.md`](docs/OVERLAY_PLAN.md) — overlay and input architecture.
+- [`config/QProtocol.ini`](config/QProtocol.ini) — target configuration.
+- [`docs/HISTORY.md`](docs/HISTORY.md) — historical notebook.
+- [`docs/archive/`](docs/archive/) — retired gadget-era research.
 
 ## Development rules
 
 - Keep the core small.
-- Manual and AUTO share the same primitives.
-- Map native functions by semantics/full-function evidence, not by guessed RVA deltas.
-- Do not promote a build until it survives real gameplay testing.
-- Update `PROJECT_STATE.md` after every meaningful accepted/rejected build.
-- Preserve detailed old research in the archive, but never let it override the active state.
-
-## Historical note
-
-The project previously explored extensive gadget remapping and multi-stage AUTO logic through U30–U77. That research is preserved under `docs/archive/` and `docs/HISTORY.md`, but it is no longer part of the product direction.
+- Manual and AUTO share gameplay primitives.
+- No gadget code.
+- No duplicate manual/AUTO state machines.
+- Map native functions by full semantic evidence, not guessed RVA deltas.
+- Do not build another numbered compatibility release until the required primitives are understood.
 
 ## Disclaimer
 
-Q Protocol is an unofficial community modification and is not affiliated with or endorsed by the game publisher, developer, or rights holders. Back up your files and test experimental builds at your own risk.
+Q Protocol is an unofficial community modification and is not affiliated with or endorsed by the game publisher, developer, or rights holders.
