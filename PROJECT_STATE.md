@@ -77,9 +77,11 @@ Examples:
 
 The overlay must provide:
 
+- **Manual profile editor** -> choose ManualLoadout weapons and ManualAmmo quantities
+- **AUTO profile editor** -> choose AutoLoadout weapons and AutoAmmo quantities
 - **Save** -> write current settings to `QProtocol.ini`
 - **Reload** -> reload `QProtocol.ini` from disk
-- **Reset Defaults** -> restore the authoritative F1-F12 defaults
+- **Reset Defaults** -> restore the authoritative F1-F12 defaults and profile defaults
 - current player-ready state
 - current AUTO state
 - current action assigned to each key
@@ -110,9 +112,32 @@ GiveWeapon(player, weapon)
 - No separate manual/AUTO implementation of the same gameplay primitive.
 - A tiny weapon queue/busy flag is allowed only if the native spawner is asynchronous.
 
-## AUTO contract
+## Manual and AUTO profiles
 
-AUTO must remain conceptually simple:
+Manual and AUTO are two configurable data profiles using the same gameplay code.
+
+### Manual profile
+
+The user can choose:
+
+- the weapons contained in `ManualLoadout`;
+- the reserve-ammo quantity for each supported ammo class in `ManualAmmo`.
+
+Default behavior:
+
+```text
+F2 -> AddAmmo(player, ManualAmmo)
+F3 -> ApplyWeaponLoadout(player, ManualLoadout)
+```
+
+### AUTO profile
+
+The user can choose independently:
+
+- the weapons contained in `AutoLoadout`;
+- the reserve-ammo quantity for each supported ammo class in `AutoAmmo`.
+
+AUTO remains conceptually simple:
 
 ```text
 player = ResolvePlayer()
@@ -130,7 +155,7 @@ if not AutoDone:
     AutoDone = true
 ```
 
-AUTO uses the **same** `ApplyWeaponLoadout()`, `GiveWeapon()` and `AddAmmo()` code as manual actions. Only the profile values differ.
+Manual and AUTO call the **same** `ApplyWeaponLoadout()`, `GiveWeapon()` and `AddAmmo()` implementations. Only weapon selections and ammo quantities differ.
 
 AUTO does not own a separate state machine for weapons or ammo.
 
