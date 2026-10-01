@@ -8,6 +8,9 @@
 
 # Q Protocol — 007 First Light
 
+> [!IMPORTANT]
+> **Current project state:** read [`PROJECT_STATE.md`](PROJECT_STATE.md) first. It is the authoritative source for the active architecture, rejected branches, and next step. Historical sections below are retained as a technical notebook and may describe superseded gadget-era work.
+
 Q Protocol is an experimental PC gameplay patch for **007 First Light** focused on reusing game-native weapon, gadget, ability, ammo, and License To Kill systems.
 
 > **Current functional base:** v0.8.12U74 — Fixed Gadget Runtime Scan  
