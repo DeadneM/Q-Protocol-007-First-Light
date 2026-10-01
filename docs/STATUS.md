@@ -91,20 +91,25 @@ Overlay controls:
 
 INI is the only persisted configuration source.
 
+## Primitive audit
+
+Completed. See [`PRIMITIVE_AUDIT_OCT2026.md`](PRIMITIVE_AUDIT_OCT2026.md).
+
+Key result: the October executable exposes a native `AddFirearmAmmunitionToPlayer` input, so F2/AUTO ammo no longer need the low-level reserve-vector setter.
+
+The generic pair-clone/native weapon trigger used on the October executable is retained only behind one shared `GiveWeapon()`.
+
 ## Next exact step
 
-Primitive audit against the October-2026 executable:
+Fresh source implementation, in this order:
 
-1. `ResolvePlayer()`
-2. `ToggleLicenseToKill()`
-3. native weapon path for `GiveWeapon()`
-4. native ammo path for `AddAmmo()`
-5. minimal `SwapQPistol()`
-
-Then implement:
-
-- `ApplyWeaponLoadout()` as a thin `GiveWeapon()` caller;
-- AUTO as a thin caller of the same manual primitives;
-- overlay only after gameplay core validation.
-
-No new numbered ASI before this audit is complete.
+1. bootstrap/log/INI;
+2. ResolvePlayer;
+3. F1 LTK;
+4. shared GiveWeapon queue;
+5. F4 + F5-F12;
+6. F3 ManualLoadout;
+7. F2 ManualAmmo via native AddAmmo input;
+8. AUTO via the same functions;
+9. gameplay validation;
+10. Insert overlay.
