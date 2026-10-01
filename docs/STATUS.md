@@ -2,65 +2,99 @@
 
 ## Active state
 
-- **Behavioral reference:** U74 on the pre-October-2026 executable.
-- **Current post-update canonical build:** none.
-- **Rejected compatibility branches:** U80, U81, U81B, U82, U82A, U83, U84, U85.
-- **Gadgets:** removed from active Q Protocol scope.
-- **F2:** free.
-- **Source of truth:** `/PROJECT_STATE.md`.
+- Behavioral reference: **U74** on the pre-October-2026 executable.
+- Current post-update canonical build: **none**.
+- Rejected compatibility branches: U80, U81, U81B, U82, U82A, U83, U84, U85.
+- Gadgets: removed.
+- Overlay/config model: locked.
+- Source of truth: `/PROJECT_STATE.md`.
 
-## Required minimal core
+## Authoritative default controls
 
-The next implementation must expose only these shared primitives:
+```text
+F1  License To Kill
+F2  Ammo +
+F3  Manual weapon loadout
+F4  Q-Pistol swap
+F5  Weapon slot 1
+F6  Weapon slot 2
+F7  Weapon slot 3
+F8  Weapon slot 4
+F9  Weapon slot 5
+F10 Weapon slot 6
+F11 Weapon slot 7
+F12 Weapon slot 8
+```
+
+Overlay toggle: **Insert**.
+
+## Required core primitives
 
 ```text
 ResolvePlayer()
 ToggleLicenseToKill()
-GiveWeapon(player, weapon)
 AddAmmo(player, profile)
+ApplyWeaponLoadout(player, profile)
+SwapQPistol(player)
+GiveWeapon(player, weapon)
 ```
 
-### Manual controls
+Manual and AUTO must call the same implementation.
 
-- F1 -> `ToggleLicenseToKill()`
-- F3 -> `AddAmmo(player, ManualProfile)`
-- F4–F12 -> `GiveWeapon(player, configuredWeapon)`
+## AUTO
 
-### AUTO
+AUTO waits for the real player, then calls:
 
-AUTO waits for a valid player and then calls the **same** gameplay primitives with `[Auto]` values.
+```text
+ApplyWeaponLoadout(player, AutoLoadout)
+AddAmmo(player, AutoAmmo)
+```
 
-No separate AUTO weapon or AUTO ammo implementation should exist.
+When the player disappears or changes, AUTO resets.
 
-## October 2026 update
+No separate AUTO weapon/ammo engine is allowed.
 
-The new executable requires a fresh primitive-level audit.
+## Overlay
 
-Do not port U74's cumulative state-machine architecture wholesale.
+F1-F12 are configurable slots:
 
-Known conclusions from the rejected rebase work:
+```text
+Key -> Action -> contextual parameters
+```
 
-- simple RVA shifting is insufficient;
-- short byte signatures can match the wrong function;
-- the old ammo backend changed materially and must be re-audited;
-- gadget-era sections contain mixed historical code and must not be used as the basis for the new core.
+Actions:
+
+```text
+None
+LicenseToKill
+Ammo
+ManualLoadout
+SwapQPistol
+Weapon
+```
+
+Overlay controls:
+
+- Save
+- Reload
+- Reset Defaults
+
+INI is the only persisted configuration source.
 
 ## Next exact step
 
-Audit and map, in this order:
+Primitive audit against the October-2026 executable:
 
 1. `ResolvePlayer()`
 2. `ToggleLicenseToKill()`
-3. `GiveWeapon()`
-4. `AddAmmo()`
+3. native weapon path for `GiveWeapon()`
+4. native ammo path for `AddAmmo()`
+5. minimal `SwapQPistol()`
 
-For each primitive record:
+Then implement:
 
-- old U74 behavior/reference;
-- current October-2026 native equivalent;
-- inputs and outputs;
-- required globals/vtables/offsets;
-- asynchronous/state requirements;
-- exact validation evidence.
+- `ApplyWeaponLoadout()` as a thin `GiveWeapon()` caller;
+- AUTO as a thin caller of the same manual primitives;
+- overlay only after gameplay core validation.
 
-Only after all four are understood should a new numbered ASI candidate be built.
+No new numbered ASI before this audit is complete.
