@@ -7,7 +7,7 @@
 ## Fresh Core A1 test candidate
 
 - Build: `Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip`
-- Status: **test candidate, not canonical**
+- Status: **partially validated**
 - Scope:
   - fresh ASI bootstrap;
   - clean launch log;
@@ -17,7 +17,9 @@
 - F2-F12, AUTO, weapons, ammo and overlay are intentionally inactive in A1.
 - ASI SHA-256: `153e65273f6a9c7b6b1dc351897aa8a1f9c8138dc96428c06bb1a299ee56cf68`
 - ZIP SHA-256: `613fec2ce3c3dda6abac604431fede32fa626cf98c425fff48ff2e3bd62c96fc`
-- Validation required: reach gameplay, confirm `PLAYER READY`, toggle F1 ON then OFF, inspect `QProtocol.log`.
+- LTK validation: PASS (user confirmed on 2026-10-02).
+- ResolvePlayer runtime validation: still to be confirmed independently from log/player-dependent actions.
+- Next: add one shared GiveWeapon() implementation, then F4 swap + F5-F12 slots.
 
 ## Current status
 
