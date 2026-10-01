@@ -4,6 +4,21 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A1 test candidate
+
+- Build: `Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip`
+- Status: **test candidate, not canonical**
+- Scope:
+  - fresh ASI bootstrap;
+  - clean launch log;
+  - October executable validation;
+  - shared `ResolvePlayer()`;
+  - F1 License To Kill toggle.
+- F2-F12, AUTO, weapons, ammo and overlay are intentionally inactive in A1.
+- ASI SHA-256: `153e65273f6a9c7b6b1dc351897aa8a1f9c8138dc96428c06bb1a299ee56cf68`
+- ZIP SHA-256: `613fec2ce3c3dda6abac604431fede32fa626cf98c425fff48ff2e3bd62c96fc`
+- Validation required: reach gameplay, confirm `PLAYER READY`, toggle F1 ON then OFF, inspect `QProtocol.log`.
+
 ## Current status
 
 - Historical behavioral reference: **U74** on the pre-October-2026 executable.
