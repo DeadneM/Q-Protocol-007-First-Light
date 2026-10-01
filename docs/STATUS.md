@@ -41,7 +41,17 @@ GiveWeapon(player, weapon)
 
 Manual and AUTO must call the same implementation.
 
-## AUTO
+## Manual / AUTO profiles
+
+Both profiles are independently configurable.
+
+Manual:
+- `ManualLoadout` chooses the weapons F3 gives;
+- `ManualAmmo` chooses the ammo quantities F2 adds.
+
+AUTO:
+- `AutoLoadout` chooses the weapons AUTO gives;
+- `AutoAmmo` chooses the ammo quantities AUTO adds.
 
 AUTO waits for the real player, then calls:
 
@@ -52,7 +62,7 @@ AddAmmo(player, AutoAmmo)
 
 When the player disappears or changes, AUTO resets.
 
-No separate AUTO weapon/ammo engine is allowed.
+Manual and AUTO use the same gameplay functions. No separate AUTO weapon/ammo engine is allowed.
 
 ## Overlay
 
