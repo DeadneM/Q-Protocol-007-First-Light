@@ -1,4 +1,4 @@
-Q Protocol - Fresh Core A3C
+Q Protocol - Fresh Core A3D
 ===========================
 
 TEST BUILD
@@ -7,28 +7,26 @@ Validated base
 --------------
 Fresh Core A2 remains canonical.
 
-A3B result
+A3C result
 ----------
-F3 gave only the Q-Pistol.
+QProtocol.log proves all three typed F3 requests were queued and each native spawner cycle returned to idle, but only the Q-Pistol was actually retained by the game.
 
-Root cause in the fresh-core logic:
-- F3 queued all three typed roles correctly;
-- after the first GiveWeapon(), the game refreshed the loadout pointer;
-- A3B treated any loadout pointer change as a new player generation;
-- ResetWeaponRuntime() therefore cleared the remaining OneHanded and TwoHanded requests.
+This means our previous "GiveWeapon COMPLETE" criterion was too early for sequential loadout construction: spawner idle does not guarantee the gameplay/loadout layer has finished integrating the weapon.
 
-A3C correction
+Historical evidence
+-------------------
+The validated pre-update architecture used:
+
+ManualGiveWeaponDelayMs=500
+AutoGiveWeaponDelayMs=500
+
+A3D correction
 --------------
-A full weapon-runtime reset now happens only when:
-- the player becomes unavailable; or
-- playerId changes.
+After each GiveWeapon completion, the shared weapon queue now waits 500 ms before starting the next request.
 
-If the loadout pointer changes while playerId stays the same:
-- the queued weapons are preserved;
-- the graph cache is invalidated;
-- the next queued role resolves against the refreshed game state.
+No other weapon logic changes.
 
-Typed loadout remains exactly:
+Typed F3 order remains:
 1. QPistol
 2. OneHanded
 3. TwoHanded
@@ -45,11 +43,12 @@ Test
 ----
 1. Reach a playable mission.
 2. Press F3 once.
-3. Confirm all three roles are present:
+3. Wait about 2 seconds.
+4. Confirm:
    - configured Q-Pistol variant
-   - configured one-handed weapon
-   - configured two-handed weapon
-4. Confirm F1/F4/F5-F12 remain working.
+   - configured one-handed firearm
+   - configured two-handed firearm
+5. Confirm F1/F4/F5-F12 still work.
 
-Expected additional log line:
-PLAYER LOADOUT REFRESH ... - preserving weapon queue.
+Expected log additions:
+GiveWeapon queue cooldown = 500 ms
