@@ -106,6 +106,8 @@ std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
 bool g_graphIndexBuilt = false;
 std::deque<std::uint64_t> g_weaponQueue;
 ActiveWeapon g_activeWeapon{};
+ULONGLONG g_nextWeaponAllowedAt = 0;
+constexpr ULONGLONG kWeaponInterRequestDelayMs = 500;
 
 std::uint64_t g_qpistolModeA = 0;
 std::uint64_t g_qpistolModeB = 0;
@@ -782,6 +784,10 @@ void ProcessWeaponQueue() {
                 "GiveWeapon COMPLETE RID=%016llX",
                 static_cast<unsigned long long>(
                     RotateRid(g_activeWeapon.requestedRid)));
+            g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
+            Log(
+                "GiveWeapon queue cooldown = %llu ms",
+                static_cast<unsigned long long>(kWeaponInterRequestDelayMs));
             RestoreActiveDonor("complete");
             return;
         }
@@ -798,6 +804,11 @@ void ProcessWeaponQueue() {
     }
 
     if (g_weaponQueue.empty()) {
+        return;
+    }
+
+    const ULONGLONG now = GetTickCount64();
+    if (g_nextWeaponAllowedAt && now < g_nextWeaponAllowedAt) {
         return;
     }
 
@@ -908,6 +919,7 @@ void ResetWeaponRuntime(const char* reason) {
         RestoreActiveDonor(reason);
     }
     g_weaponQueue.clear();
+    g_nextWeaponAllowedAt = 0;
     g_graphs.clear();
     g_graphIndexBuilt = false;
     Log("Weapon runtime reset: %s", reason);
@@ -927,8 +939,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A3C");
-    Log("Scope: validated A2 + typed F3 ManualLoadout with queue preservation across same-player loadout refresh.");
+    Log("Q Protocol Fresh Core A3D");
+    Log("Scope: validated A2 + typed F3 ManualLoadout + 500 ms inter-weapon stabilization delay.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A2 disabled because executable validation failed.");
@@ -947,7 +959,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
-    Log("F2, AUTO and overlay are intentionally inactive in A3C.");
+    Log("F2, AUTO and overlay are intentionally inactive in A3D.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
