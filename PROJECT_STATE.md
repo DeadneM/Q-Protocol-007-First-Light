@@ -4,6 +4,26 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A3B test candidate
+
+- Build: `Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: validated Fresh Core A2.
+- Correct loadout model:
+  - `QPistol` = one Q-Pistol variant;
+  - `OneHanded` = one one-handed firearm;
+  - `TwoHanded` = one two-handed firearm.
+- F3 queues exactly those three typed roles into the validated A2 `GiveWeapon()` queue.
+- F5-F12 remain standalone weapon hotkeys and are not loadout slots.
+- F2, AUTO and overlay remain intentionally inactive.
+- ASI SHA-256: `ec5890823ecb1251869196fad7076b027db9aecc0b39074b178514ad76098df9`
+- ZIP SHA-256: `dde11d1dc4aeb9aa9df6555f83009723692017dc20738072aaa9332b7eef6198`
+- Validation required:
+  1. F1/F4/F5-F12 remain working;
+  2. F3 gives exactly one Q-Pistol variant, one one-handed weapon and one two-handed weapon;
+  3. no fourth loadout weapon is introduced;
+  4. no crash/regression.
+
 ## Fresh Core A3 rejected
 
 - Build: `Q-Protocol_FreshCore_A3_ManualLoadout_F3_TEST.zip`
