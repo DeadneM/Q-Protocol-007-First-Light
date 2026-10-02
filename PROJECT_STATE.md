@@ -4,10 +4,26 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A4 F2 native ammo test candidate
+## Fresh Core A5 AUTO shared-primitives test candidate
+
+- Build: `Q-Protocol_FreshCore_A5_AUTO_SharedPrimitives_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A4**.
+- AUTO now uses the exact same primitives as manual:
+  - `QueueLoadout(AutoLoadout)` -> shared GiveWeapon queue;
+  - `QueueAmmoProfile(AutoAmmo)` -> shared native AddAmmo event 0x1DE.
+- No duplicate AUTO weapon engine or AUTO ammo writer exists.
+- AUTO is configurable with `[Auto] Enabled`, `[AutoLoadout]` and `[AutoAmmo]`.
+- AUTO fires once per READY cycle and does not re-arm on same-player loadout pointer refreshes caused by GiveWeapon.
+- F1-F12 manual behavior is preserved.
+- Overlay remains inactive.
+- ASI/ZIP hashes: pending workflow build.
+
+## Fresh Core A4 validated base
 
 - Build: `Q-Protocol_FreshCore_A4_F2_NativeAddAmmo_TEST.zip`
-- Status: **test candidate, not canonical**
+- Status: **VALIDATED / current canonical base**
+- User feedback: **positive / accepted on 2026-10-02**
 - Base: **validated Fresh Core A3D**.
 - Adds only F2 manual reserve-ammo refill through the audited October gameplay primitive `AddFirearmAmmunitionToPlayer`.
 - Does **not** resurrect the rejected U80 low-level 24-byte `SetFirearmAmmo` path.
@@ -119,18 +135,19 @@
 
 - Historical behavioral reference: **U74** on the pre-October-2026 executable.
 - Current game executable: October 2026 update.
-- Current post-update canonical build: **Fresh Core A3D**.
-- A3D validates:
+- Current post-update canonical build: **Fresh Core A4**.
+- A4 validates:
   - clean ASI bootstrap;
   - shared ResolvePlayer();
   - F1 License To Kill;
+  - F2 native AddAmmo;
   - one shared GiveWeapon() path;
   - F3 typed three-role ManualLoadout;
   - 500 ms inter-weapon stabilization;
   - F4 Q-Pistol swap;
   - F5-F12 configured weapon slots;
-  - minimal gameplay-thread native spawn hook.
-- Current test candidate: **Fresh Core A4**, adding only F2 native reserve ammo.
+  - minimal gameplay-thread native spawn/ammo dispatch hook.
+- Current test candidate: **Fresh Core A5**, adding only the shared-primitives AUTO layer.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
