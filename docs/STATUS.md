@@ -46,12 +46,16 @@ Manual and AUTO must call the same implementation.
 Both profiles are independently configurable.
 
 Manual:
-- `ManualLoadout` chooses the weapons F3 gives;
+- `ManualLoadout.QPistol` chooses one Q-Pistol variant;
+- `ManualLoadout.OneHanded` chooses one one-handed firearm;
+- `ManualLoadout.TwoHanded` chooses one two-handed firearm;
 - `ManualAmmo` chooses the ammo quantities F2 adds.
 
 AUTO:
-- `AutoLoadout` chooses the weapons AUTO gives;
+- `AutoLoadout` uses the same exact three typed roles;
 - `AutoAmmo` chooses the ammo quantities AUTO adds.
+
+The game loadout is never modeled as an arbitrary N-weapon list. F5-F12 are separate hotkeys, not loadout slots.
 
 AUTO waits for the real player, then calls:
 
@@ -130,4 +134,4 @@ Confirmed working:
 
 A2 is now the canonical fresh-core base.
 
-Next: F3 ManualLoadout implemented only as a thin caller of the validated GiveWeapon queue.
+Next: corrected F3 ManualLoadout with exactly QPistol + OneHanded + TwoHanded, implemented only as a thin caller of the validated GiveWeapon queue.
