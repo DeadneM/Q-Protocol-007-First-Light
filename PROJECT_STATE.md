@@ -4,6 +4,25 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A6 Insert overlay test candidate
+
+- Build: `Q-Protocol_FreshCore_A6_InsertOverlay_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A5**.
+- Adds a renderer-independent native Win32 overlay toggled by Insert.
+- Overlay is an INI frontend only; A5 gameplay primitives are unchanged.
+- Editable in A6:
+  - AUTO Enabled;
+  - F2 Profile Manual/Auto;
+  - F3 Profile Manual/Auto;
+  - ManualLoadout + ManualAmmo;
+  - AutoLoadout + AutoAmmo;
+  - Save / Reload / Reset Defaults;
+  - runtime READY/AUTO/queue/Q-Pistol status.
+- `Profile=` is now functional for F2/F3.
+- F1-F12 are suppressed while the overlay is visible.
+- ASI/ZIP hashes: pending workflow build.
+
 ## Fresh Core A5 validated canonical base
 
 - Build: `Q-Protocol_FreshCore_A5_AUTO_SharedPrimitives_TEST.zip`
@@ -153,7 +172,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Next step: overlay Insert, without redesigning the validated gameplay core.
+- Current test candidate: **Fresh Core A6**, adding the Insert INI overlay while preserving A5 gameplay architecture.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
