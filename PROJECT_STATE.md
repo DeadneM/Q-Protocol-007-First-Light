@@ -4,10 +4,11 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A5 AUTO shared-primitives test candidate
+## Fresh Core A5 validated canonical base
 
 - Build: `Q-Protocol_FreshCore_A5_AUTO_SharedPrimitives_TEST.zip`
-- Status: **test candidate, not canonical**
+- Status: **VALIDATED / current canonical base**
+- User validation: **PASS on 2026-10-02**.
 - Base: **validated Fresh Core A4**.
 - AUTO now uses the exact same primitives as manual:
   - `QueueLoadout(AutoLoadout)` -> shared GiveWeapon queue;
@@ -137,8 +138,8 @@
 
 - Historical behavioral reference: **U74** on the pre-October-2026 executable.
 - Current game executable: October 2026 update.
-- Current post-update canonical build: **Fresh Core A4**.
-- A4 validates:
+- Current post-update canonical build: **Fresh Core A5**.
+- A5 validates:
   - clean ASI bootstrap;
   - shared ResolvePlayer();
   - F1 License To Kill;
@@ -148,8 +149,11 @@
   - 500 ms inter-weapon stabilization;
   - F4 Q-Pistol swap;
   - F5-F12 configured weapon slots;
+  - AUTO using the same shared GiveWeapon/AddAmmo primitives;
+  - configurable AutoLoadout + AutoAmmo;
+  - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A5**, adding only the shared-primitives AUTO layer.
+- Next step: overlay Insert, without redesigning the validated gameplay core.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
