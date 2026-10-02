@@ -1,11 +1,36 @@
 # Q Protocol — Project State
 
+## Fresh Core A7B fail-open DX12 overlay candidate
+
+- Build: `Q-Protocol_FreshCore_A7B_DX12_FailOpen_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A5 gameplay core**.
+- Keeps the true in-game DX12 / Dear ImGui approach.
+- Fixes A7's critical fail-open issue:
+  - manual hotkeys are blocked only after ImGui is genuinely ready and visible;
+  - renderer failure never disables F1-F12.
+- Adds per-backbuffer DX12 fences before reusing command allocators.
+- Waits overlay GPU work before releasing DX12 resources.
+- Captures the first DIRECT command queue, then retires the high-frequency ExecuteCommandLists hook.
+- Adds explicit overlay stage diagnostics to QProtocol.log.
+- Full role/validation firearm catalogue from A7 is retained.
+- ASI/ZIP hashes: pending workflow build.
+
+## Fresh Core A7 REJECTED
+
+- A7 is **REJECTED** after user report: "ne marche plus".
+- Do not use A7 as a base.
+- Primary architectural faults:
+  - logical overlay visibility could suppress gameplay before renderer readiness;
+  - DX12 command allocator reuse had no explicit fence synchronization.
+- A5 remains the gameplay canonical base.
+
 ## Fresh Core A7 DX12 ImGui overlay + firearm catalog candidate
 
 - Build: `Q-Protocol_FreshCore_A7_DX12_ImGui_WeaponCatalog_TEST.zip`
-- Status: **test candidate, not canonical**
-- Base: **validated Fresh Core A5 gameplay core**.
-- Retires the visible Win32 A6/A6B configuration window.
+- Status: **REJECTED**
+- Historical failed candidate only.
+- Retired the visible Win32 A6/A6B configuration window.
 - Uses a true in-game DX12 Dear ImGui overlay hooked through the game's swap chain.
 - Insert remains the overlay toggle.
 - Adds Loadout / Weapons / Hotkeys tabs.
@@ -208,7 +233,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A7**, replacing the Win32 overlay with DX12 ImGui and classifying the full firearm catalogue.
+- Current test candidate: **Fresh Core A7B**, making the DX12 ImGui overlay fail-open and fence-safe while preserving A5 gameplay.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
