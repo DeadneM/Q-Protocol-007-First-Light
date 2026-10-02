@@ -1,18 +1,23 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <atomic>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <cwchar>
+#include <deque>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace qp {
 
 constexpr std::uintptr_t kExpectedSizeOfImage = 0x06EC1000;
 constexpr DWORD kExpectedTimeDateStamp = 0x6ABCDDDB;
 
-// October 2026 executable mappings from docs/PRIMITIVE_AUDIT_OCT2026.md.
+// October 2026 executable mappings.
 constexpr std::uintptr_t kPlayerResolverRva       = 0x0171DF40;
 constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D7770;
 constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x069225A0;
@@ -20,8 +25,25 @@ constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x064576F8;
 constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDEB70;
 constexpr std::uintptr_t kLicenseToKillRva        = 0x0191C344;
 
+constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECB538;
+constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECC800;
+constexpr std::uintptr_t kNativeSpawnRva          = 0x016B6B10;
+constexpr std::uintptr_t kGameplayHookRva         = 0x0194D891;
+
+constexpr std::uintptr_t kGraphScanBegin = 0x2C000000;
+constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
+
+constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
+
 constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x53};
 constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x53};
+
+constexpr BYTE kGameplayHookPreimage[13] = {
+    0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00,
+    0x41, 0x5F,
+    0x41, 0x5E,
+    0x41, 0x5D
+};
 
 struct PlayerContext {
     void* loadout = nullptr;
@@ -32,10 +54,62 @@ struct PlayerContext {
     }
 };
 
+struct WeaponGraph {
+    std::uintptr_t itemEntry = 0;
+    std::uintptr_t spawner = 0;
+};
+
+struct ActiveWeapon {
+    bool active = false;
+    bool seenBusy = false;
+    std::uint64_t requestedRid = 0;
+    std::uintptr_t donorItem = 0;
+    std::uintptr_t donorSpawner = 0;
+    std::uint64_t originalDonorRid = 0;
+    std::uint64_t originalDonorTemplate = 0;
+    ULONGLONG setupAt = 0;
+};
+
+enum class LtkState {
+    Off,
+    On,
+    Unknown
+};
+
+enum class BeginWeaponResult {
+    Started,
+    DonorBusy,
+    Failed
+};
+
+using ResolveLocalPlayerFn = void(__fastcall*)(std::uint32_t, std::uint64_t*);
+using LookupPlayerFn = void*(__fastcall*)(std::uint64_t*, void*);
+using NativeSpawnFn = void(__fastcall*)(void*);
+
+extern "C" void QpGameplayHook();
+
 HMODULE g_module = nullptr;
 HANDLE g_log = INVALID_HANDLE_VALUE;
 std::uintptr_t g_exeBase = 0;
-bool g_running = true;
+std::atomic<bool> g_running{true};
+
+NativeSpawnFn g_nativeSpawn = nullptr;
+bool g_gameplayHookInstalled = false;
+
+std::atomic<std::uintptr_t> g_pendingSpawner{0};
+std::atomic<bool> g_spawnTriggered{false};
+std::atomic<bool> g_spawnException{false};
+std::atomic<ULONGLONG> g_spawnTriggeredAt{0};
+
+std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
+bool g_graphIndexBuilt = false;
+std::deque<std::uint64_t> g_weaponQueue;
+ActiveWeapon g_activeWeapon{};
+
+std::uint64_t g_qpistolModeA = 0;
+std::uint64_t g_qpistolModeB = 0;
+bool g_qpistolNextB = true;
+std::uint64_t g_hotkeyWeapons[8]{};
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -85,6 +159,36 @@ bool SafeRead(std::uintptr_t address, T& out) {
            bytes == sizeof(T);
 }
 
+template <typename T>
+bool SafeWrite(std::uintptr_t address, const T& value) {
+    SIZE_T bytes = 0;
+    return WriteProcessMemory(
+               GetCurrentProcess(),
+               reinterpret_cast<LPVOID>(address),
+               &value,
+               sizeof(T),
+               &bytes) != FALSE &&
+           bytes == sizeof(T);
+}
+
+bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
+    DWORD oldProtect = 0;
+    if (!VirtualProtect(
+            reinterpret_cast<void*>(address),
+            size,
+            PAGE_EXECUTE_READWRITE,
+            &oldProtect)) {
+        return false;
+    }
+
+    memcpy(reinterpret_cast<void*>(address), bytes, size);
+    FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<void*>(address), size);
+
+    DWORD ignored = 0;
+    VirtualProtect(reinterpret_cast<void*>(address), size, oldProtect, &ignored);
+    return true;
+}
+
 bool ValidateTargetExecutable() {
     g_exeBase = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(nullptr));
     if (!g_exeBase) {
@@ -116,11 +220,9 @@ bool ValidateTargetExecutable() {
         return false;
     }
 
+    g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
 }
-
-using ResolveLocalPlayerFn = void(__fastcall*)(std::uint32_t, std::uint64_t*);
-using LookupPlayerFn = void*(__fastcall*)(std::uint64_t*, void*);
 
 bool ResolveNativeLoadout(void** outLoadout) {
     if (!outLoadout || !g_exeBase) {
@@ -165,8 +267,7 @@ PlayerContext ResolvePlayer() {
         return result;
     }
 
-    const std::uintptr_t expectedVtable = g_exeBase + kPlayerLoadoutVtableRva;
-    if (vtable != expectedVtable) {
+    if (vtable != g_exeBase + kPlayerLoadoutVtableRva) {
         return result;
     }
 
@@ -189,29 +290,16 @@ PlayerContext ResolvePlayer() {
     return result;
 }
 
-bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
-    DWORD oldProtect = 0;
-    if (!VirtualProtect(reinterpret_cast<void*>(address), size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        return false;
-    }
-
-    memcpy(reinterpret_cast<void*>(address), bytes, size);
-    FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<void*>(address), size);
-
-    DWORD ignored = 0;
-    VirtualProtect(reinterpret_cast<void*>(address), size, oldProtect, &ignored);
-    return true;
-}
-
-enum class LtkState {
-    Off,
-    On,
-    Unknown
-};
-
 LtkState ReadLicenseToKillState() {
     BYTE current[6]{};
-    if (!SafeRead(g_exeBase + kLicenseToKillRva, current)) {
+    SIZE_T bytes = 0;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            reinterpret_cast<LPCVOID>(g_exeBase + kLicenseToKillRva),
+            current,
+            sizeof(current),
+            &bytes) ||
+        bytes != sizeof(current)) {
         return LtkState::Unknown;
     }
 
@@ -246,12 +334,518 @@ bool ToggleLicenseToKill() {
         return true;
     }
 
-    BYTE current[6]{};
-    SafeRead(site, current);
-    Log(
-        "[ERROR] F1 License To Kill: preimage mismatch: %02X %02X %02X %02X %02X %02X",
-        current[0], current[1], current[2], current[3], current[4], current[5]);
+    Log("[ERROR] F1 License To Kill: preimage mismatch.");
     return false;
+}
+
+std::uint64_t RotateRid(std::uint64_t value) {
+    return (value << 32) | (value >> 32);
+}
+
+bool ParseRid(const std::wstring& text, std::uint64_t& internalRid) {
+    if (text.empty() || _wcsicmp(text.c_str(), L"None") == 0) {
+        internalRid = 0;
+        return true;
+    }
+
+    wchar_t* end = nullptr;
+    const unsigned long long display = wcstoull(text.c_str(), &end, 16);
+    if (!end || *end != L'\0') {
+        return false;
+    }
+
+    internalRid = RotateRid(static_cast<std::uint64_t>(display));
+    return internalRid != 0;
+}
+
+std::wstring IniRead(
+    const std::wstring& iniPath,
+    const wchar_t* section,
+    const wchar_t* key) {
+
+    wchar_t buffer[256]{};
+    GetPrivateProfileStringW(
+        section,
+        key,
+        L"",
+        buffer,
+        static_cast<DWORD>(std::size(buffer)),
+        iniPath.c_str());
+    return buffer;
+}
+
+bool ResolveConfiguredRid(
+    const std::wstring& iniPath,
+    const wchar_t* section,
+    const wchar_t* key,
+    std::uint64_t& internalRid) {
+
+    const std::wstring value = IniRead(iniPath, section, key);
+    if (value.empty()) {
+        internalRid = 0;
+        return false;
+    }
+
+    if (ParseRid(value, internalRid)) {
+        return true;
+    }
+
+    const std::wstring catalog = IniRead(iniPath, L"WeaponCatalog", value.c_str());
+    if (catalog.empty()) {
+        internalRid = 0;
+        return false;
+    }
+
+    return ParseRid(catalog, internalRid);
+}
+
+void LogRid(const char* label, std::uint64_t internalRid) {
+    if (!internalRid) {
+        Log("%s = None", label);
+        return;
+    }
+    const std::uint64_t display = RotateRid(internalRid);
+    Log("%s = %016llX", label, static_cast<unsigned long long>(display));
+}
+
+void LoadWeaponConfig(const std::wstring& iniPath) {
+    ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeA", g_qpistolModeA);
+    ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeB", g_qpistolModeB);
+
+    for (int i = 0; i < 8; ++i) {
+        wchar_t section[32]{};
+        swprintf_s(section, L"Hotkey_F%d", i + 5);
+        ResolveConfiguredRid(iniPath, section, L"Weapon", g_hotkeyWeapons[i]);
+    }
+
+    LogRid("F4 Q-Pistol ModeA", g_qpistolModeA);
+    LogRid("F4 Q-Pistol ModeB", g_qpistolModeB);
+    for (int i = 0; i < 8; ++i) {
+        char label[32]{};
+        sprintf_s(label, "F%d weapon", i + 5);
+        LogRid(label, g_hotkeyWeapons[i]);
+    }
+}
+
+bool IsReadableProtection(DWORD protect) {
+    if ((protect & PAGE_GUARD) || (protect & PAGE_NOACCESS)) {
+        return false;
+    }
+
+    const DWORD base = protect & 0xFF;
+    return base == PAGE_READONLY ||
+           base == PAGE_READWRITE ||
+           base == PAGE_WRITECOPY ||
+           base == PAGE_EXECUTE_READ ||
+           base == PAGE_EXECUTE_READWRITE ||
+           base == PAGE_EXECUTE_WRITECOPY;
+}
+
+bool BuildGraphIndex() {
+    g_graphs.clear();
+
+    const std::uintptr_t itemVtable = g_exeBase + kItemEntryVtableRva;
+    const std::uintptr_t spawnerVtable = g_exeBase + kSpawnerVtableRva;
+
+    std::unordered_map<std::uintptr_t, std::uint64_t> itemToRid;
+    std::vector<std::uintptr_t> spawners;
+    std::vector<BYTE> buffer(0x10000);
+
+    std::uintptr_t cursor = kGraphScanBegin;
+    while (cursor < kGraphScanEnd) {
+        MEMORY_BASIC_INFORMATION mbi{};
+        if (VirtualQuery(reinterpret_cast<LPCVOID>(cursor), &mbi, sizeof(mbi)) != sizeof(mbi)) {
+            cursor += 0x1000;
+            continue;
+        }
+
+        const std::uintptr_t regionBase =
+            reinterpret_cast<std::uintptr_t>(mbi.BaseAddress);
+        const std::uintptr_t regionEnd =
+            regionBase + static_cast<std::uintptr_t>(mbi.RegionSize);
+
+        if (mbi.State == MEM_COMMIT && IsReadableProtection(mbi.Protect)) {
+            std::uintptr_t chunk = regionBase;
+            while (chunk < regionEnd && chunk < kGraphScanEnd) {
+                const SIZE_T wanted = static_cast<SIZE_T>(
+                    min<std::uintptr_t>(
+                        buffer.size(),
+                        min<std::uintptr_t>(regionEnd, kGraphScanEnd) - chunk));
+
+                SIZE_T got = 0;
+                if (ReadProcessMemory(
+                        GetCurrentProcess(),
+                        reinterpret_cast<LPCVOID>(chunk),
+                        buffer.data(),
+                        wanted,
+                        &got) &&
+                    got >= sizeof(std::uintptr_t)) {
+
+                    for (SIZE_T off = 0; off + sizeof(std::uintptr_t) <= got; off += 8) {
+                        std::uintptr_t value = 0;
+                        memcpy(&value, buffer.data() + off, sizeof(value));
+
+                        const std::uintptr_t candidate = chunk + off;
+
+                        if (value == itemVtable) {
+                            std::uint64_t rid = 0;
+                            if (SafeRead(candidate + 0x120, rid) && rid != 0) {
+                                itemToRid.emplace(candidate, rid);
+                                auto& graph = g_graphs[rid];
+                                if (!graph.itemEntry) {
+                                    graph.itemEntry = candidate;
+                                }
+                            }
+                        } else if (value == spawnerVtable) {
+                            spawners.push_back(candidate);
+                        }
+                    }
+                }
+
+                chunk += wanted ? wanted : 0x1000;
+            }
+        }
+
+        const std::uintptr_t next = regionEnd > cursor ? regionEnd : cursor + 0x1000;
+        cursor = next;
+    }
+
+    for (const std::uintptr_t spawner : spawners) {
+        std::uintptr_t begin = 0;
+        std::uintptr_t end = 0;
+
+        if (!SafeRead(spawner + 0x18, begin) ||
+            !SafeRead(spawner + 0x20, end) ||
+            !begin ||
+            end <= begin) {
+            continue;
+        }
+
+        const std::uintptr_t bytes = end - begin;
+        if (bytes > 0x10000 || (bytes & 0xF) != 0) {
+            continue;
+        }
+
+        for (std::uintptr_t entry = begin; entry + 8 <= end; entry += 0x10) {
+            std::uintptr_t item = 0;
+            if (!SafeRead(entry, item)) {
+                continue;
+            }
+
+            const auto it = itemToRid.find(item);
+            if (it == itemToRid.end()) {
+                continue;
+            }
+
+            auto& graph = g_graphs[it->second];
+            if (!graph.spawner) {
+                graph.spawner = spawner;
+            }
+        }
+    }
+
+    for (auto it = g_graphs.begin(); it != g_graphs.end();) {
+        if (!it->second.itemEntry || !it->second.spawner) {
+            it = g_graphs.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    g_graphIndexBuilt = true;
+    Log(
+        "Weapon graph index built: %zu ItemEntry/Spawner RID graph(s), %zu spawner candidate(s).",
+        g_graphs.size(),
+        spawners.size());
+
+    return !g_graphs.empty();
+}
+
+bool ValidateGraph(std::uint64_t rid, const WeaponGraph& graph) {
+    if (!graph.itemEntry || !graph.spawner) {
+        return false;
+    }
+
+    std::uintptr_t itemVtable = 0;
+    std::uintptr_t spawnerVtable = 0;
+    std::uint64_t currentRid = 0;
+
+    return SafeRead(graph.itemEntry, itemVtable) &&
+           SafeRead(graph.spawner, spawnerVtable) &&
+           SafeRead(graph.itemEntry + 0x120, currentRid) &&
+           itemVtable == g_exeBase + kItemEntryVtableRva &&
+           spawnerVtable == g_exeBase + kSpawnerVtableRva &&
+           currentRid == rid;
+}
+
+bool ResolveGraph(std::uint64_t rid, WeaponGraph& graph) {
+    auto it = g_graphs.find(rid);
+    if (it != g_graphs.end() && ValidateGraph(rid, it->second)) {
+        graph = it->second;
+        return true;
+    }
+
+    g_graphIndexBuilt = false;
+    if (!BuildGraphIndex()) {
+        return false;
+    }
+
+    it = g_graphs.find(rid);
+    if (it == g_graphs.end() || !ValidateGraph(rid, it->second)) {
+        return false;
+    }
+
+    graph = it->second;
+    return true;
+}
+
+bool IsSpawnerIdle(std::uintptr_t spawner, bool& idle) {
+    std::uint64_t first = 0;
+    std::uint64_t second = 0;
+    BYTE state = 0xFF;
+
+    if (!SafeRead(spawner + 0x38, first) ||
+        !SafeRead(spawner + 0x40, second) ||
+        !SafeRead(spawner + 0x50, state)) {
+        return false;
+    }
+
+    idle = (first == second && state == 0);
+    return true;
+}
+
+void RestoreActiveDonor(const char* reason) {
+    if (!g_activeWeapon.active) {
+        return;
+    }
+
+    const bool ridOk = SafeWrite(
+        g_activeWeapon.donorItem + 0x120,
+        g_activeWeapon.originalDonorRid);
+    const bool templateOk = SafeWrite(
+        g_activeWeapon.donorItem + 0x128,
+        g_activeWeapon.originalDonorTemplate);
+
+    Log(
+        "GiveWeapon donor restored (%s): RID=%s template=%s",
+        reason,
+        ridOk ? "OK" : "FAILED",
+        templateOk ? "OK" : "FAILED");
+
+    g_activeWeapon = {};
+    g_pendingSpawner.store(0, std::memory_order_release);
+    g_spawnTriggered.store(false, std::memory_order_release);
+    g_spawnException.store(false, std::memory_order_release);
+    g_spawnTriggeredAt.store(0, std::memory_order_release);
+}
+
+BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid) {
+    const std::uint64_t donorRid = RotateRid(kDonorDisplayRid);
+
+    WeaponGraph donor{};
+    WeaponGraph source{};
+
+    if (!ResolveGraph(donorRid, donor)) {
+        Log("[ERROR] GiveWeapon: donor graph NOT FOUND.");
+        return BeginWeaponResult::Failed;
+    }
+
+    if (!ResolveGraph(requestedRid, source)) {
+        Log(
+            "[ERROR] GiveWeapon: source graph NOT FOUND for RID %016llX.",
+            static_cast<unsigned long long>(RotateRid(requestedRid)));
+        return BeginWeaponResult::Failed;
+    }
+
+    bool donorIdle = false;
+    if (!IsSpawnerIdle(donor.spawner, donorIdle)) {
+        Log("[ERROR] GiveWeapon: donor spawner state unreadable.");
+        return BeginWeaponResult::Failed;
+    }
+
+    if (!donorIdle) {
+        return BeginWeaponResult::DonorBusy;
+    }
+
+    std::uint64_t donorCurrentRid = 0;
+    std::uint64_t donorTemplate = 0;
+    std::uint64_t sourceCurrentRid = 0;
+    std::uint64_t sourceTemplate = 0;
+
+    if (!SafeRead(donor.itemEntry + 0x120, donorCurrentRid) ||
+        !SafeRead(donor.itemEntry + 0x128, donorTemplate) ||
+        !SafeRead(source.itemEntry + 0x120, sourceCurrentRid) ||
+        !SafeRead(source.itemEntry + 0x128, sourceTemplate) ||
+        donorCurrentRid != donorRid ||
+        sourceCurrentRid != requestedRid ||
+        sourceTemplate == 0) {
+        Log("[ERROR] GiveWeapon: descriptor read/validation FAILED.");
+        return BeginWeaponResult::Failed;
+    }
+
+    if (!SafeWrite(donor.itemEntry + 0x120, requestedRid) ||
+        !SafeWrite(donor.itemEntry + 0x128, sourceTemplate)) {
+        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
+        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
+        Log("[ERROR] GiveWeapon: temporary descriptor write FAILED.");
+        return BeginWeaponResult::Failed;
+    }
+
+    std::uint64_t verifyRid = 0;
+    std::uint64_t verifyTemplate = 0;
+    if (!SafeRead(donor.itemEntry + 0x120, verifyRid) ||
+        !SafeRead(donor.itemEntry + 0x128, verifyTemplate) ||
+        verifyRid != requestedRid ||
+        verifyTemplate != sourceTemplate) {
+        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
+        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
+        Log("[ERROR] GiveWeapon: temporary descriptor verification FAILED.");
+        return BeginWeaponResult::Failed;
+    }
+
+    g_activeWeapon.active = true;
+    g_activeWeapon.seenBusy = false;
+    g_activeWeapon.requestedRid = requestedRid;
+    g_activeWeapon.donorItem = donor.itemEntry;
+    g_activeWeapon.donorSpawner = donor.spawner;
+    g_activeWeapon.originalDonorRid = donorCurrentRid;
+    g_activeWeapon.originalDonorTemplate = donorTemplate;
+    g_activeWeapon.setupAt = GetTickCount64();
+
+    g_spawnTriggered.store(false, std::memory_order_release);
+    g_spawnException.store(false, std::memory_order_release);
+    g_spawnTriggeredAt.store(0, std::memory_order_release);
+    g_pendingSpawner.store(donor.spawner, std::memory_order_release);
+
+    Log(
+        "GiveWeapon prepared RID=%016llX donorItem=0x%p donorSpawner=0x%p",
+        static_cast<unsigned long long>(RotateRid(requestedRid)),
+        reinterpret_cast<void*>(donor.itemEntry),
+        reinterpret_cast<void*>(donor.spawner));
+
+    return BeginWeaponResult::Started;
+}
+
+void ProcessWeaponQueue() {
+    if (g_activeWeapon.active) {
+        if (g_spawnException.load(std::memory_order_acquire)) {
+            RestoreActiveDonor("native trigger exception");
+            return;
+        }
+
+        const ULONGLONG now = GetTickCount64();
+        const bool triggered = g_spawnTriggered.load(std::memory_order_acquire);
+
+        if (!triggered) {
+            if (now - g_activeWeapon.setupAt > 2000) {
+                Log("[ERROR] GiveWeapon: gameplay trigger timeout.");
+                RestoreActiveDonor("trigger timeout");
+            }
+            return;
+        }
+
+        bool idle = false;
+        if (!IsSpawnerIdle(g_activeWeapon.donorSpawner, idle)) {
+            Log("[ERROR] GiveWeapon: donor spawner became unreadable.");
+            RestoreActiveDonor("spawner unreadable");
+            return;
+        }
+
+        if (!idle) {
+            g_activeWeapon.seenBusy = true;
+        }
+
+        const ULONGLONG triggeredAt =
+            g_spawnTriggeredAt.load(std::memory_order_acquire);
+        const ULONGLONG elapsed = triggeredAt ? now - triggeredAt : 0;
+
+        if (idle && (g_activeWeapon.seenBusy || elapsed >= 250)) {
+            Log(
+                "GiveWeapon COMPLETE RID=%016llX",
+                static_cast<unsigned long long>(
+                    RotateRid(g_activeWeapon.requestedRid)));
+            RestoreActiveDonor("complete");
+            return;
+        }
+
+        if (elapsed > 5000) {
+            Log(
+                "[ERROR] GiveWeapon TIMEOUT RID=%016llX",
+                static_cast<unsigned long long>(
+                    RotateRid(g_activeWeapon.requestedRid)));
+            RestoreActiveDonor("completion timeout");
+        }
+
+        return;
+    }
+
+    if (g_weaponQueue.empty()) {
+        return;
+    }
+
+    const std::uint64_t rid = g_weaponQueue.front();
+    const BeginWeaponResult result = BeginWeaponRequest(rid);
+
+    if (result == BeginWeaponResult::Started ||
+        result == BeginWeaponResult::Failed) {
+        g_weaponQueue.pop_front();
+    }
+}
+
+bool QueueWeapon(std::uint64_t rid, const char* source) {
+    if (!rid) {
+        Log("%s ignored: no weapon configured.", source);
+        return false;
+    }
+
+    if (g_weaponQueue.size() >= 16) {
+        Log("%s ignored: weapon queue full.", source);
+        return false;
+    }
+
+    g_weaponQueue.push_back(rid);
+    Log(
+        "%s queued RID=%016llX",
+        source,
+        static_cast<unsigned long long>(RotateRid(rid)));
+    return true;
+}
+
+bool InstallGameplayHook() {
+    const std::uintptr_t site = g_exeBase + kGameplayHookRva;
+
+    BYTE current[sizeof(kGameplayHookPreimage)]{};
+    SIZE_T bytes = 0;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            reinterpret_cast<LPCVOID>(site),
+            current,
+            sizeof(current),
+            &bytes) ||
+        bytes != sizeof(current) ||
+        memcmp(current, kGameplayHookPreimage, sizeof(current)) != 0) {
+        Log("[ERROR] Gameplay hook preimage mismatch.");
+        return false;
+    }
+
+    BYTE patch[13] = {
+        0x49, 0xBB, // mov r11, imm64
+        0,0,0,0,0,0,0,0,
+        0x41, 0xFF, 0xE3 // jmp r11
+    };
+
+    const std::uint64_t target =
+        reinterpret_cast<std::uint64_t>(&QpGameplayHook);
+    memcpy(&patch[2], &target, sizeof(target));
+
+    if (!WriteCodeBytes(site, patch, sizeof(patch))) {
+        Log("[ERROR] Gameplay hook install write failed.");
+        return false;
+    }
+
+    g_gameplayHookInstalled = true;
+    Log("Gameplay hook installed at EXE+0x%llX.", static_cast<unsigned long long>(kGameplayHookRva));
+    return true;
 }
 
 bool KeyPressedEdge(int vk, SHORT& previous) {
@@ -262,9 +856,20 @@ bool KeyPressedEdge(int vk, SHORT& previous) {
     return downNow && !downBefore;
 }
 
+void ResetWeaponRuntime(const char* reason) {
+    if (g_activeWeapon.active) {
+        RestoreActiveDonor(reason);
+    }
+    g_weaponQueue.clear();
+    g_graphs.clear();
+    g_graphIndexBuilt = false;
+    Log("Weapon runtime reset: %s", reason);
+}
+
 DWORD WINAPI WorkerThread(LPVOID) {
     const std::wstring dir = ModuleDirectory(g_module);
     const std::wstring logPath = dir + L"\\QProtocol.log";
+    const std::wstring iniPath = dir + L"\\QProtocol.ini";
 
     g_log = CreateFileW(
         logPath.c_str(),
@@ -275,29 +880,42 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A1");
-    Log("Scope: bootstrap + ResolvePlayer + F1 License To Kill only.");
+    Log("Q Protocol Fresh Core A2");
+    Log("Scope: A1 validated LTK + shared GiveWeapon + F4/F5-F12.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A1 disabled because executable validation failed.");
+        Log("Fresh Core A2 disabled because executable validation failed.");
         return 0;
     }
 
     Log("Target executable accepted.");
+    LoadWeaponConfig(iniPath);
+
+    if (!InstallGameplayHook()) {
+        Log("[ERROR] Fresh Core A2 disabled: gameplay hook unavailable.");
+        return 0;
+    }
+
     Log("F1 = License To Kill toggle.");
-    Log("F2-F12 and AUTO are intentionally inactive in A1.");
+    Log("F4 = Q-Pistol swap through shared GiveWeapon.");
+    Log("F5-F12 = configured weapons through shared GiveWeapon.");
+    Log("F2, F3, AUTO and overlay are intentionally inactive in A2.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
-    SHORT f1Previous = 0;
 
-    while (g_running) {
+    SHORT keyPrevious[13]{};
+
+    while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
         const bool ready = static_cast<bool>(player);
 
-        if (ready != previousReady ||
-            (ready && (player.loadout != previousPlayer.loadout ||
-                       player.playerId != previousPlayer.playerId))) {
+        const bool generationChanged =
+            ready && previousReady &&
+            (player.loadout != previousPlayer.loadout ||
+             player.playerId != previousPlayer.playerId);
+
+        if (ready != previousReady || generationChanged) {
             if (ready) {
                 Log(
                     "PLAYER READY loadout=0x%p playerId=%u",
@@ -307,21 +925,78 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 Log("PLAYER NOT READY");
             }
 
+            ResetWeaponRuntime(
+                ready ? "player generation changed/ready" : "player not ready");
+
             previousPlayer = player;
             previousReady = ready;
         }
 
-        if (KeyPressedEdge(VK_F1, f1Previous)) {
+        if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
             ToggleLicenseToKill();
         }
 
+        if (KeyPressedEdge(VK_F4, keyPrevious[4])) {
+            if (!ready) {
+                Log("F4 ignored: player not ready.");
+            } else {
+                const std::uint64_t rid =
+                    g_qpistolNextB ? g_qpistolModeB : g_qpistolModeA;
+                if (QueueWeapon(rid, "F4 Q-Pistol")) {
+                    g_qpistolNextB = !g_qpistolNextB;
+                }
+            }
+        }
+
+        for (int i = 0; i < 8; ++i) {
+            const int vk = VK_F5 + i;
+            if (KeyPressedEdge(vk, keyPrevious[5 + i])) {
+                char source[16]{};
+                sprintf_s(source, "F%d", i + 5);
+
+                if (!ready) {
+                    Log("%s ignored: player not ready.", source);
+                } else {
+                    QueueWeapon(g_hotkeyWeapons[i], source);
+                }
+            }
+        }
+
+        if (ready) {
+            ProcessWeaponQueue();
+        } else if (g_activeWeapon.active || !g_weaponQueue.empty()) {
+            ResetWeaponRuntime("player unavailable");
+        }
+
         Sleep(16);
+    }
+
+    if (g_activeWeapon.active) {
+        RestoreActiveDonor("DLL shutdown");
     }
 
     return 0;
 }
 
 } // namespace qp
+
+extern "C" void QpGameplayTick() {
+    const std::uintptr_t spawner =
+        qp::g_pendingSpawner.exchange(0, std::memory_order_acq_rel);
+
+    if (!spawner || !qp::g_nativeSpawn) {
+        return;
+    }
+
+    __try {
+        qp::g_nativeSpawn(reinterpret_cast<void*>(spawner));
+        qp::g_spawnTriggeredAt.store(GetTickCount64(), std::memory_order_release);
+        qp::g_spawnTriggered.store(true, std::memory_order_release);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        qp::g_spawnException.store(true, std::memory_order_release);
+    }
+}
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
@@ -333,7 +1008,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
             CloseHandle(thread);
         }
     } else if (reason == DLL_PROCESS_DETACH) {
-        qp::g_running = false;
+        qp::g_running.store(false, std::memory_order_release);
     }
 
     return TRUE;
