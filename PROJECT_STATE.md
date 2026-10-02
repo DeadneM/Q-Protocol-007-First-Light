@@ -24,7 +24,9 @@
 - F2 uses `[ManualAmmo]` and quantities are additive reserve ammo.
 - F1/F3/F4/F5-F12 are preserved from A3D.
 - AUTO and overlay remain inactive.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `84ad44faf7f024dc2430803591d17e99ec4c7ffda1a6cdbd64da4dbce0ca2ac4`
+- ZIP SHA-256: `a4f0a912c315036da30070e5058fe3c6504a27a3f4f726cd4a340798ec741ecf`
+- GitHub Actions run: `37002460495` (PASS).
 
 ## Fresh Core A3D validated base
 
