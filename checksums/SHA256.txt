@@ -16,6 +16,6 @@ ba119fd8b781b15c1bc41bf393cddcd5dc7a3836ab9081426e4e6a01245a3a03  archive/U49/QP
 153e65273f6a9c7b6b1dc351897aa8a1f9c8138dc96428c06bb1a299ee56cf68  FreshCore_A1/QProtocol.asi
 613fec2ce3c3dda6abac604431fede32fa626cf98c425fff48ff2e3bd62c96fc  Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip
 
-# Fresh Core A2 test candidate, NOT canonical
+# Fresh Core A2 VALIDATED canonical fresh-core base
 b6ff854776439245061d4ad2b1c03ab16b2612a313407bd7876e6a847a9c0a3d  FreshCore_A2/QProtocol.asi
 6f8eac37caa8fab850b4d0d36001aec6735eddbcddf126cb8395685e8b0a181e  Q-Protocol_FreshCore_A2_GiveWeapon_F4-F12_TEST.zip
