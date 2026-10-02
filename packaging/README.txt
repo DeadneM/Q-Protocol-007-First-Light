@@ -1,5 +1,5 @@
-Q Protocol - Fresh Core A7
-==========================
+Q Protocol - Fresh Core A7B
+===========================
 
 TEST BUILD
 
@@ -7,87 +7,68 @@ Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay base.
 
-A7 changes only the configuration/overlay surface and firearm catalogue metadata.
-GiveWeapon, AddAmmo, ResolvePlayer, F1-F12 and AUTO gameplay primitives remain the
-same validated core.
+A7 verdict
+----------
+Fresh Core A7 is REJECTED.
 
-True in-game overlay
---------------------
-A6/A6B used a native Win32 window above the game. That approach is retired.
+Reason:
+- the first DX12 ImGui integration could enter a visible/open logical state
+  before the renderer was actually ready;
+- gameplay hotkeys could then be suppressed even though no overlay was visible;
+- command allocators were reset without explicit per-frame fence ownership.
 
-A7 uses a DirectX 12 / Dear ImGui overlay rendered directly inside the game's
-swap chain. It has no Windows title bar and does not create a visible external
-configuration window.
+A7B correction
+--------------
+A7B keeps the true in-game DX12 / Dear ImGui direction, but makes it fail-open
+and fence-safe.
 
-Insert opens/closes Q Protocol.
+Gameplay safety:
+- OverlayIsVisible() is true only when ImGui/DX12 is genuinely ready.
+- If the renderer is not ready, F1-F12 remain active.
+- If overlay initialization fails, gameplay remains active.
+- If an overlay fence times out, the overlay disables itself and gameplay
+  remains active.
 
-Tabs:
-- Loadout
-- Weapons
-- Hotkeys
+DX12 synchronization:
+- every swap-chain backbuffer has its own fenceValue;
+- a command allocator is reset only after its previous overlay submission has
+  completed;
+- overlay GPU work is waited before DX12 resources are released;
+- the high-frequency ExecuteCommandLists hook is retired after the first DIRECT
+  queue is captured.
 
-Loadout
--------
-Manual:
-- F2 reserve ammo
-- F3 Q-Pistol / One-handed / Two-handed loadout
-- six reserve-ammo values
+Diagnostics
+-----------
+QProtocol.log now reports overlay transitions such as:
 
-Automatic:
-- enable/disable automatic application
-- independent Q-Pistol / One-handed / Two-handed loadout
-- independent reserve-ammo values
+DX12 waiting for hooks
+DX12 hooks installed; waiting for DIRECT queue
+DX12 queue captured; waiting for swapchain/ImGui
+DX12 ImGui ready
+DX12 ImGui initialization failed (gameplay fail-open)
+DX12 overlay fence timeout (overlay disabled; gameplay fail-open)
 
-By default, loadout selectors show only weapons whose Q Protocol spawn path has
-been validated. Enable "Show experimental weapons" to expose internal/debug
-entries.
+The goal is that a renderer problem can no longer make Q Protocol itself look
+dead.
 
-Recovered firearm catalogue
-----------------------------
-The complete known Q Protocol firearm catalogue remains in [WeaponCatalog].
+Overlay / catalogue
+-------------------
+The A7 interface design is retained:
+- true in-game DX12 ImGui rendering;
+- Insert toggle;
+- Loadout / Weapons / Hotkeys tabs;
+- full firearm catalogue;
+- role classification;
+- Validated vs Experimental weapon status.
 
-A7 adds:
-[WeaponRole]
-- QPistol
-- OneHanded
-- TwoHanded
-
-[WeaponValidation]
-- Validated
-- Experimental
-
-The Weapons tab displays every known alias, role, validation state and TEMP RID.
-
-Important:
-"Experimental" does not mean fake. It means the weapon is a genuine internal
-firearm but its source graph has not been proven reliable in every mission.
-
-Current A6B log evidence
-------------------------
-AUTO itself correctly queues OneHanded.
-
-The failure observed with some selections is the current GiveWeapon source-graph
-limitation:
-- BurstPistol -> source graph not found in the tested mission
-- AgencyFocusGun -> source graph not found
-- SocomPistol -> source graph not found
-
-Other tested weapons completed normally, including HeavyPistol50Cal,
-MachinePistolHighRecoil, ARMilitary, ShotgunSemiAuto, ARExotic, MarksmanRifle,
-SMGFastFire and ShotgunPump.
-
-Test A7
--------
-1. Launch a playable mission.
+Test order
+----------
+1. Launch the game and confirm F1/F2/F3/F4/F5-F12 still work BEFORE pressing Insert.
 2. Press Insert.
-3. Confirm Q Protocol is rendered inside the game with no external window/title bar.
-4. Confirm mouse and keyboard input work in the overlay.
-5. Open Weapons and verify the full catalogue is visible.
-6. Confirm normal loadout combos show validated weapons by default.
-7. Enable experimental weapons and confirm the additional entries appear.
-8. Save Manual settings and test F2/F3.
-9. Save Automatic settings, respawn/change level, and test AUTO.
-10. Confirm F1/F4/F5-F12 still work with the overlay closed.
-11. Confirm no crash on resize, Alt-Tab, mission transition or shutdown.
+3. If the overlay appears, test mouse, tabs, Save, Alt-Tab and level transition.
+4. If the overlay does not appear, do not keep pressing Insert: quit normally and
+   attach QProtocol.log. The final "Overlay status:" line tells exactly which DX12
+   stage failed.
+5. Confirm that even if the overlay fails, gameplay hotkeys continue to work.
 
-If the overlay does not appear or crashes, attach QProtocol.log.
+A7B does not change GiveWeapon or AddAmmo.
