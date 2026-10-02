@@ -4,6 +4,30 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A2 test candidate
+
+- Build: `Q-Protocol_FreshCore_A2_GiveWeapon_F4-F12_TEST.zip`
+- Status: **test candidate, not canonical**
+- Inherits:
+  - A1 bootstrap;
+  - shared ResolvePlayer();
+  - F1 License To Kill, already validated.
+- Adds:
+  - one shared GiveWeapon() path;
+  - one small shared weapon queue;
+  - F4 Q-Pistol swap using GiveWeapon();
+  - F5-F12 configurable weapon slots using GiveWeapon();
+  - one minimal gameplay-thread hook whose only job is the native Spawn(spawner) call.
+- F2, F3, AUTO and overlay remain intentionally inactive.
+- ASI SHA-256: `b6ff854776439245061d4ad2b1c03ab16b2612a313407bd7876e6a847a9c0a3d`
+- ZIP SHA-256: `6f8eac37caa8fab850b4d0d36001aec6735eddbcddf126cb8395685e8b0a181e`
+- Validation required:
+  1. reach a playable mission without crash;
+  2. confirm F1 still works;
+  3. test F4 repeatedly;
+  4. test F5-F12;
+  5. inspect QProtocol.log.
+
 ## Fresh Core A1 test candidate
 
 - Build: `Q-Protocol_FreshCore_A1_ResolvePlayer_LTK_TEST.zip`
