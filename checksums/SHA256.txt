@@ -1,7 +1,8 @@
 # Q Protocol reference hashes
 
 # Current state
-# No October-2026 post-update ASI is currently validated/canonical.
+# Fresh Core A3D is the validated October-2026 canonical base.
+# Fresh Core A4 is the current F2 native-ammo test candidate.
 
 # Historical behavioral reference: validated U74 ASI
 8c442ca40cd89b34588cfe9e43801e03952af8012e3c23e5c3f09ce7d355199a  U74/QProtocol.asi
@@ -32,6 +33,11 @@ dde11d1dc4aeb9aa9df6555f83009723692017dc20738072aaa9332b7eef6198  Q-Protocol_Fre
 d774dcc415f61dee83da510690a8476381fb86a5aa5198fedb418d1e04b28f21  FreshCore_A3C/QProtocol.asi
 046deeb6f5235513074b66216bb11267a542b4418dd7f24d356de792b8d73d6e  Q-Protocol_FreshCore_A3C_TypedLoadout_QueuePreserve_TEST.zip
 
-# Fresh Core A3D stabilization-delay test candidate, NOT canonical
+# Fresh Core A3D VALIDATED canonical base
 8294f03808fc061faa416cb023c5441d65fdeb4d241ae752e6c3e11fb16a42df  FreshCore_A3D/QProtocol.asi
 7a06931d2d47593b00a0ae45d9be20c8ffe9c4006d28cfb09c772680a95c15c6  Q-Protocol_FreshCore_A3D_TypedLoadout_500msDelay_TEST.zip
+
+
+# Fresh Core A4 F2 native AddAmmo test candidate, NOT canonical
+84ad44faf7f024dc2430803591d17e99ec4c7ffda1a6cdbd64da4dbce0ca2ac4  FreshCore_A4/QProtocol.asi
+a4f0a912c315036da30070e5058fe3c6504a27a3f4f726cd4a340798ec741ecf  Q-Protocol_FreshCore_A4_F2_NativeAddAmmo_TEST.zip
