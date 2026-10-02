@@ -1,39 +1,67 @@
-Q Protocol - Fresh Core A1
+Q Protocol - Fresh Core A2
 ==========================
 
 TEST BUILD
 
-Purpose
--------
-This is the first fresh-source Q Protocol build after the October 2026 game update.
-
-Implemented:
+Validated from A1
+-----------------
 - clean ASI bootstrap
-- QProtocol.log reset on every launch
 - October executable validation
-- shared ResolvePlayer()
 - F1 License To Kill ON/OFF
 
-Intentionally NOT implemented yet:
+New in A2
+---------
+A2 adds ONE shared weapon primitive.
+
+F4:
+- swaps between QPistolSilenced and QPistolUnsilenced
+- both variants go through the same GiveWeapon() path
+
+F5-F12:
+- give the weapon configured in QProtocol.ini
+- all eight slots go through the same GiveWeapon() path
+
+The old dedicated Q-Pistol state machine is NOT present.
+
+Still intentionally inactive
+----------------------------
 - F2 ammo
-- F3 manual weapon loadout
-- F4 Q-Pistol swap
-- F5-F12 weapon slots
+- F3 manual loadout
 - AUTO
 - overlay
 
+Architecture under test
+-----------------------
+Worker thread:
+- ResolvePlayer()
+- build/cache native ItemEntry/Spawner graph index only when an arm is requested
+- temporarily clone requested ItemEntry descriptor into the validated donor
+- queue one gameplay-thread spawn
+
+Gameplay hook:
+- performs only the native Spawn(spawner) call
+- no scanning
+- no logging
+- no heavy state machine
+
+After the native spawner returns idle, the donor descriptor is restored.
+
 Test
 ----
-1. Copy QProtocol.asi and QProtocol.ini to the game directory using the same ASI loader setup as before.
-2. Launch the game.
-3. Reach a playable mission.
-4. Press F1 twice and verify License To Kill toggles ON then OFF.
+1. Reach a playable mission.
+2. Verify F1 still toggles LTK.
+3. Press F4 several times: Q-Pistol should alternate silenced/unsilenced.
+4. Test F5 through F12.
 5. Send QProtocol.log.
 
 Expected useful log lines:
-- Target executable accepted.
 - PLAYER READY ...
-- F1 License To Kill = ON
-- F1 License To Kill = OFF
+- Gameplay hook installed ...
+- Weapon graph index built ...
+- F# queued RID=...
+- GiveWeapon prepared RID=...
+- GiveWeapon COMPLETE RID=...
+- GiveWeapon donor restored (complete): RID=OK template=OK
 
-This A1 build is deliberately small. It is not based on rejected U80-U85 binaries.
+If the game crashes before using any weapon, the isolated suspect is the new tiny gameplay hook.
+If it stays stable but a weapon fails, the log should identify graph resolution / spawner / descriptor stage.
