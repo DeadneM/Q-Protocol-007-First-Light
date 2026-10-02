@@ -4,26 +4,38 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A3C test candidate
+## Fresh Core A3D test candidate
 
-- Build: `Q-Protocol_FreshCore_A3C_TypedLoadout_QueuePreserve_TEST.zip`
+- Build: `Q-Protocol_FreshCore_A3D_TypedLoadout_500msDelay_TEST.zip`
 - Status: **test candidate, not canonical**
 - Base: validated Fresh Core A2.
-- Fixes A3B issue where only the first queued role (Q-Pistol) survived.
-- Root cause: A3B reset the weapon runtime whenever the loadout pointer changed, even when the same playerId remained active.
-- A3C behavior:
-  - player unavailable or playerId changed -> full reset;
-  - same playerId + loadout pointer refresh -> preserve queued weapons and only invalidate graph cache.
+- A3C log proved all three typed requests were queued and each native spawner cycle returned to idle, but only the Q-Pistol was retained in-game.
+- This proves queue loss was not the remaining problem.
+- Historical validated architecture used `ManualGiveWeaponDelayMs=500` and `AutoGiveWeaponDelayMs=500`.
+- A3D adds one shared 500 ms stabilization delay after each GiveWeapon completion before the next queued weapon begins.
+- No other weapon logic changed.
 - Typed loadout remains exactly:
   - QPistol
   - OneHanded
   - TwoHanded
-- ASI SHA-256: `d774dcc415f61dee83da510690a8476381fb86a5aa5198fedb418d1e04b28f21`
-- ZIP SHA-256: `046deeb6f5235513074b66216bb11267a542b4418dd7f24d356de792b8d73d6e`
+- ASI SHA-256: `8294f03808fc061faa416cb023c5441d65fdeb4d241ae752e6c3e11fb16a42df`
+- ZIP SHA-256: `7a06931d2d47593b00a0ae45d9be20c8ffe9c4006d28cfb09c772680a95c15c6`
 - Validation required:
   1. F3 gives all three typed roles;
-  2. F1/F4/F5-F12 remain working;
-  3. no crash/regression.
+  2. wait about 2 seconds after F3 before judging;
+  3. F1/F4/F5-F12 remain working;
+  4. no crash/regression.
+
+## Fresh Core A3C rejected
+
+- Build: `Q-Protocol_FreshCore_A3C_TypedLoadout_QueuePreserve_TEST.zip`
+- Status: **REJECTED**
+- Result: still only Q-Pistol retained.
+- Log proved:
+  - all three roles queued;
+  - all three GiveWeapon cycles reached COMPLETE;
+  - donor restored after each.
+- Therefore the remaining issue is post-spawn loadout stabilization, not queue preservation.
 
 ## Fresh Core A3B rejected
 
