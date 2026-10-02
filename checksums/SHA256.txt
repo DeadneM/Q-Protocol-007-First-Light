@@ -61,3 +61,8 @@ fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2  Q-Protocol_Fre
 # Fresh Core A7 DX12 ImGui + firearm catalog test candidate, NOT canonical
 7cd5e56a03bdffecb9ce894661ff848459ffb56453810aeb8b7c0e4eaa96c096  FreshCore_A7/QProtocol.asi
 94f4d624f1f2e0438639bf50b607d9bfb3571492389a7472e00e3cfeee1b6b3c  Q-Protocol_FreshCore_A7_DX12_ImGui_WeaponCatalog_TEST.zip
+
+
+# Fresh Core A7B fail-open DX12 ImGui test candidate, NOT canonical
+0643f137f81bb4e549ee7af7dd4e71f12e41f30bb4b80eb42795292539183744  FreshCore_A7B/QProtocol.asi
+6638a0464b2030781fe974e05897e4151d0bbdd2bd6382f63908765b4e1eb1c3  Q-Protocol_FreshCore_A7B_DX12_FailOpen_TEST.zip
