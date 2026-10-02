@@ -101,6 +101,7 @@ static_assert(sizeof(AddFirearmAmmunitionInput) == 12);
 struct PendingAmmoRequest {
     AmmoProfile profile{};
     std::uint32_t playerId = 0;
+    const char* source = nullptr;
 };
 
 enum class LtkState {
@@ -158,7 +159,10 @@ struct LoadoutProfile {
 };
 
 LoadoutProfile g_manualLoadout{};
+LoadoutProfile g_autoLoadout{};
 AmmoProfile g_manualAmmo{};
+AmmoProfile g_autoAmmo{};
+bool g_autoEnabled = false;
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -425,10 +429,11 @@ std::wstring IniRead(
 
 std::uint32_t ReadAmmoAmount(
     const std::wstring& iniPath,
+    const wchar_t* section,
     const wchar_t* key) {
 
     const UINT value = GetPrivateProfileIntW(
-        L"ManualAmmo",
+        section,
         key,
         0,
         iniPath.c_str());
@@ -487,12 +492,26 @@ void LoadConfig(const std::wstring& iniPath) {
     ResolveConfiguredRid(iniPath, L"ManualLoadout", L"OneHanded", g_manualLoadout.oneHanded);
     ResolveConfiguredRid(iniPath, L"ManualLoadout", L"TwoHanded", g_manualLoadout.twoHanded);
 
-    g_manualAmmo.qPistol = ReadAmmoAmount(iniPath, L"QPistol");
-    g_manualAmmo.smg = ReadAmmoAmount(iniPath, L"SMG");
-    g_manualAmmo.assaultRifle = ReadAmmoAmount(iniPath, L"AssaultRifle");
-    g_manualAmmo.shotgun = ReadAmmoAmount(iniPath, L"Shotgun");
-    g_manualAmmo.sniper = ReadAmmoAmount(iniPath, L"Sniper");
-    g_manualAmmo.heavyPistol = ReadAmmoAmount(iniPath, L"HeavyPistol");
+    ResolveConfiguredRid(iniPath, L"AutoLoadout", L"QPistol", g_autoLoadout.qPistol);
+    ResolveConfiguredRid(iniPath, L"AutoLoadout", L"OneHanded", g_autoLoadout.oneHanded);
+    ResolveConfiguredRid(iniPath, L"AutoLoadout", L"TwoHanded", g_autoLoadout.twoHanded);
+
+    g_autoEnabled =
+        GetPrivateProfileIntW(L"Auto", L"Enabled", 1, iniPath.c_str()) != 0;
+
+    g_manualAmmo.qPistol = ReadAmmoAmount(iniPath, L"ManualAmmo", L"QPistol");
+    g_manualAmmo.smg = ReadAmmoAmount(iniPath, L"ManualAmmo", L"SMG");
+    g_manualAmmo.assaultRifle = ReadAmmoAmount(iniPath, L"ManualAmmo", L"AssaultRifle");
+    g_manualAmmo.shotgun = ReadAmmoAmount(iniPath, L"ManualAmmo", L"Shotgun");
+    g_manualAmmo.sniper = ReadAmmoAmount(iniPath, L"ManualAmmo", L"Sniper");
+    g_manualAmmo.heavyPistol = ReadAmmoAmount(iniPath, L"ManualAmmo", L"HeavyPistol");
+
+    g_autoAmmo.qPistol = ReadAmmoAmount(iniPath, L"AutoAmmo", L"QPistol");
+    g_autoAmmo.smg = ReadAmmoAmount(iniPath, L"AutoAmmo", L"SMG");
+    g_autoAmmo.assaultRifle = ReadAmmoAmount(iniPath, L"AutoAmmo", L"AssaultRifle");
+    g_autoAmmo.shotgun = ReadAmmoAmount(iniPath, L"AutoAmmo", L"Shotgun");
+    g_autoAmmo.sniper = ReadAmmoAmount(iniPath, L"AutoAmmo", L"Sniper");
+    g_autoAmmo.heavyPistol = ReadAmmoAmount(iniPath, L"AutoAmmo", L"HeavyPistol");
 
     LogRid("F4 Q-Pistol ModeA", g_qpistolModeA);
     LogRid("F4 Q-Pistol ModeB", g_qpistolModeB);
@@ -506,12 +525,24 @@ void LoadConfig(const std::wstring& iniPath) {
     LogRid("ManualLoadout OneHanded", g_manualLoadout.oneHanded);
     LogRid("ManualLoadout TwoHanded", g_manualLoadout.twoHanded);
 
+    Log("AUTO Enabled = %d", g_autoEnabled ? 1 : 0);
+    LogRid("AutoLoadout QPistol", g_autoLoadout.qPistol);
+    LogRid("AutoLoadout OneHanded", g_autoLoadout.oneHanded);
+    LogRid("AutoLoadout TwoHanded", g_autoLoadout.twoHanded);
+
     Log("ManualAmmo QPistol = %u", g_manualAmmo.qPistol);
     Log("ManualAmmo SMG/MachinePistol = %u", g_manualAmmo.smg);
     Log("ManualAmmo AssaultRifle = %u", g_manualAmmo.assaultRifle);
     Log("ManualAmmo Shotgun = %u", g_manualAmmo.shotgun);
     Log("ManualAmmo Sniper/Marksman = %u", g_manualAmmo.sniper);
     Log("ManualAmmo HeavyPistol50Cal = %u", g_manualAmmo.heavyPistol);
+
+    Log("AutoAmmo QPistol = %u", g_autoAmmo.qPistol);
+    Log("AutoAmmo SMG/MachinePistol = %u", g_autoAmmo.smg);
+    Log("AutoAmmo AssaultRifle = %u", g_autoAmmo.assaultRifle);
+    Log("AutoAmmo Shotgun = %u", g_autoAmmo.shotgun);
+    Log("AutoAmmo Sniper/Marksman = %u", g_autoAmmo.sniper);
+    Log("AutoAmmo HeavyPistol50Cal = %u", g_autoAmmo.heavyPistol);
 }
 
 bool IsReadableProtection(DWORD protect) {
@@ -954,6 +985,7 @@ bool QueueAmmoProfile(
 
     g_pendingAmmo.profile = profile;
     g_pendingAmmo.playerId = playerId;
+    g_pendingAmmo.source = source;
     g_ammoPending.store(true, std::memory_order_release);
 
     Log("%s queued for playerId=%u.", source, playerId);
@@ -976,13 +1008,17 @@ bool RuntimePlayerMatches(std::uint32_t playerId) {
 
 bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     if (!RuntimePlayerMatches(request.playerId)) {
-        Log("[ERROR] F2 AddAmmo aborted: player identity changed.");
+        Log(
+            "[ERROR] %s AddAmmo aborted: player identity changed.",
+            request.source ? request.source : "Ammo");
         return false;
     }
 
     std::uintptr_t owner = 0;
     if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) {
-        Log("[ERROR] F2 AddAmmo: native ammo owner unavailable.");
+        Log(
+            "[ERROR] %s AddAmmo: native ammo owner unavailable.",
+            request.source ? request.source : "Ammo");
         return false;
     }
 
@@ -1034,7 +1070,8 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
 
             ++published;
             Log(
-                "F2 AddAmmo class=%u (%s) amount=+%u",
+                "%s AddAmmo class=%u (%s) amount=+%u",
+                request.source ? request.source : "Ammo",
                 entry.firearmClass,
                 entry.name,
                 entry.amount);
@@ -1049,7 +1086,9 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         nativeOk = false;
-        Log("[ERROR] F2 AddAmmo: native publication exception.");
+        Log(
+            "[ERROR] %s AddAmmo: native publication exception.",
+            request.source ? request.source : "Ammo");
     }
 
     if (locked) {
@@ -1058,7 +1097,9 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
         }
         __except (EXCEPTION_EXECUTE_HANDLER) {
             nativeOk = false;
-            Log("[ERROR] F2 AddAmmo: unlock exception.");
+            Log(
+                "[ERROR] %s AddAmmo: unlock exception.",
+                request.source ? request.source : "Ammo");
         }
     }
 
@@ -1067,12 +1108,15 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     }
 
     if (!published) {
-        Log("F2 ManualAmmo: all configured amounts are zero.");
+        Log(
+            "%s: all configured ammo amounts are zero.",
+            request.source ? request.source : "Ammo");
         return true;
     }
 
     Log(
-        "F2 ManualAmmo PUBLISHED through native event 0x%X (%zu class(es)).",
+        "%s PUBLISHED through native ammo event 0x%X (%zu class(es)).",
+        request.source ? request.source : "Ammo",
         kAmmoNotifyEventId,
         published);
     return true;
@@ -1149,11 +1193,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A4");
-    Log("Scope: validated A3D + native F2 AddAmmo through AddFirearmAmmunitionToPlayer event 0x1DE.");
+    Log("Q Protocol Fresh Core A5");
+    Log("Scope: validated A4 + one-shot AUTO using the same Loadout/AddAmmo primitives.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A4 disabled because executable validation failed.");
+        Log("Fresh Core A5 disabled because executable validation failed.");
         return 0;
     }
 
@@ -1161,7 +1205,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A4 disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core A5 disabled: gameplay hook unavailable.");
         return 0;
     }
 
@@ -1170,10 +1214,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
-    Log("AUTO and overlay are intentionally inactive in A4.");
+    Log("AUTO = same shared GiveWeapon + AddAmmo primitives using AutoLoadout/AutoAmmo.");
+    Log("Overlay remains intentionally inactive in A5.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
+    bool autoDone = false;
 
     SHORT keyPrevious[13]{};
 
@@ -1203,6 +1249,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
             ResetWeaponRuntime(
                 ready ? "player identity changed/ready" : "player not ready");
 
+            autoDone = false;
             previousPlayer = player;
             previousReady = ready;
         } else if (loadoutPointerChanged) {
@@ -1215,6 +1262,20 @@ DWORD WINAPI WorkerThread(LPVOID) {
             g_graphIndexBuilt = false;
 
             previousPlayer = player;
+        }
+
+        if (ready && g_autoEnabled && !autoDone) {
+            const std::size_t autoWeapons =
+                QueueLoadout(g_autoLoadout, "AUTO Loadout");
+            const bool autoAmmoQueued =
+                QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo");
+
+            autoDone = true;
+
+            Log(
+                "AUTO committed once for current READY cycle: weapons=%zu ammo=%s.",
+                autoWeapons,
+                autoAmmoQueued ? "queued" : "not queued");
         }
 
         if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
