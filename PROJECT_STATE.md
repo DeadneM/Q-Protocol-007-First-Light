@@ -1,5 +1,23 @@
 # Q Protocol — Project State
 
+## Fresh Core A7 DX12 ImGui overlay + firearm catalog candidate
+
+- Build: `Q-Protocol_FreshCore_A7_DX12_ImGui_WeaponCatalog_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A5 gameplay core**.
+- Retires the visible Win32 A6/A6B configuration window.
+- Uses a true in-game DX12 Dear ImGui overlay hooked through the game's swap chain.
+- Insert remains the overlay toggle.
+- Adds Loadout / Weapons / Hotkeys tabs.
+- Full known firearm catalogue is retained and classified with:
+  - `[WeaponRole]` = QPistol / OneHanded / TwoHanded;
+  - `[WeaponValidation]` = Validated / Experimental.
+- Loadout selectors show validated weapons by default; experimental entries are opt-in.
+- A7 does **not** alter GiveWeapon/AddAmmo gameplay primitives.
+- A6B log proves AUTO queues OneHanded correctly; observed failures come from source graph resolution for specific experimental RIDs.
+- ASI/ZIP hashes: pending workflow build.
+
+
 > **Primary source of truth.**
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
@@ -188,7 +206,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A6B**, simplifying the Insert overlay while preserving A5 gameplay architecture.
+- Current test candidate: **Fresh Core A7**, replacing the Win32 overlay with DX12 ImGui and classifying the full firearm catalogue.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
