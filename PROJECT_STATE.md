@@ -4,25 +4,34 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A3B test candidate
+## Fresh Core A3C test candidate
 
-- Build: `Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip`
+- Build: `Q-Protocol_FreshCore_A3C_TypedLoadout_QueuePreserve_TEST.zip`
 - Status: **test candidate, not canonical**
 - Base: validated Fresh Core A2.
-- Correct loadout model:
-  - `QPistol` = one Q-Pistol variant;
-  - `OneHanded` = one one-handed firearm;
-  - `TwoHanded` = one two-handed firearm.
-- F3 queues exactly those three typed roles into the validated A2 `GiveWeapon()` queue.
-- F5-F12 remain standalone weapon hotkeys and are not loadout slots.
-- F2, AUTO and overlay remain intentionally inactive.
-- ASI SHA-256: `ec5890823ecb1251869196fad7076b027db9aecc0b39074b178514ad76098df9`
-- ZIP SHA-256: `dde11d1dc4aeb9aa9df6555f83009723692017dc20738072aaa9332b7eef6198`
+- Fixes A3B issue where only the first queued role (Q-Pistol) survived.
+- Root cause: A3B reset the weapon runtime whenever the loadout pointer changed, even when the same playerId remained active.
+- A3C behavior:
+  - player unavailable or playerId changed -> full reset;
+  - same playerId + loadout pointer refresh -> preserve queued weapons and only invalidate graph cache.
+- Typed loadout remains exactly:
+  - QPistol
+  - OneHanded
+  - TwoHanded
+- ASI SHA-256: `d774dcc415f61dee83da510690a8476381fb86a5aa5198fedb418d1e04b28f21`
+- ZIP SHA-256: `046deeb6f5235513074b66216bb11267a542b4418dd7f24d356de792b8d73d6e`
 - Validation required:
-  1. F1/F4/F5-F12 remain working;
-  2. F3 gives exactly one Q-Pistol variant, one one-handed weapon and one two-handed weapon;
-  3. no fourth loadout weapon is introduced;
-  4. no crash/regression.
+  1. F3 gives all three typed roles;
+  2. F1/F4/F5-F12 remain working;
+  3. no crash/regression.
+
+## Fresh Core A3B rejected
+
+- Build: `Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip`
+- Status: **REJECTED**
+- Result: F3 gave only the Q-Pistol.
+- Cause identified in fresh-core logic: the remaining OneHanded and TwoHanded requests were cleared after the first loadout pointer refresh.
+- A2 remains canonical until A3C is validated.
 
 ## Fresh Core A3 rejected
 
