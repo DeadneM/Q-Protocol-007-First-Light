@@ -4,6 +4,18 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A6B clean overlay test candidate
+
+- Build: `Q-Protocol_FreshCore_A6B_CleanOverlay_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A5**.
+- Replaces the cluttered A6 layout with two compact panels: Manual and Automatic.
+- F2 is fixed to ManualAmmo and F3 to ManualLoadout.
+- Removes visible Profile selectors and debug-only runtime clutter.
+- Keeps Insert, Save, Reload, Defaults, player-ready status, Manual editors and AUTO editors.
+- A5 gameplay primitives are unchanged.
+- ASI/ZIP hashes: pending workflow build.
+
 ## Fresh Core A6 Insert overlay test candidate
 
 - Build: `Q-Protocol_FreshCore_A6_InsertOverlay_TEST.zip`
@@ -174,7 +186,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A6**, adding the Insert INI overlay while preserving A5 gameplay architecture.
+- Current test candidate: **Fresh Core A6B**, simplifying the Insert overlay while preserving A5 gameplay architecture.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
