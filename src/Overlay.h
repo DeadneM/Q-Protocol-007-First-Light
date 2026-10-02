@@ -13,6 +13,7 @@ void OverlayPump(
     bool qpistolNextB);
 bool OverlayConsumeReloadRequest();
 bool OverlayIsVisible();
+const char* OverlayStatus();
 void OverlayShutdown();
 
 } // namespace qp
