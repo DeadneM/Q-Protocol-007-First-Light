@@ -1,80 +1,78 @@
-Q Protocol - Fresh Core A5
+Q Protocol - Fresh Core A6
 ==========================
 
 TEST BUILD
 
 Validated base
 --------------
-Fresh Core A4 is treated as VALIDATED from the user's positive test feedback.
-A4 preserves the A3D weapon core and adds the native F2 reserve-ammo primitive.
+Fresh Core A5 is VALIDATED and remains the canonical gameplay base.
 
-A5 addition: minimal AUTO
--------------------------
-AUTO is deliberately not a second weapon/ammo engine.
+A6 goal
+-------
+Add the first real Insert configuration overlay without redesigning the
+validated gameplay core.
 
-When a new playable READY cycle is detected and [Auto] Enabled=1, A5 does exactly:
+Overlay architecture
+--------------------
+- Native Win32 overlay window created by the same ASI.
+- Renderer-independent: no DX11/DX12 Present hook is added.
+- Insert opens/closes the overlay.
+- The overlay writes the SAME QProtocol.ini used by the gameplay core.
+- Save / Reload / Reset Defaults are implemented.
+- While the overlay is open, manual F1-F12 actions are suppressed.
+- Weapon queue and native gameplay processing continue normally.
 
-  QueueLoadout(AutoLoadout)
-  QueueAmmoProfile(AutoAmmo)
-  AutoDone = true
+A6 editable settings
+--------------------
+Status:
+- Player READY / NOT READY
+- AUTO WAITING / DONE
+- weapon queue count
+- next Q-Pistol mode
 
-The same shared primitives are used by manual controls:
-- F2 and AUTO share the same native AddAmmo path.
-- F3 and AUTO share the same typed three-role GiveWeapon queue.
-- The shared 500 ms inter-weapon stabilization remains unchanged.
+Profiles:
+- AUTO Enabled
+- F2 Profile = Manual / Auto
+- F3 Profile = Manual / Auto
+- ManualLoadout QPistol / OneHanded / TwoHanded
+- ManualAmmo six confirmed firearm classes
+- AutoLoadout QPistol / OneHanded / TwoHanded
+- AutoAmmo six confirmed firearm classes
 
-AUTO profile
-------------
-[AutoLoadout]
-QPistol   = one Q-Pistol variant
-OneHanded = one one-handed firearm
-TwoHanded = one two-handed firearm
+Weapon selectors are populated from [WeaponCatalog] in QProtocol.ini.
 
-[AutoAmmo]
-QPistol
-SMG
-AssaultRifle
-Shotgun
-Sniper
-HeavyPistol
+Profile= is now functional
+--------------------------
+[Hotkey_F2]
+Profile=Manual -> F2 uses [ManualAmmo]
+Profile=Auto   -> F2 uses [AutoAmmo]
 
-Every selection/quantity is configurable independently from ManualLoadout/ManualAmmo.
+[Hotkey_F3]
+Profile=Manual -> F3 uses [ManualLoadout]
+Profile=Auto   -> F3 uses [AutoLoadout]
 
-Re-arm behavior
----------------
-AUTO re-arms only when the shared player context leaves READY or its player identity changes.
-
-A loadout pointer refresh while the same player remains READY does NOT re-arm AUTO.
-This is intentional because GiveWeapon itself can refresh the loadout pointer; re-arming there
-would create an automatic loop.
-
-Preserved
----------
+Preserved from A5
+-----------------
 - F1 License To Kill
-- F2 native ManualAmmo
-- F3 typed ManualLoadout
+- native F2 AddAmmo primitive
+- typed F3 three-role loadout
 - F4 Q-Pistol swap
-- F5-F12 configured weapons
+- F5-F12 individual weapons
 - shared GiveWeapon queue
 - 500 ms inter-weapon stabilization
-- native AddFirearmAmmunitionToPlayer event 0x1DE
-
-Still inactive
---------------
-- overlay
+- AUTO using the same GiveWeapon/AddAmmo primitives
 
 Test
 ----
-1. Keep [Auto] Enabled=1.
-2. Enter a playable mission without pressing F2/F3.
-3. Confirm AUTO gives exactly the three configured AutoLoadout roles.
-4. Confirm AutoAmmo reserve quantities are added.
-5. Confirm AUTO runs only once while remaining in the same playable context.
-6. Press F2 and F3 manually afterward and confirm both still work.
-7. Change level / respawn and confirm AUTO re-arms on the next READY cycle.
-8. Confirm F1/F4/F5-F12 remain functional and there is no crash.
+1. Enter a playable mission and confirm A5 gameplay behavior is unchanged.
+2. Press Insert.
+3. Confirm the overlay appears and is clickable.
+4. Change one Manual/Auto weapon or ammo value.
+5. Press Save.
+6. Close with Insert and confirm the corresponding F2/F3 behavior uses the saved values.
+7. Change F2 or F3 Profile between Manual and Auto and verify the selected profile is used.
+8. Test Reload and Reset Defaults.
+9. Confirm F1-F12 do not trigger while the overlay is open.
+10. Confirm AUTO still runs once per READY cycle and no crash occurs on respawn/level change.
 
-Expected log:
-AUTO committed once for current READY cycle: weapons=3 ammo=queued.
-AUTO Ammo AddAmmo class=...
-AUTO Ammo PUBLISHED through native ammo event 0x1DE
+If the overlay does not appear, attach QProtocol.log.
