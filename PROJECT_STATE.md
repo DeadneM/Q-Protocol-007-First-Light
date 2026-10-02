@@ -14,7 +14,9 @@
 - Captures the first DIRECT command queue, then retires the high-frequency ExecuteCommandLists hook.
 - Adds explicit overlay stage diagnostics to QProtocol.log.
 - Full role/validation firearm catalogue from A7 is retained.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `0643f137f81bb4e549ee7af7dd4e71f12e41f30bb4b80eb42795292539183744`
+- ZIP SHA-256: `6638a0464b2030781fe974e05897e4151d0bbdd2bd6382f63908765b4e1eb1c3`
+- GitHub Actions run: `37071521536` (PASS).
 
 ## Fresh Core A7 REJECTED
 
