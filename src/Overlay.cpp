@@ -13,18 +13,13 @@
 namespace qp {
 namespace {
 
-constexpr wchar_t kOverlayClass[] = L"QProtocolOverlayA6";
-constexpr int kWindowWidth = 720;
-constexpr int kWindowHeight = 760;
+constexpr wchar_t kOverlayClass[] = L"QProtocolOverlayA6B";
+constexpr int kWindowWidth = 680;
+constexpr int kWindowHeight = 545;
 
 enum ControlId : int {
     IDC_STATUS_PLAYER = 100,
-    IDC_STATUS_AUTO,
-    IDC_STATUS_QUEUE,
-    IDC_STATUS_QPISTOL,
     IDC_AUTO_ENABLED = 110,
-    IDC_F2_PROFILE,
-    IDC_F3_PROFILE,
 
     IDC_MANUAL_QPISTOL = 200,
     IDC_MANUAL_ONEHANDED,
@@ -55,6 +50,7 @@ std::wstring g_iniPath;
 HWND g_window = nullptr;
 HWND g_gameWindow = nullptr;
 HFONT g_font = nullptr;
+HFONT g_titleFont = nullptr;
 HBRUSH g_backgroundBrush = nullptr;
 HBRUSH g_editBrush = nullptr;
 bool g_registered = false;
@@ -64,14 +60,7 @@ bool g_insertWasDown = false;
 ULONGLONG g_lastStatusUpdate = 0;
 
 HWND g_statusPlayer = nullptr;
-HWND g_statusAuto = nullptr;
-HWND g_statusQueue = nullptr;
-HWND g_statusQPistol = nullptr;
-
 HWND g_autoEnabled = nullptr;
-HWND g_f2Profile = nullptr;
-HWND g_f3Profile = nullptr;
-
 HWND g_manualLoadout[3]{};
 HWND g_autoLoadout[3]{};
 HWND g_manualAmmo[6]{};
@@ -108,9 +97,11 @@ const unsigned kDefaultAmmo[6] = {
     10, 30, 30, 8, 5, 8
 };
 
-void ApplyFont(HWND hwnd) {
-    if (hwnd && g_font) {
-        SendMessageW(hwnd, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
+void ApplyFont(HWND hwnd, bool title = false) {
+    if (!hwnd) return;
+    HFONT font = title ? g_titleFont : g_font;
+    if (font) {
+        SendMessageW(hwnd, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
     }
 }
 
@@ -121,7 +112,7 @@ HWND AddStatic(
     int y,
     int w,
     int h,
-    int id = 0) {
+    bool title = false) {
 
     HWND hwnd = CreateWindowExW(
         0,
@@ -130,10 +121,10 @@ HWND AddStatic(
         WS_CHILD | WS_VISIBLE,
         x, y, w, h,
         parent,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),
+        nullptr,
         nullptr,
         nullptr);
-    ApplyFont(hwnd);
+    ApplyFont(hwnd, title);
     return hwnd;
 }
 
@@ -291,9 +282,7 @@ void SelectComboText(HWND combo, const std::wstring& value) {
 
 std::wstring ComboText(HWND combo) {
     const LRESULT index = SendMessageW(combo, CB_GETCURSEL, 0, 0);
-    if (index == CB_ERR) {
-        return L"";
-    }
+    if (index == CB_ERR) return L"";
 
     wchar_t buffer[256]{};
     SendMessageW(
@@ -309,9 +298,7 @@ unsigned EditUInt(HWND edit) {
     GetWindowTextW(edit, buffer, static_cast<int>(std::size(buffer)));
     wchar_t* end = nullptr;
     unsigned long value = wcstoul(buffer, &end, 10);
-    if (!end || end == buffer) {
-        return 0;
-    }
+    if (!end || end == buffer) return 0;
     return static_cast<unsigned>(std::min<unsigned long>(value, 100000));
 }
 
@@ -322,21 +309,9 @@ void SetEditUInt(HWND edit, unsigned value) {
 }
 
 void LoadControlsFromIni() {
-    if (!g_window) {
-        return;
-    }
+    if (!g_window) return;
 
     const auto aliases = ReadWeaponAliases();
-
-    FillCombo(g_f2Profile, {L"Manual", L"Auto"});
-    FillCombo(g_f3Profile, {L"Manual", L"Auto"});
-
-    SelectComboText(
-        g_f2Profile,
-        ReadIni(L"Hotkey_F2", L"Profile", L"Manual"));
-    SelectComboText(
-        g_f3Profile,
-        ReadIni(L"Hotkey_F3", L"Profile", L"Manual"));
 
     const bool autoEnabled =
         GetPrivateProfileIntW(
@@ -383,12 +358,7 @@ void LoadControlsFromIni() {
 }
 
 void SaveControlsToIni() {
-    if (!g_window) {
-        return;
-    }
-
-    WriteIni(L"Hotkey_F2", L"Profile", ComboText(g_f2Profile));
-    WriteIni(L"Hotkey_F3", L"Profile", ComboText(g_f3Profile));
+    if (!g_window) return;
 
     WriteIni(
         L"Auto",
@@ -418,8 +388,6 @@ void SaveControlsToIni() {
 }
 
 void ResetDefaults() {
-    WriteIni(L"Hotkey_F2", L"Profile", L"Manual");
-    WriteIni(L"Hotkey_F3", L"Profile", L"Manual");
     WriteIni(L"Auto", L"Enabled", L"1");
 
     for (int i = 0; i < 3; ++i) {
@@ -438,6 +406,71 @@ void ResetDefaults() {
     g_reloadRequested = true;
 }
 
+void AddAmmoPair(
+    HWND hwnd,
+    HWND& leftEdit,
+    HWND& rightEdit,
+    const wchar_t* leftLabel,
+    const wchar_t* rightLabel,
+    int x,
+    int y,
+    int leftId,
+    int rightId) {
+
+    AddStatic(hwnd, leftLabel, x, y + 3, 72, 20);
+    leftEdit = AddEdit(hwnd, x + 72, y, 58, 26, leftId);
+
+    AddStatic(hwnd, rightLabel, x + 145, y + 3, 78, 20);
+    rightEdit = AddEdit(hwnd, x + 223, y, 58, 26, rightId);
+}
+
+void BuildProfileColumn(
+    HWND hwnd,
+    int x,
+    const wchar_t* heading,
+    HWND loadout[3],
+    HWND ammo[6],
+    int loadoutBaseId,
+    int ammoBaseId) {
+
+    AddStatic(hwnd, heading, x, 76, 300, 24, true);
+    AddStatic(hwnd, L"Loadout", x, 110, 120, 20);
+
+    const wchar_t* roleLabels[3] = {L"Q-Pistol", L"One-handed", L"Two-handed"};
+
+    for (int i = 0; i < 3; ++i) {
+        const int y = 138 + i * 38;
+        AddStatic(hwnd, roleLabels[i], x, y + 4, 86, 20);
+        loadout[i] = AddCombo(hwnd, x + 90, y, 205, 300, loadoutBaseId + i);
+    }
+
+    AddStatic(hwnd, L"Reserve ammo", x, 262, 120, 20);
+
+    AddAmmoPair(
+        hwnd,
+        ammo[0], ammo[1],
+        L"Q-Pistol", L"SMG",
+        x, 292,
+        ammoBaseId + 0,
+        ammoBaseId + 1);
+
+    AddAmmoPair(
+        hwnd,
+        ammo[2], ammo[3],
+        L"Rifle", L"Shotgun",
+        x, 330,
+        ammoBaseId + 2,
+        ammoBaseId + 3);
+
+    AddAmmoPair(
+        hwnd,
+        ammo[4], ammo[5],
+        L"Sniper", L"Heavy",
+        x, 368,
+        ammoBaseId + 4,
+        ammoBaseId + 5);
+}
+
 void BuildControls(HWND hwnd) {
     g_font = CreateFontW(
         -17, 0, 0, 0,
@@ -450,100 +483,75 @@ void BuildControls(HWND hwnd) {
         DEFAULT_PITCH | FF_DONTCARE,
         L"Segoe UI");
 
-    AddStatic(hwnd, L"Q PROTOCOL  /  Fresh Core A6", 20, 14, 360, 24);
+    g_titleFont = CreateFontW(
+        -18, 0, 0, 0,
+        FW_SEMIBOLD,
+        FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        L"Segoe UI");
 
-    g_statusPlayer = AddStatic(hwnd, L"Player: ...", 20, 48, 200, 22, IDC_STATUS_PLAYER);
-    g_statusAuto = AddStatic(hwnd, L"AUTO: ...", 220, 48, 160, 22, IDC_STATUS_AUTO);
-    g_statusQueue = AddStatic(hwnd, L"Queue: ...", 380, 48, 130, 22, IDC_STATUS_QUEUE);
-    g_statusQPistol = AddStatic(hwnd, L"Q-Pistol: ...", 510, 48, 170, 22, IDC_STATUS_QPISTOL);
+    g_statusPlayer = AddStatic(hwnd, L"Player: ...", 20, 20, 170, 24, true);
 
     g_autoEnabled = AddButton(
         hwnd,
-        L"AUTO enabled",
-        20, 82, 140, 28,
+        L"",
+        390, 18, 24, 24,
         IDC_AUTO_ENABLED,
         BS_AUTOCHECKBOX);
 
-    AddStatic(hwnd, L"F2 Ammo profile", 190, 86, 120, 20);
-    g_f2Profile = AddCombo(hwnd, 310, 80, 150, 180, IDC_F2_PROFILE);
+    AddStatic(
+        hwnd,
+        L"Automatic loadout on mission start",
+        420, 20, 235, 22);
 
-    AddStatic(hwnd, L"F3 Loadout profile", 480, 86, 130, 20);
-    g_f3Profile = AddCombo(hwnd, 610, 80, 80, 180, IDC_F3_PROFILE);
+    BuildProfileColumn(
+        hwnd,
+        20,
+        L"MANUAL   (F2 ammo / F3 loadout)",
+        g_manualLoadout,
+        g_manualAmmo,
+        IDC_MANUAL_QPISTOL,
+        IDC_MANUAL_AMMO_QPISTOL);
 
-    AddStatic(hwnd, L"MANUAL PROFILE", 20, 130, 220, 22);
-    AddStatic(hwnd, L"Loadout", 20, 160, 100, 20);
-    AddStatic(hwnd, L"QPistol", 20, 190, 90, 20);
-    AddStatic(hwnd, L"OneHanded", 20, 226, 90, 20);
-    AddStatic(hwnd, L"TwoHanded", 20, 262, 90, 20);
+    BuildProfileColumn(
+        hwnd,
+        350,
+        L"AUTOMATIC",
+        g_autoLoadout,
+        g_autoAmmo,
+        IDC_AUTO_QPISTOL,
+        IDC_AUTO_AMMO_QPISTOL);
 
-    g_manualLoadout[0] = AddCombo(hwnd, 110, 184, 245, 300, IDC_MANUAL_QPISTOL);
-    g_manualLoadout[1] = AddCombo(hwnd, 110, 220, 245, 300, IDC_MANUAL_ONEHANDED);
-    g_manualLoadout[2] = AddCombo(hwnd, 110, 256, 245, 300, IDC_MANUAL_TWOHANDED);
+    AddStatic(
+        hwnd,
+        L"Manual hotkeys and automatic setup use the same validated gameplay core.",
+        20, 420, 620, 22);
 
-    AddStatic(hwnd, L"Reserve ammo", 380, 160, 120, 20);
-    const wchar_t* ammoLabels[6] = {
-        L"QPistol", L"SMG", L"Assault Rifle", L"Shotgun", L"Sniper", L"Heavy Pistol"
-    };
-    for (int i = 0; i < 6; ++i) {
-        const int y = 188 + i * 34;
-        AddStatic(hwnd, ammoLabels[i], 380, y + 3, 110, 20);
-        g_manualAmmo[i] = AddEdit(
-            hwnd,
-            500, y,
-            110, 26,
-            IDC_MANUAL_AMMO_QPISTOL + i);
-    }
-
-    AddStatic(hwnd, L"AUTO PROFILE", 20, 406, 220, 22);
-    AddStatic(hwnd, L"Loadout", 20, 436, 100, 20);
-    AddStatic(hwnd, L"QPistol", 20, 466, 90, 20);
-    AddStatic(hwnd, L"OneHanded", 20, 502, 90, 20);
-    AddStatic(hwnd, L"TwoHanded", 20, 538, 90, 20);
-
-    g_autoLoadout[0] = AddCombo(hwnd, 110, 460, 245, 300, IDC_AUTO_QPISTOL);
-    g_autoLoadout[1] = AddCombo(hwnd, 110, 496, 245, 300, IDC_AUTO_ONEHANDED);
-    g_autoLoadout[2] = AddCombo(hwnd, 110, 532, 245, 300, IDC_AUTO_TWOHANDED);
-
-    AddStatic(hwnd, L"Reserve ammo", 380, 436, 120, 20);
-    for (int i = 0; i < 6; ++i) {
-        const int y = 464 + i * 34;
-        AddStatic(hwnd, ammoLabels[i], 380, y + 3, 110, 20);
-        g_autoAmmo[i] = AddEdit(
-            hwnd,
-            500, y,
-            110, 26,
-            IDC_AUTO_AMMO_QPISTOL + i);
-    }
-
-    AddButton(hwnd, L"Save", 20, 686, 150, 36, IDC_SAVE, BS_PUSHBUTTON);
-    AddButton(hwnd, L"Reload", 190, 686, 150, 36, IDC_RELOAD, BS_PUSHBUTTON);
-    AddButton(hwnd, L"Reset Defaults", 360, 686, 170, 36, IDC_RESET, BS_PUSHBUTTON);
-    AddStatic(hwnd, L"Insert = close overlay", 550, 694, 150, 20);
+    AddButton(hwnd, L"Save", 20, 458, 120, 36, IDC_SAVE, BS_PUSHBUTTON);
+    AddButton(hwnd, L"Reload", 152, 458, 120, 36, IDC_RELOAD, BS_PUSHBUTTON);
+    AddButton(hwnd, L"Defaults", 284, 458, 120, 36, IDC_RESET, BS_PUSHBUTTON);
+    AddStatic(hwnd, L"Insert = close", 520, 466, 120, 20);
 
     LoadControlsFromIni();
 }
 
 BOOL CALLBACK FindGameWindowProc(HWND hwnd, LPARAM lParam) {
-    if (hwnd == g_window || !IsWindowVisible(hwnd)) {
-        return TRUE;
-    }
+    if (hwnd == g_window || !IsWindowVisible(hwnd)) return TRUE;
 
     DWORD pid = 0;
     GetWindowThreadProcessId(hwnd, &pid);
-    if (pid != GetCurrentProcessId()) {
-        return TRUE;
-    }
+    if (pid != GetCurrentProcessId()) return TRUE;
 
     RECT rect{};
-    if (!GetClientRect(hwnd, &rect)) {
-        return TRUE;
-    }
+    if (!GetClientRect(hwnd, &rect)) return TRUE;
 
     const long width = rect.right - rect.left;
     const long height = rect.bottom - rect.top;
-    if (width < 640 || height < 360) {
-        return TRUE;
-    }
+    if (width < 640 || height < 360) return TRUE;
 
     auto* best = reinterpret_cast<std::pair<HWND, long long>*>(lParam);
     const long long area = static_cast<long long>(width) * height;
@@ -562,14 +570,10 @@ HWND FindGameWindow() {
 }
 
 void CenterOnGameWindow() {
-    if (!g_window || !g_gameWindow) {
-        return;
-    }
+    if (!g_window || !g_gameWindow) return;
 
     RECT r{};
-    if (!GetWindowRect(g_gameWindow, &r)) {
-        return;
-    }
+    if (!GetWindowRect(g_gameWindow, &r)) return;
 
     const int gameW = r.right - r.left;
     const int gameH = r.bottom - r.top;
@@ -586,13 +590,10 @@ void CenterOnGameWindow() {
 }
 
 void HideOverlay() {
-    if (!g_window || !g_visible) {
-        return;
-    }
+    if (!g_window || !g_visible) return;
 
     ShowWindow(g_window, SW_HIDE);
     g_visible = false;
-    ShowCursor(FALSE);
 
     if (g_gameWindow && IsWindow(g_gameWindow)) {
         SetForegroundWindow(g_gameWindow);
@@ -600,9 +601,7 @@ void HideOverlay() {
 }
 
 void ShowOverlay() {
-    if (!g_window) {
-        return;
-    }
+    if (!g_window) return;
 
     LoadControlsFromIni();
     CenterOnGameWindow();
@@ -610,7 +609,6 @@ void ShowOverlay() {
     SetForegroundWindow(g_window);
     SetFocus(g_window);
     ClipCursor(nullptr);
-    ShowCursor(TRUE);
     g_visible = true;
 }
 
@@ -672,17 +670,13 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 }
 
 bool EnsureWindow() {
-    if (g_window) {
-        return true;
-    }
+    if (g_window) return true;
 
     if (!g_gameWindow || !IsWindow(g_gameWindow)) {
         g_gameWindow = FindGameWindow();
     }
 
-    if (!g_gameWindow) {
-        return false;
-    }
+    if (!g_gameWindow) return false;
 
     g_window = CreateWindowExW(
         WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
@@ -698,40 +692,19 @@ bool EnsureWindow() {
         GetModuleHandleW(nullptr),
         nullptr);
 
-    if (!g_window) {
-        return false;
-    }
+    if (!g_window) return false;
 
     BuildControls(g_window);
     ShowWindow(g_window, SW_HIDE);
     return true;
 }
 
-void UpdateStatus(
-    bool playerReady,
-    bool autoDone,
-    std::size_t weaponQueueCount,
-    bool qpistolNextB) {
-
-    if (!g_window) {
-        return;
-    }
+void UpdateStatus(bool playerReady) {
+    if (!g_window) return;
 
     SetWindowTextW(
         g_statusPlayer,
         playerReady ? L"Player: READY" : L"Player: NOT READY");
-
-    SetWindowTextW(
-        g_statusAuto,
-        autoDone ? L"AUTO: DONE" : L"AUTO: WAITING");
-
-    wchar_t buffer[96]{};
-    swprintf_s(buffer, L"Queue: %zu", weaponQueueCount);
-    SetWindowTextW(g_statusQueue, buffer);
-
-    SetWindowTextW(
-        g_statusQPistol,
-        qpistolNextB ? L"Q-Pistol next: Mode B" : L"Q-Pistol next: Mode A");
 }
 
 } // namespace
@@ -751,9 +724,7 @@ bool OverlayInitialize(const std::wstring& iniPath) {
     wc.lpszClassName = kOverlayClass;
 
     if (!RegisterClassExW(&wc)) {
-        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
-            return false;
-        }
+        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
     }
 
     g_registered = true;
@@ -762,9 +733,9 @@ bool OverlayInitialize(const std::wstring& iniPath) {
 
 void OverlayPump(
     bool playerReady,
-    bool autoDone,
-    std::size_t weaponQueueCount,
-    bool qpistolNextB) {
+    bool,
+    std::size_t,
+    bool) {
 
     EnsureWindow();
 
@@ -772,11 +743,8 @@ void OverlayPump(
         (GetAsyncKeyState(VK_INSERT) & 0x8000) != 0;
 
     if (insertDown && !g_insertWasDown && g_window) {
-        if (g_visible) {
-            HideOverlay();
-        } else {
-            ShowOverlay();
-        }
+        if (g_visible) HideOverlay();
+        else ShowOverlay();
     }
     g_insertWasDown = insertDown;
 
@@ -786,22 +754,17 @@ void OverlayPump(
         DispatchMessageW(&msg);
     }
 
-    if (!g_visible) {
-        return;
-    }
+    if (!g_visible) return;
 
     const ULONGLONG now = GetTickCount64();
     if (now - g_lastStatusUpdate >= 200) {
-        UpdateStatus(playerReady, autoDone, weaponQueueCount, qpistolNextB);
+        UpdateStatus(playerReady);
         g_lastStatusUpdate = now;
     }
 }
 
 bool OverlayConsumeReloadRequest() {
-    if (!g_reloadRequested) {
-        return false;
-    }
-
+    if (!g_reloadRequested) return false;
     g_reloadRequested = false;
     return true;
 }
@@ -816,6 +779,11 @@ void OverlayShutdown() {
     if (g_window) {
         DestroyWindow(g_window);
         g_window = nullptr;
+    }
+
+    if (g_titleFont) {
+        DeleteObject(g_titleFont);
+        g_titleFont = nullptr;
     }
 
     if (g_font) {
