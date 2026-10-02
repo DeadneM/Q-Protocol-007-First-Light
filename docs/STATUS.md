@@ -3,7 +3,7 @@
 ## Active state
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
-- Current post-update canonical build: **none**.
+- Current post-update canonical build: **Fresh Core A2**.
 - Rejected compatibility branches: U80, U81, U81B, U82, U82A, U83, U84, U85.
 - Gadgets: removed.
 - Overlay/config model: locked.
@@ -113,3 +113,21 @@ Fresh source implementation, in this order:
 8. AUTO via the same functions;
 9. gameplay validation;
 10. Insert overlay.
+
+
+## Fresh Core A2 validation
+
+Validated in-game on the October 2026 executable.
+
+Confirmed working:
+- clean ASI bootstrap;
+- ResolvePlayer();
+- F1 License To Kill;
+- shared GiveWeapon();
+- F4 Q-Pistol swap;
+- F5-F12 configured weapon slots;
+- minimal gameplay-thread native spawn hook.
+
+A2 is now the canonical fresh-core base.
+
+Next: F3 ManualLoadout implemented only as a thin caller of the validated GiveWeapon queue.
