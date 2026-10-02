@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdarg>
 #include <cstdint>
@@ -468,9 +469,9 @@ bool BuildGraphIndex() {
             std::uintptr_t chunk = regionBase;
             while (chunk < regionEnd && chunk < kGraphScanEnd) {
                 const SIZE_T wanted = static_cast<SIZE_T>(
-                    min<std::uintptr_t>(
+                    std::min<std::uintptr_t>(
                         buffer.size(),
-                        min<std::uintptr_t>(regionEnd, kGraphScanEnd) - chunk));
+                        std::min<std::uintptr_t>(regionEnd, kGraphScanEnd) - chunk));
 
                 SIZE_T got = 0;
                 if (ReadProcessMemory(
