@@ -285,3 +285,33 @@ A6B uses two compact panels:
 F2 and F3 are intentionally fixed to Manual values again. This matches the
 validated A5 behavior and avoids a configuration concept that was not useful
 for normal play.
+
+
+## A7 DX12 / ImGui direction
+
+A6/A6B validated the configuration model but the visible native Win32 window was
+rejected as presentation.
+
+A7 replaces that window with a true in-game Dear ImGui overlay rendered in the
+DirectX 12 swap chain.
+
+Design:
+- no visible external Windows window;
+- Insert toggle;
+- dark ReShade-inspired presentation;
+- tabs instead of a single crowded panel;
+- Loadout tab for Manual/AUTO;
+- Weapons tab for the complete recovered catalogue;
+- Hotkeys tab for current bindings;
+- INI remains the only persisted configuration source.
+
+Weapon catalogue policy:
+- preserve every known internal firearm;
+- classify role separately from validation state;
+- normal profile selectors show validated entries by default;
+- experimental/debug weapons remain available behind an explicit toggle;
+- do not present a genuine but unresolved weapon as guaranteed-working.
+
+A7 deliberately leaves the validated A5 GiveWeapon/AddAmmo core unchanged.
+A separate future weapon-resolver audit can address graphless weapons without
+mixing that risk into the overlay rewrite.
