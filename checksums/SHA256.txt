@@ -23,3 +23,7 @@ b6ff854776439245061d4ad2b1c03ab16b2612a313407bd7876e6a847a9c0a3d  FreshCore_A2/Q
 # Fresh Core A3 REJECTED before validation
 f9fb79834436dfbb356ec156ba7ad196ac7014a74f443234c82d72c93c54cc73  archive/rejected/FreshCore_A3/QProtocol.asi
 a9cf7404dc89bf092558f7bb80b6b6a555024603fdaad2d5a9e1b153ace2fdbb  archive/rejected/Q-Protocol_FreshCore_A3_ManualLoadout_F3_TEST.zip
+
+# Fresh Core A3B typed loadout test candidate, NOT canonical
+ec5890823ecb1251869196fad7076b027db9aecc0b39074b178514ad76098df9  FreshCore_A3B/QProtocol.asi
+dde11d1dc4aeb9aa9df6555f83009723692017dc20738072aaa9332b7eef6198  Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip
