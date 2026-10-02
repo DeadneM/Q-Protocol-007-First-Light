@@ -111,6 +111,7 @@ std::uint64_t g_qpistolModeA = 0;
 std::uint64_t g_qpistolModeB = 0;
 bool g_qpistolNextB = true;
 std::uint64_t g_hotkeyWeapons[8]{};
+std::uint64_t g_manualLoadout[8]{};
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -417,6 +418,10 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
         wchar_t section[32]{};
         swprintf_s(section, L"Hotkey_F%d", i + 5);
         ResolveConfiguredRid(iniPath, section, L"Weapon", g_hotkeyWeapons[i]);
+
+        wchar_t key[32]{};
+        swprintf_s(key, L"Weapon%d", i + 1);
+        ResolveConfiguredRid(iniPath, L"ManualLoadout", key, g_manualLoadout[i]);
     }
 
     LogRid("F4 Q-Pistol ModeA", g_qpistolModeA);
@@ -425,6 +430,12 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
         char label[32]{};
         sprintf_s(label, "F%d weapon", i + 5);
         LogRid(label, g_hotkeyWeapons[i]);
+    }
+
+    for (int i = 0; i < 8; ++i) {
+        char label[40]{};
+        sprintf_s(label, "ManualLoadout Weapon%d", i + 1);
+        LogRid(label, g_manualLoadout[i]);
     }
 }
 
@@ -881,8 +892,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A2");
-    Log("Scope: A1 validated LTK + shared GiveWeapon + F4/F5-F12.");
+    Log("Q Protocol Fresh Core A3");
+    Log("Scope: validated A2 + F3 ManualLoadout through shared GiveWeapon.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A2 disabled because executable validation failed.");
@@ -898,9 +909,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     Log("F1 = License To Kill toggle.");
+    Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
-    Log("F2, F3, AUTO and overlay are intentionally inactive in A2.");
+    Log("F2, AUTO and overlay are intentionally inactive in A3.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
@@ -935,6 +947,27 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
             ToggleLicenseToKill();
+        }
+
+        if (KeyPressedEdge(VK_F3, keyPrevious[3])) {
+            if (!ready) {
+                Log("F3 ignored: player not ready.");
+            } else {
+                std::size_t queued = 0;
+                for (int i = 0; i < 8; ++i) {
+                    if (!g_manualLoadout[i]) {
+                        continue;
+                    }
+
+                    char source[40]{};
+                    sprintf_s(source, "F3 ManualLoadout Weapon%d", i + 1);
+                    if (QueueWeapon(g_manualLoadout[i], source)) {
+                        ++queued;
+                    }
+                }
+
+                Log("F3 ManualLoadout queued %zu weapon(s).", queued);
+            }
         }
 
         if (KeyPressedEdge(VK_F4, keyPrevious[4])) {
