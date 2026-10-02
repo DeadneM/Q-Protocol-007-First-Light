@@ -47,7 +47,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A3_ManualLoadout_F3_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -66,6 +66,6 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A3
-          path: dist/Q-Protocol_FreshCore_A3_ManualLoadout_F3_TEST.zip
+          name: Q-Protocol_FreshCore_A3B
+          path: dist/Q-Protocol_FreshCore_A3B_TypedManualLoadout_F3_TEST.zip
           if-no-files-found: error
