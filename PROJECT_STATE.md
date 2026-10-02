@@ -17,7 +17,9 @@
 - AUTO fires once per READY cycle and does not re-arm on same-player loadout pointer refreshes caused by GiveWeapon.
 - F1-F12 manual behavior is preserved.
 - Overlay remains inactive.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `ca7c2700601524148bf85766860007e4b35b059debe591aea4ef3ae378329642`
+- ZIP SHA-256: `7bb75fd1c351cc6e833b6da17e1e3f001e34b5df750b28d3bee3f606d06fb21b`
+- GitHub Actions run: `37003612379` (PASS).
 
 ## Fresh Core A4 validated base
 
