@@ -1,78 +1,72 @@
-Q Protocol - Fresh Core A6
-==========================
+Q Protocol - Fresh Core A6B
+===========================
 
 TEST BUILD
 
 Validated base
 --------------
-Fresh Core A5 is VALIDATED and remains the canonical gameplay base.
+Fresh Core A5 remains the canonical gameplay base.
 
-A6 goal
--------
-Add the first real Insert configuration overlay without redesigning the
-validated gameplay core.
+Why A6B exists
+--------------
+A6 proved that the Insert overlay, mouse input and INI persistence work, but
+its first layout exposed too much internal configuration and was visually
+cluttered.
 
-Overlay architecture
---------------------
-- Native Win32 overlay window created by the same ASI.
-- Renderer-independent: no DX11/DX12 Present hook is added.
-- Insert opens/closes the overlay.
-- The overlay writes the SAME QProtocol.ini used by the gameplay core.
-- Save / Reload / Reset Defaults are implemented.
-- While the overlay is open, manual F1-F12 actions are suppressed.
-- Weapon queue and native gameplay processing continue normally.
+A6B keeps the same renderer-independent Win32 overlay architecture while
+simplifying the UI and the semantics.
 
-A6 editable settings
---------------------
-Status:
-- Player READY / NOT READY
-- AUTO WAITING / DONE
-- weapon queue count
-- next Q-Pistol mode
+Clean UI
+--------
+The overlay now has two clear panels:
 
-Profiles:
-- AUTO Enabled
-- F2 Profile = Manual / Auto
-- F3 Profile = Manual / Auto
-- ManualLoadout QPistol / OneHanded / TwoHanded
-- ManualAmmo six confirmed firearm classes
-- AutoLoadout QPistol / OneHanded / TwoHanded
-- AutoAmmo six confirmed firearm classes
+MANUAL
+- F2 = ManualAmmo
+- F3 = ManualLoadout
+- Q-Pistol / One-handed / Two-handed selectors
+- six reserve-ammo values
 
-Weapon selectors are populated from [WeaponCatalog] in QProtocol.ini.
+AUTOMATIC
+- one Enable checkbox
+- AutoLoadout Q-Pistol / One-handed / Two-handed
+- six AutoAmmo values
 
-Profile= is now functional
---------------------------
-[Hotkey_F2]
-Profile=Manual -> F2 uses [ManualAmmo]
-Profile=Auto   -> F2 uses [AutoAmmo]
+Removed from the visible UI:
+- F2/F3 Profile selectors
+- AUTO DONE/WAITING debug state
+- weapon queue debug state
+- Q-Pistol next-mode debug state
+- duplicate internal title
 
-[Hotkey_F3]
-Profile=Manual -> F3 uses [ManualLoadout]
-Profile=Auto   -> F3 uses [AutoLoadout]
+Profile= is no longer part of the default control flow.
+F2 and F3 use Manual values directly, matching the validated A5 behavior.
+
+Controls
+--------
+Insert  -> open/close overlay
+Save    -> write values to QProtocol.ini and reload runtime config
+Reload  -> discard unsaved UI changes and reload QProtocol.ini
+Defaults-> restore default Manual/Auto values
+
+While the overlay is visible, F1-F12 manual actions are suppressed.
 
 Preserved from A5
 -----------------
 - F1 License To Kill
-- native F2 AddAmmo primitive
-- typed F3 three-role loadout
+- F2 native ManualAmmo
+- F3 typed ManualLoadout
 - F4 Q-Pistol swap
-- F5-F12 individual weapons
+- F5-F12 weapons
 - shared GiveWeapon queue
 - 500 ms inter-weapon stabilization
-- AUTO using the same GiveWeapon/AddAmmo primitives
+- AUTO using AutoLoadout + AutoAmmo through the same gameplay primitives
 
 Test
 ----
-1. Enter a playable mission and confirm A5 gameplay behavior is unchanged.
-2. Press Insert.
-3. Confirm the overlay appears and is clickable.
-4. Change one Manual/Auto weapon or ammo value.
-5. Press Save.
-6. Close with Insert and confirm the corresponding F2/F3 behavior uses the saved values.
-7. Change F2 or F3 Profile between Manual and Auto and verify the selected profile is used.
-8. Test Reload and Reset Defaults.
-9. Confirm F1-F12 do not trigger while the overlay is open.
-10. Confirm AUTO still runs once per READY cycle and no crash occurs on respawn/level change.
-
-If the overlay does not appear, attach QProtocol.log.
+1. Press Insert and confirm the compact two-column layout is fully visible.
+2. Confirm all buttons are visible without scrolling/cropping.
+3. Change Manual values, Save, close with Insert, then test F2/F3.
+4. Change Automatic values, Save, then respawn/change level and verify AUTO.
+5. Test Reload and Defaults.
+6. Confirm F1-F12 do not fire while the overlay is open.
+7. Confirm no regression in A5 gameplay.
