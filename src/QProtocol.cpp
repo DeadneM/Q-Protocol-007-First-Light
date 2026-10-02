@@ -927,8 +927,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A3B");
-    Log("Scope: validated A2 + corrected typed F3 ManualLoadout (QPistol/OneHanded/TwoHanded).");
+    Log("Q Protocol Fresh Core A3C");
+    Log("Scope: validated A2 + typed F3 ManualLoadout with queue preservation across same-player loadout refresh.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A2 disabled because executable validation failed.");
@@ -947,7 +947,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
-    Log("F2, AUTO and overlay are intentionally inactive in A3.");
+    Log("F2, AUTO and overlay are intentionally inactive in A3C.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
@@ -958,12 +958,16 @@ DWORD WINAPI WorkerThread(LPVOID) {
         const PlayerContext player = ResolvePlayer();
         const bool ready = static_cast<bool>(player);
 
-        const bool generationChanged =
+        const bool playerIdentityChanged =
             ready && previousReady &&
-            (player.loadout != previousPlayer.loadout ||
-             player.playerId != previousPlayer.playerId);
+            player.playerId != previousPlayer.playerId;
 
-        if (ready != previousReady || generationChanged) {
+        const bool loadoutPointerChanged =
+            ready && previousReady &&
+            player.playerId == previousPlayer.playerId &&
+            player.loadout != previousPlayer.loadout;
+
+        if (ready != previousReady || playerIdentityChanged) {
             if (ready) {
                 Log(
                     "PLAYER READY loadout=0x%p playerId=%u",
@@ -974,10 +978,20 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
 
             ResetWeaponRuntime(
-                ready ? "player generation changed/ready" : "player not ready");
+                ready ? "player identity changed/ready" : "player not ready");
 
             previousPlayer = player;
             previousReady = ready;
+        } else if (loadoutPointerChanged) {
+            Log(
+                "PLAYER LOADOUT REFRESH loadout=0x%p playerId=%u - preserving weapon queue.",
+                player.loadout,
+                player.playerId);
+
+            g_graphs.clear();
+            g_graphIndexBuilt = false;
+
+            previousPlayer = player;
         }
 
         if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
