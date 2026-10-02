@@ -4,10 +4,10 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A2 test candidate
+## Fresh Core A2 validated base
 
 - Build: `Q-Protocol_FreshCore_A2_GiveWeapon_F4-F12_TEST.zip`
-- Status: **test candidate, not canonical**
+- Status: **VALIDATED / current fresh-core canonical base**
 - Inherits:
   - A1 bootstrap;
   - shared ResolvePlayer();
@@ -21,12 +21,13 @@
 - F2, F3, AUTO and overlay remain intentionally inactive.
 - ASI SHA-256: `b6ff854776439245061d4ad2b1c03ab16b2612a313407bd7876e6a847a9c0a3d`
 - ZIP SHA-256: `6f8eac37caa8fab850b4d0d36001aec6735eddbcddf126cb8395685e8b0a181e`
-- Validation required:
-  1. reach a playable mission without crash;
-  2. confirm F1 still works;
-  3. test F4 repeatedly;
-  4. test F5-F12;
-  5. inspect QProtocol.log.
+- Validation result: PASS.
+- User confirmed:
+  - game remains stable in playable mission;
+  - F1 still works;
+  - F4 Q-Pistol swap works;
+  - F5-F12 configured weapons work.
+- This validates the new shared GiveWeapon() architecture and the minimal gameplay-thread spawn hook.
 
 ## Fresh Core A1 test candidate
 
@@ -49,7 +50,15 @@
 
 - Historical behavioral reference: **U74** on the pre-October-2026 executable.
 - Current game executable: October 2026 update.
-- Current post-update canonical build: **none yet**.
+- Current post-update canonical build: **Fresh Core A2**.
+- A2 validates:
+  - clean ASI bootstrap;
+  - shared ResolvePlayer();
+  - F1 License To Kill;
+  - one shared GiveWeapon() path;
+  - F4 Q-Pistol swap;
+  - F5-F12 configured weapon slots;
+  - minimal gameplay-thread native spawn hook.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
