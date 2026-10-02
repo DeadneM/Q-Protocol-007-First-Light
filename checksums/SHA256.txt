@@ -46,3 +46,8 @@ a4f0a912c315036da30070e5058fe3c6504a27a3f4f726cd4a340798ec741ecf  Q-Protocol_Fre
 # Fresh Core A5 AUTO shared-primitives test candidate, NOT canonical
 ca7c2700601524148bf85766860007e4b35b059debe591aea4ef3ae378329642  FreshCore_A5/QProtocol.asi
 7bb75fd1c351cc6e833b6da17e1e3f001e34b5df750b28d3bee3f606d06fb21b  Q-Protocol_FreshCore_A5_AUTO_SharedPrimitives_TEST.zip
+
+
+# Fresh Core A6 Insert overlay test candidate, NOT canonical
+9a980b70bdaceb6b1b8c4f8874892c2ff36aded3594e44ad82e9e8dc1a134a4a  FreshCore_A6/QProtocol.asi
+fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2  Q-Protocol_FreshCore_A6_InsertOverlay_TEST.zip
