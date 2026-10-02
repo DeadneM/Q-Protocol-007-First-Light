@@ -111,7 +111,14 @@ std::uint64_t g_qpistolModeA = 0;
 std::uint64_t g_qpistolModeB = 0;
 bool g_qpistolNextB = true;
 std::uint64_t g_hotkeyWeapons[8]{};
-std::uint64_t g_manualLoadout[8]{};
+
+struct LoadoutProfile {
+    std::uint64_t qPistol = 0;
+    std::uint64_t oneHanded = 0;
+    std::uint64_t twoHanded = 0;
+};
+
+LoadoutProfile g_manualLoadout{};
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -419,10 +426,11 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
         swprintf_s(section, L"Hotkey_F%d", i + 5);
         ResolveConfiguredRid(iniPath, section, L"Weapon", g_hotkeyWeapons[i]);
 
-        wchar_t key[32]{};
-        swprintf_s(key, L"Weapon%d", i + 1);
-        ResolveConfiguredRid(iniPath, L"ManualLoadout", key, g_manualLoadout[i]);
     }
+
+    ResolveConfiguredRid(iniPath, L"ManualLoadout", L"QPistol", g_manualLoadout.qPistol);
+    ResolveConfiguredRid(iniPath, L"ManualLoadout", L"OneHanded", g_manualLoadout.oneHanded);
+    ResolveConfiguredRid(iniPath, L"ManualLoadout", L"TwoHanded", g_manualLoadout.twoHanded);
 
     LogRid("F4 Q-Pistol ModeA", g_qpistolModeA);
     LogRid("F4 Q-Pistol ModeB", g_qpistolModeB);
@@ -432,11 +440,9 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
         LogRid(label, g_hotkeyWeapons[i]);
     }
 
-    for (int i = 0; i < 8; ++i) {
-        char label[40]{};
-        sprintf_s(label, "ManualLoadout Weapon%d", i + 1);
-        LogRid(label, g_manualLoadout[i]);
-    }
+    LogRid("ManualLoadout QPistol", g_manualLoadout.qPistol);
+    LogRid("ManualLoadout OneHanded", g_manualLoadout.oneHanded);
+    LogRid("ManualLoadout TwoHanded", g_manualLoadout.twoHanded);
 }
 
 bool IsReadableProtection(DWORD protect) {
@@ -823,6 +829,35 @@ bool QueueWeapon(std::uint64_t rid, const char* source) {
     return true;
 }
 
+std::size_t QueueLoadout(const LoadoutProfile& profile, const char* source) {
+    std::size_t queued = 0;
+
+    struct Entry {
+        const char* role;
+        std::uint64_t rid;
+    };
+
+    const Entry entries[] = {
+        {"QPistol", profile.qPistol},
+        {"OneHanded", profile.oneHanded},
+        {"TwoHanded", profile.twoHanded},
+    };
+
+    for (const auto& entry : entries) {
+        if (!entry.rid) {
+            continue;
+        }
+
+        char label[80]{};
+        sprintf_s(label, "%s %s", source, entry.role);
+        if (QueueWeapon(entry.rid, label)) {
+            ++queued;
+        }
+    }
+
+    return queued;
+}
+
 bool InstallGameplayHook() {
     const std::uintptr_t site = g_exeBase + kGameplayHookRva;
 
@@ -892,8 +927,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A3");
-    Log("Scope: validated A2 + F3 ManualLoadout through shared GiveWeapon.");
+    Log("Q Protocol Fresh Core A3B");
+    Log("Scope: validated A2 + corrected typed F3 ManualLoadout (QPistol/OneHanded/TwoHanded).");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A2 disabled because executable validation failed.");
@@ -953,20 +988,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
             if (!ready) {
                 Log("F3 ignored: player not ready.");
             } else {
-                std::size_t queued = 0;
-                for (int i = 0; i < 8; ++i) {
-                    if (!g_manualLoadout[i]) {
-                        continue;
-                    }
-
-                    char source[40]{};
-                    sprintf_s(source, "F3 ManualLoadout Weapon%d", i + 1);
-                    if (QueueWeapon(g_manualLoadout[i], source)) {
-                        ++queued;
-                    }
-                }
-
-                Log("F3 ManualLoadout queued %zu weapon(s).", queued);
+                const std::size_t queued =
+                    QueueLoadout(g_manualLoadout, "F3 ManualLoadout");
+                Log("F3 ManualLoadout queued %zu/3 role(s).", queued);
             }
         }
 
