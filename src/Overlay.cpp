@@ -607,12 +607,15 @@ void ReleaseFrameResources() {
 void ShutdownDx12Backend() {
     g_overlayReady.store(false, std::memory_order_release);
 
+    // Never release ImGui/font/back-buffer resources while our own
+    // submitted overlay work may still be in flight.
+    WaitForAllOverlayFrames(2000);
+
     if (g_imguiDx12Initialized) {
         ImGui_ImplDX12_Shutdown();
         g_imguiDx12Initialized = false;
     }
 
-    WaitForAllOverlayFrames(2000);
     ReleaseFrameResources();
 }
 
