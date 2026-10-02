@@ -84,12 +84,16 @@ Manual and AUTO share these exact primitives.
 Both profiles are editable independently in the overlay and INI.
 
 **Manual**
-- choose the weapons used by F3;
+- choose one Q-Pistol variant;
+- choose one one-handed firearm;
+- choose one two-handed firearm;
 - choose the ammo quantities used by F2.
 
 **AUTO**
-- choose the automatic weapon list;
+- choose the same three typed weapon roles independently;
 - choose the automatic ammo quantities.
+
+F5-F12 remain standalone weapon hotkeys. They are not extra loadout slots.
 
 ```text
 player available
