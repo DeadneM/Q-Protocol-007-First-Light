@@ -23,13 +23,21 @@ constexpr std::uintptr_t kPlayerResolverRva       = 0x0171DF40;
 constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D7770;
 constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x069225A0;
 constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x064576F8;
+constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x064576E0;
 constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDEB70;
 constexpr std::uintptr_t kLicenseToKillRva        = 0x0191C344;
 
 constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECB538;
 constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECC800;
 constexpr std::uintptr_t kNativeSpawnRva          = 0x016B6B10;
+constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00116170;
+constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8FC0;
 constexpr std::uintptr_t kGameplayHookRva         = 0x0194D891;
+
+constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
+constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
+constexpr std::uintptr_t kAmmoLockOffset          = 0x238E0;
+constexpr std::uint32_t kAmmoNotifyEventId        = 0x1DE;
 
 constexpr std::uintptr_t kGraphScanBegin = 0x2C000000;
 constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
@@ -71,6 +79,30 @@ struct ActiveWeapon {
     ULONGLONG setupAt = 0;
 };
 
+struct AmmoProfile {
+    std::uint32_t qPistol = 0;
+    std::uint32_t smg = 0;
+    std::uint32_t assaultRifle = 0;
+    std::uint32_t shotgun = 0;
+    std::uint32_t sniper = 0;
+    std::uint32_t heavyPistol = 0;
+};
+
+#pragma pack(push, 1)
+struct AddFirearmAmmunitionInput {
+    std::uint32_t playerId = 0;
+    std::uint32_t amount = 0;
+    std::uint32_t firearmClass = 0;
+};
+#pragma pack(pop)
+
+static_assert(sizeof(AddFirearmAmmunitionInput) == 12);
+
+struct PendingAmmoRequest {
+    AmmoProfile profile{};
+    std::uint32_t playerId = 0;
+};
+
 enum class LtkState {
     Off,
     On,
@@ -86,6 +118,8 @@ enum class BeginWeaponResult {
 using ResolveLocalPlayerFn = void(__fastcall*)(std::uint32_t, std::uint64_t*);
 using LookupPlayerFn = void*(__fastcall*)(std::uint64_t*, void*);
 using NativeSpawnFn = void(__fastcall*)(void*);
+using NativeAmmoInsertFn = void(__fastcall*)(void*, const AddFirearmAmmunitionInput*);
+using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
 
 extern "C" void QpGameplayHook();
 
@@ -101,6 +135,9 @@ std::atomic<std::uintptr_t> g_pendingSpawner{0};
 std::atomic<bool> g_spawnTriggered{false};
 std::atomic<bool> g_spawnException{false};
 std::atomic<ULONGLONG> g_spawnTriggeredAt{0};
+
+PendingAmmoRequest g_pendingAmmo{};
+std::atomic<bool> g_ammoPending{false};
 
 std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
 bool g_graphIndexBuilt = false;
@@ -121,6 +158,7 @@ struct LoadoutProfile {
 };
 
 LoadoutProfile g_manualLoadout{};
+AmmoProfile g_manualAmmo{};
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -385,6 +423,21 @@ std::wstring IniRead(
     return buffer;
 }
 
+std::uint32_t ReadAmmoAmount(
+    const std::wstring& iniPath,
+    const wchar_t* key) {
+
+    const UINT value = GetPrivateProfileIntW(
+        L"ManualAmmo",
+        key,
+        0,
+        iniPath.c_str());
+
+    return std::min<std::uint32_t>(
+        static_cast<std::uint32_t>(value),
+        100000u);
+}
+
 bool ResolveConfiguredRid(
     const std::wstring& iniPath,
     const wchar_t* section,
@@ -419,7 +472,7 @@ void LogRid(const char* label, std::uint64_t internalRid) {
     Log("%s = %016llX", label, static_cast<unsigned long long>(display));
 }
 
-void LoadWeaponConfig(const std::wstring& iniPath) {
+void LoadConfig(const std::wstring& iniPath) {
     ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeA", g_qpistolModeA);
     ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeB", g_qpistolModeB);
 
@@ -434,6 +487,13 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
     ResolveConfiguredRid(iniPath, L"ManualLoadout", L"OneHanded", g_manualLoadout.oneHanded);
     ResolveConfiguredRid(iniPath, L"ManualLoadout", L"TwoHanded", g_manualLoadout.twoHanded);
 
+    g_manualAmmo.qPistol = ReadAmmoAmount(iniPath, L"QPistol");
+    g_manualAmmo.smg = ReadAmmoAmount(iniPath, L"SMG");
+    g_manualAmmo.assaultRifle = ReadAmmoAmount(iniPath, L"AssaultRifle");
+    g_manualAmmo.shotgun = ReadAmmoAmount(iniPath, L"Shotgun");
+    g_manualAmmo.sniper = ReadAmmoAmount(iniPath, L"Sniper");
+    g_manualAmmo.heavyPistol = ReadAmmoAmount(iniPath, L"HeavyPistol");
+
     LogRid("F4 Q-Pistol ModeA", g_qpistolModeA);
     LogRid("F4 Q-Pistol ModeB", g_qpistolModeB);
     for (int i = 0; i < 8; ++i) {
@@ -445,6 +505,13 @@ void LoadWeaponConfig(const std::wstring& iniPath) {
     LogRid("ManualLoadout QPistol", g_manualLoadout.qPistol);
     LogRid("ManualLoadout OneHanded", g_manualLoadout.oneHanded);
     LogRid("ManualLoadout TwoHanded", g_manualLoadout.twoHanded);
+
+    Log("ManualAmmo QPistol = %u", g_manualAmmo.qPistol);
+    Log("ManualAmmo SMG/MachinePistol = %u", g_manualAmmo.smg);
+    Log("ManualAmmo AssaultRifle = %u", g_manualAmmo.assaultRifle);
+    Log("ManualAmmo Shotgun = %u", g_manualAmmo.shotgun);
+    Log("ManualAmmo Sniper/Marksman = %u", g_manualAmmo.sniper);
+    Log("ManualAmmo HeavyPistol50Cal = %u", g_manualAmmo.heavyPistol);
 }
 
 bool IsReadableProtection(DWORD protect) {
@@ -869,6 +936,148 @@ std::size_t QueueLoadout(const LoadoutProfile& profile, const char* source) {
     return queued;
 }
 
+
+bool QueueAmmoProfile(
+    const AmmoProfile& profile,
+    std::uint32_t playerId,
+    const char* source) {
+
+    if (!playerId) {
+        Log("%s ignored: invalid playerId.", source);
+        return false;
+    }
+
+    if (g_ammoPending.load(std::memory_order_acquire)) {
+        Log("%s ignored: ammo request already pending.", source);
+        return false;
+    }
+
+    g_pendingAmmo.profile = profile;
+    g_pendingAmmo.playerId = playerId;
+    g_ammoPending.store(true, std::memory_order_release);
+
+    Log("%s queued for playerId=%u.", source, playerId);
+    return true;
+}
+
+bool RuntimePlayerMatches(std::uint32_t playerId) {
+    std::uintptr_t root = 0;
+    std::uintptr_t node = 0;
+    std::uint32_t currentPlayerId = 0;
+
+    return playerId != 0 &&
+           SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) &&
+           root != 0 &&
+           SafeRead(root + 0x10, node) &&
+           node != 0 &&
+           SafeRead(node + 0x30, currentPlayerId) &&
+           currentPlayerId == playerId;
+}
+
+bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
+    if (!RuntimePlayerMatches(request.playerId)) {
+        Log("[ERROR] F2 AddAmmo aborted: player identity changed.");
+        return false;
+    }
+
+    std::uintptr_t owner = 0;
+    if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) {
+        Log("[ERROR] F2 AddAmmo: native ammo owner unavailable.");
+        return false;
+    }
+
+    const auto insert = reinterpret_cast<NativeAmmoInsertFn>(
+        g_exeBase + kNativeAmmoInsertRva);
+    const auto notify = reinterpret_cast<NativeAmmoNotifyFn>(
+        g_exeBase + kNativeAmmoNotifyRva);
+
+    struct ClassAmount {
+        const char* name;
+        std::uint32_t firearmClass;
+        std::uint32_t amount;
+    };
+
+    const ClassAmount entries[] = {
+        {"Q-Pistol", 0, request.profile.qPistol},
+        {"SMG/MachinePistol", 1, request.profile.smg},
+        {"AssaultRifle", 2, request.profile.assaultRifle},
+        {"Shotgun", 5, request.profile.shotgun},
+        {"Sniper/Marksman", 6, request.profile.sniper},
+        {"HeavyPistol50Cal", 7, request.profile.heavyPistol},
+    };
+
+    auto* criticalSection = reinterpret_cast<LPCRITICAL_SECTION>(
+        owner + kAmmoLockOffset);
+
+    bool locked = false;
+    bool nativeOk = true;
+    std::size_t published = 0;
+
+    __try {
+        EnterCriticalSection(criticalSection);
+        locked = true;
+
+        for (const auto& entry : entries) {
+            if (!entry.amount) {
+                continue;
+            }
+
+            const AddFirearmAmmunitionInput input{
+                request.playerId,
+                entry.amount,
+                entry.firearmClass,
+            };
+
+            insert(
+                reinterpret_cast<void*>(owner + kAmmoInputVectorOffset),
+                &input);
+
+            ++published;
+            Log(
+                "F2 AddAmmo class=%u (%s) amount=+%u",
+                entry.firearmClass,
+                entry.name,
+                entry.amount);
+        }
+
+        if (published) {
+            notify(
+                reinterpret_cast<void*>(owner),
+                kAmmoNotifyEventId,
+                reinterpret_cast<void*>(owner + kAmmoNotifyContextOffset));
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        nativeOk = false;
+        Log("[ERROR] F2 AddAmmo: native publication exception.");
+    }
+
+    if (locked) {
+        __try {
+            LeaveCriticalSection(criticalSection);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            nativeOk = false;
+            Log("[ERROR] F2 AddAmmo: unlock exception.");
+        }
+    }
+
+    if (!nativeOk) {
+        return false;
+    }
+
+    if (!published) {
+        Log("F2 ManualAmmo: all configured amounts are zero.");
+        return true;
+    }
+
+    Log(
+        "F2 ManualAmmo PUBLISHED through native event 0x%X (%zu class(es)).",
+        kAmmoNotifyEventId,
+        published);
+    return true;
+}
+
 bool InstallGameplayHook() {
     const std::uintptr_t site = g_exeBase + kGameplayHookRva;
 
@@ -920,6 +1129,7 @@ void ResetWeaponRuntime(const char* reason) {
     }
     g_weaponQueue.clear();
     g_nextWeaponAllowedAt = 0;
+    g_ammoPending.store(false, std::memory_order_release);
     g_graphs.clear();
     g_graphIndexBuilt = false;
     Log("Weapon runtime reset: %s", reason);
@@ -939,27 +1149,28 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A3D");
-    Log("Scope: validated A2 + typed F3 ManualLoadout + 500 ms inter-weapon stabilization delay.");
+    Log("Q Protocol Fresh Core A4");
+    Log("Scope: validated A3D + native F2 AddAmmo through AddFirearmAmmunitionToPlayer event 0x1DE.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A2 disabled because executable validation failed.");
+        Log("Fresh Core A4 disabled because executable validation failed.");
         return 0;
     }
 
     Log("Target executable accepted.");
-    LoadWeaponConfig(iniPath);
+    LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A2 disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core A4 disabled: gameplay hook unavailable.");
         return 0;
     }
 
     Log("F1 = License To Kill toggle.");
+    Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
-    Log("F2, AUTO and overlay are intentionally inactive in A3D.");
+    Log("AUTO and overlay are intentionally inactive in A4.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
@@ -1008,6 +1219,17 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
             ToggleLicenseToKill();
+        }
+
+        if (KeyPressedEdge(VK_F2, keyPrevious[2])) {
+            if (!ready) {
+                Log("F2 ignored: player not ready.");
+            } else {
+                QueueAmmoProfile(
+                    g_manualAmmo,
+                    player.playerId,
+                    "F2 ManualAmmo");
+            }
         }
 
         if (KeyPressedEdge(VK_F3, keyPrevious[3])) {
@@ -1065,6 +1287,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
 } // namespace qp
 
 extern "C" void QpGameplayTick() {
+    if (qp::g_ammoPending.load(std::memory_order_acquire)) {
+        const qp::PendingAmmoRequest request = qp::g_pendingAmmo;
+        qp::g_ammoPending.store(false, std::memory_order_release);
+        qp::PublishAmmoProfileGameplayThread(request);
+    }
+
     const std::uintptr_t spawner =
         qp::g_pendingSpawner.exchange(0, std::memory_order_acq_rel);
 

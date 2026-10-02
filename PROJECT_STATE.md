@@ -4,27 +4,42 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
-## Fresh Core A3D test candidate
+## Fresh Core A4 F2 native ammo test candidate
+
+- Build: `Q-Protocol_FreshCore_A4_F2_NativeAddAmmo_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: **validated Fresh Core A3D**.
+- Adds only F2 manual reserve-ammo refill through the audited October gameplay primitive `AddFirearmAmmunitionToPlayer`.
+- Does **not** resurrect the rejected U80 low-level 24-byte `SetFirearmAmmo` path.
+- Native AddAmmo mapping:
+  - owner: `*(EXE+0x064576E0)`
+  - lock: `owner+0x238E0`
+  - staging/input vector: `owner+0x20B70`
+  - input pool/context: `owner+0x20AD0`
+  - 12-byte insert helper: `EXE+0x00116170`
+  - publish helper: `EXE+0x012A8FC0`
+  - event: `0x1DE`
+- Input record: `{ uint32 playerId, uint32 amount, uint32 firearmClass }`.
+- Confirmed classes only: 0 Q-Pistol, 1 SMG/MachinePistol, 2 AR, 5 Shotgun, 6 Sniper/Marksman, 7 HeavyPistol50Cal.
+- F2 uses `[ManualAmmo]` and quantities are additive reserve ammo.
+- F1/F3/F4/F5-F12 are preserved from A3D.
+- AUTO and overlay remain inactive.
+- ASI/ZIP hashes: pending workflow build.
+
+## Fresh Core A3D validated base
 
 - Build: `Q-Protocol_FreshCore_A3D_TypedLoadout_500msDelay_TEST.zip`
-- Status: **test candidate, not canonical**
+- Status: **VALIDATED / current canonical base**
+- User validation: **PASS on 2026-10-02**.
 - Base: validated Fresh Core A2.
-- A3C log proved all three typed requests were queued and each native spawner cycle returned to idle, but only the Q-Pistol was retained in-game.
-- This proves queue loss was not the remaining problem.
-- Historical validated architecture used `ManualGiveWeaponDelayMs=500` and `AutoGiveWeaponDelayMs=500`.
 - A3D adds one shared 500 ms stabilization delay after each GiveWeapon completion before the next queued weapon begins.
-- No other weapon logic changed.
-- Typed loadout remains exactly:
+- Typed F3 loadout works with exactly:
   - QPistol
   - OneHanded
   - TwoHanded
+- F1/F4/F5-F12 remain working.
 - ASI SHA-256: `8294f03808fc061faa416cb023c5441d65fdeb4d241ae752e6c3e11fb16a42df`
 - ZIP SHA-256: `7a06931d2d47593b00a0ae45d9be20c8ffe9c4006d28cfb09c772680a95c15c6`
-- Validation required:
-  1. F3 gives all three typed roles;
-  2. wait about 2 seconds after F3 before judging;
-  3. F1/F4/F5-F12 remain working;
-  4. no crash/regression.
 
 ## Fresh Core A3C rejected
 
@@ -102,15 +117,18 @@
 
 - Historical behavioral reference: **U74** on the pre-October-2026 executable.
 - Current game executable: October 2026 update.
-- Current post-update canonical build: **Fresh Core A2**.
-- A2 validates:
+- Current post-update canonical build: **Fresh Core A3D**.
+- A3D validates:
   - clean ASI bootstrap;
   - shared ResolvePlayer();
   - F1 License To Kill;
   - one shared GiveWeapon() path;
+  - F3 typed three-role ManualLoadout;
+  - 500 ms inter-weapon stabilization;
   - F4 Q-Pistol swap;
   - F5-F12 configured weapon slots;
   - minimal gameplay-thread native spawn hook.
+- Current test candidate: **Fresh Core A4**, adding only F2 native reserve ammo.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
