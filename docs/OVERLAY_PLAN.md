@@ -114,10 +114,9 @@ The overlay must expose two parallel profile editors.
 
 ```text
 ManualLoadout
-  Weapon1
-  Weapon2
-  Weapon3
-  ...
+  QPistol
+  OneHanded
+  TwoHanded
 
 ManualAmmo
   QPistol
@@ -136,10 +135,9 @@ F2 consumes `ManualAmmo`.
 
 ```text
 AutoLoadout
-  Weapon1
-  Weapon2
-  Weapon3
-  ...
+  QPistol
+  OneHanded
+  TwoHanded
 
 AutoAmmo
   QPistol
@@ -152,7 +150,13 @@ AutoAmmo
 
 AUTO consumes both profiles through the exact same gameplay primitives used manually.
 
-Weapon slots may be set to `None`.
+The loadout editor preserves the game's three roles:
+
+- QPistol: Q-Pistol variants only;
+- OneHanded: one-handed firearms only;
+- TwoHanded: two-handed firearms only.
+
+F5-F12 remain standalone weapon hotkeys and are not loadout slots.
 
 Ammo quantities are editable independently for Manual and AUTO.
 
