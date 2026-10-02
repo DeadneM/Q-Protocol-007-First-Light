@@ -1195,11 +1195,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A7");
-    Log("Scope: validated A5 gameplay core + native DX12 ImGui overlay + classified firearm catalog.");
+    Log("Q Protocol Fresh Core A7B");
+    Log("Scope: validated A5 gameplay core + fail-open fence-safe DX12 ImGui overlay + classified firearm catalog.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A6 disabled because executable validation failed.");
+        Log("Fresh Core A7B disabled because executable validation failed.");
         return 0;
     }
 
@@ -1207,14 +1207,15 @@ DWORD WINAPI WorkerThread(LPVOID) {
     LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A6 disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core A7B disabled: gameplay hook unavailable.");
         return 0;
     }
 
     if (OverlayInitialize(iniPath)) {
-        Log("Overlay initialized. Insert = open/close.");
+        Log("Overlay bootstrap started in fail-open mode. Insert = open/close when DX12 ImGui is ready.");
+        Log("Overlay status: %s", OverlayStatus());
     } else {
-        Log("[ERROR] Overlay initialization failed. Gameplay core remains active.");
+        Log("[ERROR] Overlay bootstrap failed. Gameplay core remains active.");
     }
 
     Log("F1 = License To Kill toggle.");
@@ -1228,6 +1229,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     PlayerContext previousPlayer{};
     bool previousReady = false;
     bool autoDone = false;
+    std::string lastOverlayStatus = OverlayStatus();
 
     SHORT keyPrevious[13]{};
 
@@ -1291,6 +1293,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
             autoDone,
             g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
             g_qpistolNextB);
+
+        const char* overlayStatus = OverlayStatus();
+        if (overlayStatus && lastOverlayStatus != overlayStatus) {
+            Log("Overlay status: %s", overlayStatus);
+            lastOverlayStatus = overlayStatus;
+        }
 
         if (OverlayConsumeReloadRequest()) {
             LoadConfig(iniPath);
