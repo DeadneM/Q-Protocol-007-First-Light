@@ -1195,8 +1195,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A6B");
-    Log("Scope: validated A5 core + simplified Insert overlay; F2/F3 fixed to Manual profile.");
+    Log("Q Protocol Fresh Core A7");
+    Log("Scope: validated A5 gameplay core + native DX12 ImGui overlay + classified firearm catalog.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A6 disabled because executable validation failed.");
