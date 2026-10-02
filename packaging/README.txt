@@ -1,67 +1,51 @@
-Q Protocol - Fresh Core A2
+Q Protocol - Fresh Core A3
 ==========================
 
 TEST BUILD
 
-Validated from A1
------------------
-- clean ASI bootstrap
-- October executable validation
-- F1 License To Kill ON/OFF
+Validated base
+--------------
+Fresh Core A2 is the current validated canonical base.
 
-New in A2
+Confirmed working in A2:
+- ResolvePlayer()
+- F1 License To Kill
+- shared GiveWeapon()
+- F4 Q-Pistol swap
+- F5-F12 configured weapon slots
+- minimal gameplay-thread native spawn hook
+
+New in A3
 ---------
-A2 adds ONE shared weapon primitive.
+F3 now applies [ManualLoadout].
 
-F4:
-- swaps between QPistolSilenced and QPistolUnsilenced
-- both variants go through the same GiveWeapon() path
+Implementation is deliberately thin:
+- read Weapon1..Weapon8 from [ManualLoadout]
+- skip None / empty slots
+- queue every configured weapon into the SAME GiveWeapon() queue validated in A2
 
-F5-F12:
-- give the weapon configured in QProtocol.ini
-- all eight slots go through the same GiveWeapon() path
-
-The old dedicated Q-Pistol state machine is NOT present.
+There is no separate F3 weapon engine and no new gameplay hook.
 
 Still intentionally inactive
 ----------------------------
 - F2 ammo
-- F3 manual loadout
 - AUTO
 - overlay
-
-Architecture under test
------------------------
-Worker thread:
-- ResolvePlayer()
-- build/cache native ItemEntry/Spawner graph index only when an arm is requested
-- temporarily clone requested ItemEntry descriptor into the validated donor
-- queue one gameplay-thread spawn
-
-Gameplay hook:
-- performs only the native Spawn(spawner) call
-- no scanning
-- no logging
-- no heavy state machine
-
-After the native spawner returns idle, the donor descriptor is restored.
 
 Test
 ----
 1. Reach a playable mission.
-2. Verify F1 still toggles LTK.
-3. Press F4 several times: Q-Pistol should alternate silenced/unsilenced.
-4. Test F5 through F12.
-5. Send QProtocol.log.
+2. Verify F1/F4/F5-F12 still work.
+3. Press F3 once.
+4. Confirm the configured ManualLoadout weapons are given one after another.
+5. Send QProtocol.log if anything differs from expected.
 
-Expected useful log lines:
-- PLAYER READY ...
-- Gameplay hook installed ...
-- Weapon graph index built ...
-- F# queued RID=...
-- GiveWeapon prepared RID=...
+Expected F3 log lines:
+- ManualLoadout Weapon1 = ...
+- ManualLoadout Weapon2 = ...
+- ...
+- F3 ManualLoadout Weapon1 queued RID=...
 - GiveWeapon COMPLETE RID=...
-- GiveWeapon donor restored (complete): RID=OK template=OK
+- F3 ManualLoadout queued N weapon(s).
 
-If the game crashes before using any weapon, the isolated suspect is the new tiny gameplay hook.
-If it stays stable but a weapon fails, the log should identify graph resolution / spawner / descriptor stage.
+A3 must not change the already validated A2 GiveWeapon behavior.
