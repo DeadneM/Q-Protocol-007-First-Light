@@ -41,3 +41,8 @@ d774dcc415f61dee83da510690a8476381fb86a5aa5198fedb418d1e04b28f21  FreshCore_A3C/
 # Fresh Core A4 F2 native AddAmmo test candidate, NOT canonical
 84ad44faf7f024dc2430803591d17e99ec4c7ffda1a6cdbd64da4dbce0ca2ac4  FreshCore_A4/QProtocol.asi
 a4f0a912c315036da30070e5058fe3c6504a27a3f4f726cd4a340798ec741ecf  Q-Protocol_FreshCore_A4_F2_NativeAddAmmo_TEST.zip
+
+
+# Fresh Core A5 AUTO shared-primitives test candidate, NOT canonical
+ca7c2700601524148bf85766860007e4b35b059debe591aea4ef3ae378329642  FreshCore_A5/QProtocol.asi
+7bb75fd1c351cc6e833b6da17e1e3f001e34b5df750b28d3bee3f606d06fb21b  Q-Protocol_FreshCore_A5_AUTO_SharedPrimitives_TEST.zip
