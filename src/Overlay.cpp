@@ -54,6 +54,7 @@ struct FrameContext {
     ID3D12CommandAllocator* allocator = nullptr;
     ID3D12Resource* renderTarget = nullptr;
     D3D12_CPU_DESCRIPTOR_HANDLE rtv{};
+    UINT64 fenceValue = 0;
 };
 
 struct WeaponEntry {
@@ -73,7 +74,18 @@ struct ProfileUi {
 
 std::wstring g_iniPath;
 
+enum class OverlayStage : int {
+    WaitingHooks = 0,
+    HooksInstalled,
+    QueueCaptured,
+    Ready,
+    InitFailed,
+    FenceTimeout
+};
+
 std::atomic<bool> g_visible{false};
+std::atomic<bool> g_overlayReady{false};
+std::atomic<int> g_stage{static_cast<int>(OverlayStage::WaitingHooks)};
 std::atomic<bool> g_reloadRequested{false};
 std::atomic<bool> g_playerReady{false};
 std::atomic<bool> g_autoDone{false};
@@ -82,6 +94,8 @@ std::atomic<bool> g_qpistolNextB{true};
 
 bool g_insertWasDown = false;
 bool g_hooksInstalled = false;
+bool g_executeHookBound = false;
+bool g_executeHookRetireRequested = false;
 bool g_hookInitAttempted = false;
 ULONGLONG g_nextHookRetryAt = 0;
 
@@ -95,6 +109,9 @@ IDXGISwapChain3* g_swapChain3 = nullptr;
 ID3D12DescriptorHeap* g_rtvHeap = nullptr;
 ID3D12DescriptorHeap* g_srvHeap = nullptr;
 ID3D12GraphicsCommandList* g_commandList = nullptr;
+ID3D12Fence* g_fence = nullptr;
+HANDLE g_fenceEvent = nullptr;
+UINT64 g_nextFenceValue = 0;
 std::vector<FrameContext> g_frames;
 UINT g_rtvDescriptorSize = 0;
 DXGI_FORMAT g_backBufferFormat = DXGI_FORMAT_UNKNOWN;
@@ -491,7 +508,8 @@ LRESULT CALLBACK OverlayWndProc(
             wParam,
             lParam);
 
-        if (g_visible.load(std::memory_order_acquire) &&
+        if (g_overlayReady.load(std::memory_order_acquire) &&
+            g_visible.load(std::memory_order_acquire) &&
             IsInputMessage(msg)) {
             return 1;
         }
@@ -505,6 +523,30 @@ LRESULT CALLBACK OverlayWndProc(
         lParam);
 }
 
+bool WaitForFenceValue(UINT64 value, DWORD timeoutMs) {
+    if (!value || !g_fence || !g_fenceEvent) {
+        return true;
+    }
+
+    if (g_fence->GetCompletedValue() >= value) {
+        return true;
+    }
+
+    if (FAILED(g_fence->SetEventOnCompletion(value, g_fenceEvent))) {
+        return false;
+    }
+
+    return WaitForSingleObject(g_fenceEvent, timeoutMs) == WAIT_OBJECT_0;
+}
+
+bool WaitForAllOverlayFrames(DWORD timeoutMs) {
+    UINT64 maxValue = 0;
+    for (const auto& frame : g_frames) {
+        maxValue = (std::max)(maxValue, frame.fenceValue);
+    }
+    return WaitForFenceValue(maxValue, timeoutMs);
+}
+
 void ReleaseFrameResources() {
     for (auto& frame : g_frames) {
         if (frame.renderTarget) {
@@ -516,6 +558,8 @@ void ReleaseFrameResources() {
             frame.allocator->Release();
             frame.allocator = nullptr;
         }
+
+        frame.fenceValue = 0;
     }
 
     g_frames.clear();
@@ -523,6 +567,16 @@ void ReleaseFrameResources() {
     if (g_commandList) {
         g_commandList->Release();
         g_commandList = nullptr;
+    }
+
+    if (g_fence) {
+        g_fence->Release();
+        g_fence = nullptr;
+    }
+
+    if (g_fenceEvent) {
+        CloseHandle(g_fenceEvent);
+        g_fenceEvent = nullptr;
     }
 
     if (g_rtvHeap) {
@@ -545,16 +599,20 @@ void ReleaseFrameResources() {
         g_device = nullptr;
     }
 
+    g_nextFenceValue = 0;
     g_rtvDescriptorSize = 0;
     g_backBufferFormat = DXGI_FORMAT_UNKNOWN;
 }
 
 void ShutdownDx12Backend() {
+    g_overlayReady.store(false, std::memory_order_release);
+
     if (g_imguiDx12Initialized) {
         ImGui_ImplDX12_Shutdown();
         g_imguiDx12Initialized = false;
     }
 
+    WaitForAllOverlayFrames(2000);
     ReleaseFrameResources();
 }
 
@@ -738,6 +796,21 @@ bool InitializeImGuiForSwapChain(IDXGISwapChain* swapChain) {
 
     g_commandList->Close();
 
+    if (FAILED(
+            g_device->CreateFence(
+                0,
+                D3D12_FENCE_FLAG_NONE,
+                IID_PPV_ARGS(&g_fence)))) {
+        ReleaseFrameResources();
+        return false;
+    }
+
+    g_fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (!g_fenceEvent) {
+        ReleaseFrameResources();
+        return false;
+    }
+
     if (!g_imguiContextCreated) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -782,6 +855,8 @@ bool InitializeImGuiForSwapChain(IDXGISwapChain* swapChain) {
     }
 
     g_imguiDx12Initialized = true;
+    g_overlayReady.store(true, std::memory_order_release);
+    g_stage.store(static_cast<int>(OverlayStage::Ready), std::memory_order_release);
     g_uiLoaded = false;
     return true;
 }
@@ -1264,8 +1339,16 @@ HRESULT __stdcall HookPresent(
     }
 
     if (!g_imguiDx12Initialized) {
-        if (!g_commandQueue ||
-            !InitializeImGuiForSwapChain(swapChain)) {
+        if (!g_commandQueue) {
+            return g_originalPresent(
+                swapChain,
+                syncInterval,
+                flags);
+        }
+
+        if (!InitializeImGuiForSwapChain(swapChain)) {
+            g_overlayReady.store(false, std::memory_order_release);
+            g_stage.store(static_cast<int>(OverlayStage::InitFailed), std::memory_order_release);
             return g_originalPresent(
                 swapChain,
                 syncInterval,
@@ -1273,7 +1356,8 @@ HRESULT __stdcall HookPresent(
         }
     }
 
-    if (!g_visible.load(std::memory_order_acquire) ||
+    if (!g_overlayReady.load(std::memory_order_acquire) ||
+        !g_visible.load(std::memory_order_acquire) ||
         !g_commandQueue ||
         !g_swapChain3 ||
         g_frames.empty()) {
@@ -1294,6 +1378,17 @@ HRESULT __stdcall HookPresent(
     }
 
     FrameContext& frame = g_frames[index];
+
+    if (!WaitForFenceValue(frame.fenceValue, 1000)) {
+        g_visible.store(false, std::memory_order_release);
+        g_overlayReady.store(false, std::memory_order_release);
+        g_stage.store(static_cast<int>(OverlayStage::FenceTimeout), std::memory_order_release);
+        return g_originalPresent(
+            swapChain,
+            syncInterval,
+            flags);
+    }
+    frame.fenceValue = 0;
 
     if (FAILED(frame.allocator->Reset()) ||
         FAILED(
@@ -1358,14 +1453,24 @@ HRESULT __stdcall HookPresent(
         1,
         &barrier);
 
-    if (SUCCEEDED(g_commandList->Close())) {
-        ID3D12CommandList* lists[] = {
-            g_commandList
-        };
+    if (FAILED(g_commandList->Close())) {
+        return g_originalPresent(
+            swapChain,
+            syncInterval,
+            flags);
+    }
 
-        g_commandQueue->ExecuteCommandLists(
-            1,
-            lists);
+    ID3D12CommandList* lists[] = {
+        g_commandList
+    };
+
+    g_commandQueue->ExecuteCommandLists(
+        1,
+        lists);
+
+    const UINT64 fenceValue = ++g_nextFenceValue;
+    if (SUCCEEDED(g_commandQueue->Signal(g_fence, fenceValue))) {
+        frame.fenceValue = fenceValue;
     }
 
     return g_originalPresent(
@@ -1382,7 +1487,13 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags) {
 
+    WaitForAllOverlayFrames(2000);
     ShutdownDx12Backend();
+    g_stage.store(
+        g_commandQueue
+            ? static_cast<int>(OverlayStage::QueueCaptured)
+            : static_cast<int>(OverlayStage::HooksInstalled),
+        std::memory_order_release);
 
     return g_originalResizeBuffers(
         swapChain,
@@ -1398,21 +1509,19 @@ void __stdcall HookExecuteCommandLists(
     UINT numCommandLists,
     ID3D12CommandList* const* lists) {
 
-    if (queue) {
+    if (!g_commandQueue && queue) {
         const D3D12_COMMAND_QUEUE_DESC desc =
             queue->GetDesc();
 
         if (desc.Type ==
             D3D12_COMMAND_LIST_TYPE_DIRECT) {
 
-            if (g_commandQueue != queue) {
-                if (g_commandQueue) {
-                    g_commandQueue->Release();
-                }
-
-                queue->AddRef();
-                g_commandQueue = queue;
-            }
+            queue->AddRef();
+            g_commandQueue = queue;
+            g_executeHookRetireRequested = true;
+            g_stage.store(
+                static_cast<int>(OverlayStage::QueueCaptured),
+                std::memory_order_release);
         }
     }
 
@@ -1445,6 +1554,7 @@ bool InstallDx12Hooks() {
         kiero::shutdown();
         return false;
     }
+    g_executeHookBound = true;
 
     if (kiero::bind(
             kKieroPresent,
@@ -1469,6 +1579,7 @@ bool InstallDx12Hooks() {
     }
 
     g_hooksInstalled = true;
+    g_stage.store(static_cast<int>(OverlayStage::HooksInstalled), std::memory_order_release);
     return true;
 }
 
@@ -1522,6 +1633,12 @@ void OverlayPump(
 
     TryInstallHooks();
 
+    if (g_executeHookRetireRequested && g_executeHookBound) {
+        kiero::unbind(kKieroExecuteCommandLists);
+        g_executeHookBound = false;
+        g_executeHookRetireRequested = false;
+    }
+
     const bool insertDown =
         (GetAsyncKeyState(VK_INSERT) &
          0x8000) != 0;
@@ -1553,8 +1670,28 @@ bool OverlayConsumeReloadRequest() {
 }
 
 bool OverlayIsVisible() {
-    return g_visible.load(
-        std::memory_order_acquire);
+    return g_overlayReady.load(std::memory_order_acquire) &&
+           g_visible.load(std::memory_order_acquire);
+}
+
+const char* OverlayStatus() {
+    switch (static_cast<OverlayStage>(
+        g_stage.load(std::memory_order_acquire))) {
+    case OverlayStage::WaitingHooks:
+        return "DX12 waiting for hooks";
+    case OverlayStage::HooksInstalled:
+        return "DX12 hooks installed; waiting for DIRECT queue";
+    case OverlayStage::QueueCaptured:
+        return "DX12 queue captured; waiting for swapchain/ImGui";
+    case OverlayStage::Ready:
+        return "DX12 ImGui ready";
+    case OverlayStage::InitFailed:
+        return "DX12 ImGui initialization failed (gameplay fail-open)";
+    case OverlayStage::FenceTimeout:
+        return "DX12 overlay fence timeout (overlay disabled; gameplay fail-open)";
+    default:
+        return "DX12 overlay unknown state";
+    }
 }
 
 void OverlayShutdown() {
@@ -1565,6 +1702,7 @@ void OverlayShutdown() {
     if (g_hooksInstalled) {
         kiero::shutdown();
         g_hooksInstalled = false;
+        g_executeHookBound = false;
     }
 
     ShutdownImGui();
