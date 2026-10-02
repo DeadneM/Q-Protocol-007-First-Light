@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Overlay.h"
+
 namespace qp {
 
 constexpr std::uintptr_t kExpectedSizeOfImage = 0x06EC1000;
@@ -116,6 +118,11 @@ enum class BeginWeaponResult {
     Failed
 };
 
+enum class ConfigProfile {
+    Manual,
+    Auto
+};
+
 using ResolveLocalPlayerFn = void(__fastcall*)(std::uint32_t, std::uint64_t*);
 using LookupPlayerFn = void*(__fastcall*)(std::uint64_t*, void*);
 using NativeSpawnFn = void(__fastcall*)(void*);
@@ -163,6 +170,8 @@ LoadoutProfile g_autoLoadout{};
 AmmoProfile g_manualAmmo{};
 AmmoProfile g_autoAmmo{};
 bool g_autoEnabled = false;
+ConfigProfile g_f2Profile = ConfigProfile::Manual;
+ConfigProfile g_f3Profile = ConfigProfile::Manual;
 
 std::wstring ModuleDirectory(HMODULE module) {
     wchar_t path[MAX_PATH]{};
@@ -477,6 +486,21 @@ void LogRid(const char* label, std::uint64_t internalRid) {
     Log("%s = %016llX", label, static_cast<unsigned long long>(display));
 }
 
+ConfigProfile ReadConfigProfile(
+    const std::wstring& iniPath,
+    const wchar_t* section) {
+
+    const std::wstring value = IniRead(iniPath, section, L"Profile");
+    if (_wcsicmp(value.c_str(), L"Auto") == 0) {
+        return ConfigProfile::Auto;
+    }
+    return ConfigProfile::Manual;
+}
+
+const char* ProfileName(ConfigProfile profile) {
+    return profile == ConfigProfile::Auto ? "Auto" : "Manual";
+}
+
 void LoadConfig(const std::wstring& iniPath) {
     ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeA", g_qpistolModeA);
     ResolveConfiguredRid(iniPath, L"Hotkey_F4", L"ModeB", g_qpistolModeB);
@@ -498,6 +522,9 @@ void LoadConfig(const std::wstring& iniPath) {
 
     g_autoEnabled =
         GetPrivateProfileIntW(L"Auto", L"Enabled", 1, iniPath.c_str()) != 0;
+
+    g_f2Profile = ReadConfigProfile(iniPath, L"Hotkey_F2");
+    g_f3Profile = ReadConfigProfile(iniPath, L"Hotkey_F3");
 
     g_manualAmmo.qPistol = ReadAmmoAmount(iniPath, L"ManualAmmo", L"QPistol");
     g_manualAmmo.smg = ReadAmmoAmount(iniPath, L"ManualAmmo", L"SMG");
@@ -526,6 +553,8 @@ void LoadConfig(const std::wstring& iniPath) {
     LogRid("ManualLoadout TwoHanded", g_manualLoadout.twoHanded);
 
     Log("AUTO Enabled = %d", g_autoEnabled ? 1 : 0);
+    Log("F2 Profile = %s", ProfileName(g_f2Profile));
+    Log("F3 Profile = %s", ProfileName(g_f3Profile));
     LogRid("AutoLoadout QPistol", g_autoLoadout.qPistol);
     LogRid("AutoLoadout OneHanded", g_autoLoadout.oneHanded);
     LogRid("AutoLoadout TwoHanded", g_autoLoadout.twoHanded);
@@ -1193,11 +1222,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A5");
-    Log("Scope: validated A4 + one-shot AUTO using the same Loadout/AddAmmo primitives.");
+    Log("Q Protocol Fresh Core A6");
+    Log("Scope: validated A5 core + Insert Win32 overlay + live Manual/Auto profile selection.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A5 disabled because executable validation failed.");
+        Log("Fresh Core A6 disabled because executable validation failed.");
         return 0;
     }
 
@@ -1205,17 +1234,23 @@ DWORD WINAPI WorkerThread(LPVOID) {
     LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A5 disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core A6 disabled: gameplay hook unavailable.");
         return 0;
     }
 
+    if (OverlayInitialize(iniPath)) {
+        Log("Overlay initialized. Insert = open/close.");
+    } else {
+        Log("[ERROR] Overlay initialization failed. Gameplay core remains active.");
+    }
+
     Log("F1 = License To Kill toggle.");
-    Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
-    Log("F3 = ManualLoadout through shared GiveWeapon.");
+    Log("F2 = Ammo through selected Profile=Manual/Auto.");
+    Log("F3 = Loadout through selected Profile=Manual/Auto.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
     Log("AUTO = same shared GiveWeapon + AddAmmo primitives using AutoLoadout/AutoAmmo.");
-    Log("Overlay remains intentionally inactive in A5.");
+    Log("Overlay = Insert, INI-backed, Save/Reload/Reset Defaults.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
@@ -1278,32 +1313,66 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 autoAmmoQueued ? "queued" : "not queued");
         }
 
-        if (KeyPressedEdge(VK_F1, keyPrevious[1])) {
+        OverlayPump(
+            ready,
+            autoDone,
+            g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
+            g_qpistolNextB);
+
+        if (OverlayConsumeReloadRequest()) {
+            LoadConfig(iniPath);
+            Log("Overlay requested INI reload: runtime config refreshed.");
+        }
+
+        const bool overlayVisible = OverlayIsVisible();
+
+        if (!overlayVisible && KeyPressedEdge(VK_F1, keyPrevious[1])) {
             ToggleLicenseToKill();
         }
 
-        if (KeyPressedEdge(VK_F2, keyPrevious[2])) {
+        if (!overlayVisible && KeyPressedEdge(VK_F2, keyPrevious[2])) {
             if (!ready) {
                 Log("F2 ignored: player not ready.");
             } else {
+                const AmmoProfile& profile =
+                    g_f2Profile == ConfigProfile::Auto
+                        ? g_autoAmmo
+                        : g_manualAmmo;
+
                 QueueAmmoProfile(
-                    g_manualAmmo,
+                    profile,
                     player.playerId,
-                    "F2 ManualAmmo");
+                    g_f2Profile == ConfigProfile::Auto
+                        ? "F2 AutoAmmo"
+                        : "F2 ManualAmmo");
             }
         }
 
-        if (KeyPressedEdge(VK_F3, keyPrevious[3])) {
+        if (!overlayVisible && KeyPressedEdge(VK_F3, keyPrevious[3])) {
             if (!ready) {
                 Log("F3 ignored: player not ready.");
             } else {
+                const LoadoutProfile& profile =
+                    g_f3Profile == ConfigProfile::Auto
+                        ? g_autoLoadout
+                        : g_manualLoadout;
+
+                const char* source =
+                    g_f3Profile == ConfigProfile::Auto
+                        ? "F3 AutoLoadout"
+                        : "F3 ManualLoadout";
+
                 const std::size_t queued =
-                    QueueLoadout(g_manualLoadout, "F3 ManualLoadout");
-                Log("F3 ManualLoadout queued %zu/3 role(s).", queued);
+                    QueueLoadout(profile, source);
+
+                Log(
+                    "%s queued %zu/3 role(s).",
+                    source,
+                    queued);
             }
         }
 
-        if (KeyPressedEdge(VK_F4, keyPrevious[4])) {
+        if (!overlayVisible && KeyPressedEdge(VK_F4, keyPrevious[4])) {
             if (!ready) {
                 Log("F4 ignored: player not ready.");
             } else {
@@ -1317,7 +1386,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         for (int i = 0; i < 8; ++i) {
             const int vk = VK_F5 + i;
-            if (KeyPressedEdge(vk, keyPrevious[5 + i])) {
+            if (!overlayVisible && KeyPressedEdge(vk, keyPrevious[5 + i])) {
                 char source[16]{};
                 sprintf_s(source, "F%d", i + 5);
 
@@ -1342,6 +1411,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         RestoreActiveDonor("DLL shutdown");
     }
 
+    OverlayShutdown();
     return 0;
 }
 
