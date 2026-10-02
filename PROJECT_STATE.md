@@ -21,7 +21,9 @@
   - runtime READY/AUTO/queue/Q-Pistol status.
 - `Profile=` is now functional for F2/F3.
 - F1-F12 are suppressed while the overlay is visible.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `9a980b70bdaceb6b1b8c4f8874892c2ff36aded3594e44ad82e9e8dc1a134a4a`
+- ZIP SHA-256: `fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2`
+- GitHub Actions run: `37014654545` (PASS).
 
 ## Fresh Core A5 validated canonical base
 
