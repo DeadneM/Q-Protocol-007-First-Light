@@ -315,3 +315,24 @@ Weapon catalogue policy:
 A7 deliberately leaves the validated A5 GiveWeapon/AddAmmo core unchanged.
 A separate future weapon-resolver audit can address graphless weapons without
 mixing that risk into the overlay rewrite.
+
+
+## A7B fail-open correction
+
+A7 was rejected after the overlay rewrite made the mod appear non-functional.
+
+Root architecture issues addressed:
+- an Insert toggle could mark the overlay visible before DX12 ImGui was ready;
+- QProtocol.cpp then suppressed F1-F12 from that logical state;
+- frame command allocators had no explicit fence ownership.
+
+A7B rules:
+- gameplay never depends on overlay success;
+- OverlayIsVisible() means renderer-ready AND user-visible;
+- renderer initialization failure is always fail-open;
+- every backbuffer tracks its own fence value;
+- allocator reset waits for its previous overlay submission;
+- resource shutdown waits for outstanding overlay work;
+- ExecuteCommandLists is used only long enough to capture a DIRECT queue, then
+  that hook is retired;
+- QProtocol.log reports each overlay initialization stage.
