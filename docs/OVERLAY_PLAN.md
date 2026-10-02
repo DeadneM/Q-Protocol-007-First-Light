@@ -265,3 +265,23 @@ Not yet implemented:
 - F5-F12 weapon editor.
 
 Those remain the next overlay layer after A6 visibility/input/persistence is validated.
+
+
+## A6B UI simplification
+
+User feedback on A6: the overlay was functional but confusing and overcrowded.
+
+A6B removes UI elements that expose internal plumbing:
+- no F2/F3 Profile selectors;
+- no AUTO DONE/WAITING debug status;
+- no weapon queue status;
+- no Q-Pistol next-mode status;
+- no duplicate internal Q Protocol title.
+
+A6B uses two compact panels:
+- Manual: F2 ammo + F3 three-role loadout;
+- Automatic: Enable + AutoAmmo + AutoLoadout.
+
+F2 and F3 are intentionally fixed to Manual values again. This matches the
+validated A5 behavior and avoids a configuration concept that was not useful
+for normal play.
