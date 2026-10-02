@@ -241,3 +241,27 @@ Manual hotkeys and AUTO therefore converge on the same gameplay layer.
 6. Only then add optional rebinding from the overlay.
 
 The overlay must not be used to hide instability in the gameplay primitives.
+
+
+## A6 implementation status
+
+Fresh Core A6 implements the first usable overlay layer.
+
+Implemented:
+- native Win32 renderer-independent overlay;
+- Insert toggle;
+- status area;
+- Manual and AUTO three-role loadout editors;
+- Manual and AUTO ammo editors;
+- AUTO Enabled;
+- live F2/F3 Manual/Auto profile selectors;
+- Save / Reload / Reset Defaults;
+- WeaponCatalog-driven selectors;
+- manual F1-F12 suppression while the overlay is visible.
+
+Not yet implemented:
+- generic reassignment of every F1-F12 Action;
+- F4 Mode A / Mode B editor;
+- F5-F12 weapon editor.
+
+Those remain the next overlay layer after A6 visibility/input/persistence is validated.
