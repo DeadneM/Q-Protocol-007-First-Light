@@ -4,6 +4,24 @@
 > Read this file first when resuming Q Protocol in a new conversation.
 > If older README/history notes conflict with this file, this file wins.
 
+## Fresh Core A3 test candidate
+
+- Build: `Q-Protocol_FreshCore_A3_ManualLoadout_F3_TEST.zip`
+- Status: **test candidate, not canonical**
+- Base: validated Fresh Core A2.
+- Adds:
+  - F3 `ApplyWeaponLoadout(ManualLoadout)`;
+  - up to 8 configurable `ManualLoadout` weapon slots;
+  - every non-None slot is queued into the exact A2 shared `GiveWeapon()` queue.
+- No new gameplay hook or separate weapon engine.
+- F2, AUTO and overlay remain intentionally inactive.
+- ASI SHA-256: `f9fb79834436dfbb356ec156ba7ad196ac7014a74f443234c82d72c93c54cc73`
+- ZIP SHA-256: `a9cf7404dc89bf092558f7bb80b6b6a555024603fdaad2d5a9e1b153ace2fdbb`
+- Validation required:
+  1. F1/F4/F5-F12 remain working;
+  2. F3 gives all configured ManualLoadout weapons in sequence;
+  3. no duplicate/crash/regression.
+
 ## Fresh Core A2 validated base
 
 - Build: `Q-Protocol_FreshCore_A2_GiveWeapon_F4-F12_TEST.zip`
