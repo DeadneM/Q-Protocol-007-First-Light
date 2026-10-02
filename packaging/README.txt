@@ -1,77 +1,80 @@
-Q Protocol - Fresh Core A4
+Q Protocol - Fresh Core A5
 ==========================
 
 TEST BUILD
 
 Validated base
 --------------
-Fresh Core A3D is now VALIDATED and is the canonical base.
+Fresh Core A4 is treated as VALIDATED from the user's positive test feedback.
+A4 preserves the A3D weapon core and adds the native F2 reserve-ammo primitive.
 
-A3D validation
---------------
-The user confirmed the typed F3 loadout works correctly with the shared
-500 ms inter-weapon stabilization delay.
+A5 addition: minimal AUTO
+-------------------------
+AUTO is deliberately not a second weapon/ammo engine.
 
-Preserved without redesign:
+When a new playable READY cycle is detected and [Auto] Enabled=1, A5 does exactly:
+
+  QueueLoadout(AutoLoadout)
+  QueueAmmoProfile(AutoAmmo)
+  AutoDone = true
+
+The same shared primitives are used by manual controls:
+- F2 and AUTO share the same native AddAmmo path.
+- F3 and AUTO share the same typed three-role GiveWeapon queue.
+- The shared 500 ms inter-weapon stabilization remains unchanged.
+
+AUTO profile
+------------
+[AutoLoadout]
+QPistol   = one Q-Pistol variant
+OneHanded = one one-handed firearm
+TwoHanded = one two-handed firearm
+
+[AutoAmmo]
+QPistol
+SMG
+AssaultRifle
+Shotgun
+Sniper
+HeavyPistol
+
+Every selection/quantity is configurable independently from ManualLoadout/ManualAmmo.
+
+Re-arm behavior
+---------------
+AUTO re-arms only when the shared player context leaves READY or its player identity changes.
+
+A loadout pointer refresh while the same player remains READY does NOT re-arm AUTO.
+This is intentional because GiveWeapon itself can refresh the loadout pointer; re-arming there
+would create an automatic loop.
+
+Preserved
+---------
 - F1 License To Kill
-- F3 typed ManualLoadout: QPistol + OneHanded + TwoHanded
+- F2 native ManualAmmo
+- F3 typed ManualLoadout
 - F4 Q-Pistol swap
 - F5-F12 configured weapons
-- shared GiveWeapon queue and 500 ms stabilization delay
-
-A4 addition: F2 native reserve ammo
-------------------------------------
-F2 now calls the current October-2026 gameplay primitive:
-
-  Gameplay::SGpwInput_AddFirearmAmmunitionToPlayer
-
-This deliberately DOES NOT use the lower-level 24-byte SetFirearmAmmo path
-that caused the rejected U80-era rebase experiments.
-
-Current native AddAmmo path:
-- ammo owner global: EXE+0x064576E0
-- lock/context:       owner+0x238E0
-- input vector:       owner+0x20B70
-- input pool/context: owner+0x20AD0
-- vector insert:      EXE+0x00116170
-- publish helper:     EXE+0x012A8FC0
-- native event:       0x1DE
-
-Native input record remains exactly 12 bytes:
-  uint32 playerId
-  uint32 amount
-  uint32 firearmClass
-
-Confirmed classes
------------------
-0 = Q-Pistol
-1 = SMG / MachinePistol
-2 = Assault Rifle
-5 = Shotgun
-6 = Sniper / Marksman
-7 = Heavy Pistol .50
-
-Classes 3 and 4 remain disabled/unpublished.
-
-ManualAmmo values are additive reserve quantities. They do not replace the
-magazine and they do not set a target total.
+- shared GiveWeapon queue
+- 500 ms inter-weapon stabilization
+- native AddFirearmAmmunitionToPlayer event 0x1DE
 
 Still inactive
 --------------
-- AUTO
 - overlay
 
 Test
 ----
-1. Reach a playable mission.
-2. Use some ammunition from the equipped weapons.
-3. Press F2 once.
-4. Confirm reserve ammo increases according to [ManualAmmo].
-5. Press F2 again and confirm the refill is additive/repeatable.
-6. Confirm F1, F3, F4 and F5-F12 still work.
-7. Confirm no crash during level change/respawn.
+1. Keep [Auto] Enabled=1.
+2. Enter a playable mission without pressing F2/F3.
+3. Confirm AUTO gives exactly the three configured AutoLoadout roles.
+4. Confirm AutoAmmo reserve quantities are added.
+5. Confirm AUTO runs only once while remaining in the same playable context.
+6. Press F2 and F3 manually afterward and confirm both still work.
+7. Change level / respawn and confirm AUTO re-arms on the next READY cycle.
+8. Confirm F1/F4/F5-F12 remain functional and there is no crash.
 
 Expected log:
-F2 ManualAmmo queued for playerId=...
-F2 AddAmmo class=... amount=+...
-F2 ManualAmmo PUBLISHED through native event 0x1DE
+AUTO committed once for current READY cycle: weapons=3 ammo=queued.
+AUTO Ammo AddAmmo class=...
+AUTO Ammo PUBLISHED through native ammo event 0x1DE
