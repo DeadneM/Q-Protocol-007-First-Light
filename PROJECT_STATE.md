@@ -14,7 +14,9 @@
 - Removes visible Profile selectors and debug-only runtime clutter.
 - Keeps Insert, Save, Reload, Defaults, player-ready status, Manual editors and AUTO editors.
 - A5 gameplay primitives are unchanged.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `27968278487005b5e525bea73839b9bdcdecdbdf25071e150926325998a5b70f`
+- ZIP SHA-256: `49b12a69c06af46e9878a38b8dc3058fd81315e48e890364e4f77994e55e8d90`
+- GitHub Actions run: `37042477876` (PASS).
 
 ## Fresh Core A6 Insert overlay test candidate
 
