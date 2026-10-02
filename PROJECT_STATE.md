@@ -15,7 +15,9 @@
 - Loadout selectors show validated weapons by default; experimental entries are opt-in.
 - A7 does **not** alter GiveWeapon/AddAmmo gameplay primitives.
 - A6B log proves AUTO queues OneHanded correctly; observed failures come from source graph resolution for specific experimental RIDs.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `7cd5e56a03bdffecb9ce894661ff848459ffb56453810aeb8b7c0e4eaa96c096`
+- ZIP SHA-256: `94f4d624f1f2e0438639bf50b607d9bfb3571492389a7472e00e3cfeee1b6b3c`
+- GitHub Actions run: `37063281447` (PASS).
 
 
 > **Primary source of truth.**
