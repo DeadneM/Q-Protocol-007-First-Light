@@ -81,3 +81,8 @@ fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2  Q-Protocol_Fre
 # Fresh Core A10 weapon revalidation + ammo UI fix test candidate, NOT canonical
 85870b04921b1fa92f11aca2188f0f93ea60a0f7c06e228f10f0746435d8e830  FreshCore_A10/QProtocol.asi
 f7a2092aa09a4ed4c37901d0738bce6e346e0cce03e84e25ac23faece609cd69  Q-Protocol_FreshCore_A10_WeaponRevalidation_UIFix_TEST.zip
+
+
+# Fresh Core A11 runtime weapon discovery test candidate, NOT canonical
+e555bec0dbd22ef201d93bc7cb34f2bdb478bfc5e44f96ca154b4738bf61e4dd  FreshCore_A11/QProtocol.asi
+cfe919f41b413193674096cf2eed58dd92f7c88dffd9ecd48c6689b300dad078  Q-Protocol_FreshCore_A11_RuntimeWeaponDiscovery_TEST.zip
