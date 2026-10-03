@@ -14,6 +14,9 @@ void OverlayPump(
     bool qpistolNextB);
 bool OverlayConsumeReloadRequest();
 bool OverlayConsumeSpawnRequest(std::uint64_t& displayRid);
+void OverlayPublishRuntimeWeaponRids(
+    const std::uint64_t* displayRids,
+    std::size_t count);
 bool OverlayIsVisible();
 const char* OverlayStatus();
 void OverlayShutdown();
