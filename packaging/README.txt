@@ -1,104 +1,94 @@
-Q Protocol - Fresh Core A9
-==========================
+Q Protocol - Fresh Core A10
+===========================
 
-ARSENAL OVERLAY TEST
+WEAPON REVALIDATION + UI FIX TEST
 
 Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay core.
 
-A9 overlay architecture
+A10 purpose
+-----------
+A9's overlay/render path is retained.
+
+A10 fixes two user-reported issues:
+
+1. weapon validation metadata was carrying legacy pre-October status;
+2. ammo controls were too cramped and the ImGui +/- step buttons could be cut.
+
+Weapon catalogue policy
 -----------------------
-A9 removes the A8 late DXGI-factory dependency.
+The alias/RID catalogue originally came from the pre-October Q Protocol branch.
 
-Instead it:
-1. creates temporary local D3D12/DXGI probe objects;
-2. reads the runtime addresses of:
-   - IDXGISwapChain::Present
-   - IDXGISwapChain::ResizeBuffers
-   - ID3D12CommandQueue::ExecuteCommandLists
-3. hooks those runtime functions globally with MinHook;
-4. captures the game's first real DIRECT command queue;
-5. identifies the real game swapchain by process/window/device;
-6. initializes Dear ImGui only on that real swapchain.
+The Fresh Core rebuilt the gameplay primitives for the October executable, but
+the full weapon catalogue itself was not rediscovered from scratch.
 
-This works even if the game's swapchain existed before QProtocol.asi loaded.
-
-A5 gameplay remains fail-open:
-if the overlay does not initialize, F1-F12 and AUTO remain active.
-
-Overlay tabs
-------------
-Loadout
-- Manual Q-Pistol / One-handed / Two-handed
-- Automatic Q-Pistol / One-handed / Two-handed
-- Manual and Automatic reserve ammo
-- Automatic enable switch
-- Experimental weapons can optionally be shown in loadout selectors
-- Not Working weapons remain hidden from loadout selectors
-
-Weapons
-- full known firearm list
-- search
-- Role
-- TEMP RID
-- Status
-
-Weapon Status
--------------
-Each weapon has one editable status:
+Therefore A10 resets Status conservatively:
 
 Validated
+- only weapons directly exercised successfully on the October Fresh Core
+
 Not Working
+- only weapons directly observed failing on the October Fresh Core
+
 Experimental
+- known/legacy weapon alias + RID that still needs re-validation on October
 
-Status is stored in [WeaponValidation] in QProtocol.ini.
+A10 October-Validated defaults:
+- QPistolSilenced
+- QPistolUnsilenced
+- HeavyPistol50Cal
+- ARMilitary
+- Taser
+- MachinePistolHighRecoil
+- ShotgunSemiAuto
+- LightPistolNonLethal
+- AssaultRifleNonLethal
+- SMGNonLethal
 
-Current known Not Working entries from previous tests:
+A10 known Not Working:
 - AgencyFocusGun
 - SocomPistol
 - BurstPistol
 
-The user can change any status from the Weapons tab and press Save.
+All other catalogue entries start as Experimental.
+
+The user can re-test each weapon in Weapons -> Spawn Weapon and manually change
+its status to Validated / Not Working / Experimental, then Save.
+
+Important:
+A10 does not claim that an Experimental RID is wrong. It only means that the
+current October build has not yet re-confirmed it.
+
+Ammo UI fix
+-----------
+Manual and Automatic ammo are now displayed as one clean row per ammo class.
+
+Each row has:
+- ammo class label
+- one wider numeric input field
+
+The tiny ImGui +/- steppers were removed entirely. This avoids clipping and is
+simpler to use.
+
+The main overlay was also enlarged slightly to 980 x 740 maximum.
 
 Spawn Weapon
 ------------
-The Weapons tab has exactly one gameplay action button:
+Unchanged from A9:
 
-Spawn Weapon
+Weapons -> Spawn Weapon -> atomic RID mailbox -> A5 WorkerThread -> QueueWeapon()
 
-The overlay does NOT call native Spawn itself.
-
-It places the selected display RID in an atomic mailbox.
-The A5 WorkerThread consumes that request and calls the existing:
-
-QueueWeapon() -> GiveWeapon
-
-Therefore Spawn Weapon uses the same validated queue, pair-clone path and
-500 ms stabilization as F4/F5-F12.
-
-Hotkeys
--------
-The Hotkeys tab currently shows the authoritative mapping.
-Hotkey rebinding is intentionally not part of A9.
-
-Controls
---------
-Insert   = open/close overlay
-Save     = save loadouts/ammo/statuses and reload runtime configuration
-Reload   = reload QProtocol.ini
-Defaults = restore Manual/Automatic profile defaults
+No native spawn call occurs from the ImGui render thread.
 
 Test
 ----
-1. Confirm A5 hotkeys and AUTO still work before opening the overlay.
-2. Press Insert.
-3. Confirm the in-game ImGui overlay appears.
-4. Open Weapons.
-5. Select a Validated weapon and press Spawn Weapon.
-6. Confirm the weapon is queued/given using the normal A5 path.
-7. Change a weapon Status, press Save, close/reopen and confirm it persists.
-8. Test an Experimental/Not Working weapon if desired.
-9. Confirm no crash on Alt-Tab, resize, respawn or mission transition.
+1. Confirm the overlay still opens with Insert.
+2. Confirm ammo fields are fully visible and no +/- controls are clipped.
+3. Open Weapons and review the conservative October statuses.
+4. Test Experimental weapons with Spawn Weapon.
+5. Change each tested weapon to Validated or Not Working and press Save.
+6. Reopen the overlay and confirm statuses persist.
+7. Confirm A5 gameplay/F1-F12/AUTO remain unchanged.
 
-If the overlay does not appear, attach QProtocol.log.
+This build is intended to rebuild the October weapon truth table progressively.
