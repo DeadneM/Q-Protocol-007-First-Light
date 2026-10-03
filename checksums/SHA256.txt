@@ -76,3 +76,8 @@ fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2  Q-Protocol_Fre
 # Fresh Core A9 Arsenal overlay test candidate, NOT canonical
 9ef3bedec76cfe7dd499288092244a7e87ff26b30bbe2d0b17b9b1227401fa12  FreshCore_A9/QProtocol.asi
 223781380f2bc5d9498deaacda0fe631e3a35b24269e00cb88b40f04149f66e4  Q-Protocol_FreshCore_A9_ArsenalOverlay_TEST.zip
+
+
+# Fresh Core A10 weapon revalidation + ammo UI fix test candidate, NOT canonical
+85870b04921b1fa92f11aca2188f0f93ea60a0f7c06e228f10f0746435d8e830  FreshCore_A10/QProtocol.asi
+f7a2092aa09a4ed4c37901d0738bce6e346e0cce03e84e25ac23faece609cd69  Q-Protocol_FreshCore_A10_WeaponRevalidation_UIFix_TEST.zip
