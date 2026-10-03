@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 namespace qp {
@@ -12,6 +13,7 @@ void OverlayPump(
     std::size_t weaponQueueCount,
     bool qpistolNextB);
 bool OverlayConsumeReloadRequest();
+bool OverlayConsumeSpawnRequest(std::uint64_t& displayRid);
 bool OverlayIsVisible();
 const char* OverlayStatus();
 void OverlayShutdown();
