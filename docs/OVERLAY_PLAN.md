@@ -336,3 +336,35 @@ A7B rules:
 - ExecuteCommandLists is used only long enough to capture a DIRECT queue, then
   that hook is retired;
 - QProtocol.log reports each overlay initialization stage.
+
+
+## A9 Arsenal overlay
+
+User requirement:
+- keep the interface simple;
+- Weapons tab should directly spawn the selected weapon;
+- no extra "Set to loadout" buttons;
+- weapon status must be editable in-overlay.
+
+A9 Status values:
+- Validated
+- Not Working
+- Experimental
+
+Persistence:
+- [WeaponValidation] remains the INI section name for compatibility;
+- values are now treated as editable Status metadata.
+
+Spawn Weapon architecture:
+- ImGui never calls the native game spawn directly;
+- it publishes one display RID through an atomic mailbox;
+- WorkerThread consumes the RID;
+- WorkerThread rotates it to internal RID and calls existing QueueWeapon();
+- all A5 GiveWeapon/queue/stabilization behavior is therefore preserved.
+
+A9 renderer discovery also changes:
+- temporary probe swapchain/queue objects are used only to discover shared runtime
+  vtable function addresses;
+- global Present/ResizeBuffers/ExecuteCommandLists hooks then see already-existing
+  game objects;
+- queue and swapchain are matched by D3D12 device identity before ImGui init.
