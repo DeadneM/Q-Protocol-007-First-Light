@@ -368,3 +368,26 @@ A9 renderer discovery also changes:
 - global Present/ResizeBuffers/ExecuteCommandLists hooks then see already-existing
   game objects;
 - queue and swapchain are matched by D3D12 device identity before ImGui init.
+
+
+## A10 weapon revalidation and ammo UI cleanup
+
+The weapon alias/RID catalogue was inherited from the pre-October branch.
+The Fresh Core revalidated gameplay primitives, but not every catalogue row.
+
+A10 status policy:
+- Validated = directly confirmed on October Fresh Core;
+- Not Working = directly failed on October Fresh Core;
+- Experimental = known legacy/current candidate awaiting October re-test.
+
+The Weapons tab remains the revalidation tool:
+- select weapon;
+- Spawn Weapon;
+- manually set Status;
+- Save.
+
+Ammo layout:
+- replace two cramped ammo cells per row with one ammo class per row;
+- use a 100px numeric field;
+- remove ImGui InputInt +/- steppers;
+- increase profile panel height and overall overlay target size.
