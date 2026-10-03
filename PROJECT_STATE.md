@@ -27,7 +27,9 @@
   - BurstPistol.
 - Ammo UI rebuilt as one row per class with wider numeric fields and no clipped +/- steppers.
 - Overlay maximum target size increased to 980x740.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `85870b04921b1fa92f11aca2188f0f93ea60a0f7c06e228f10f0746435d8e830`
+- ZIP SHA-256: `f7a2092aa09a4ed4c37901d0738bce6e346e0cce03e84e25ac23faece609cd69`
+- GitHub Actions run: `37144221679` (PASS).
 
 
 ## Fresh Core A9 Arsenal overlay candidate
