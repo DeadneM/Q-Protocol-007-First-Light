@@ -10,7 +10,9 @@
 - First A8 UI is intentionally renderer-only: a compact in-game status panel.
 - Full Loadout / Weapons / Hotkeys UI returns only after this renderer is validated.
 - A5 gameplay remains fail-open if the renderer fails.
-- Build hashes: pending final README rebuild.
+- ASI SHA-256: `70418bf41a06340c603cc003fcfef952b7c2682f45f8da5eeb511b70dca35702`
+- ZIP SHA-256: `8091800624f097f20c3818269a542b9db4e3487ae2b43b8663c67649b596baec`
+- GitHub Actions run: `37134257650` (PASS).
 
 
 ## Fresh Core A7B fail-open DX12 overlay candidate
