@@ -24,7 +24,9 @@
   - AgencyFocusGun;
   - SocomPistol;
   - BurstPistol.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `9ef3bedec76cfe7dd499288092244a7e87ff26b30bbe2d0b17b9b1227401fa12`
+- ZIP SHA-256: `223781380f2bc5d9498deaacda0fe631e3a35b24269e00cb88b40f04149f66e4`
+- GitHub Actions run: `37140263601` (PASS).
 
 
 ## Fresh Core A8 direct DXGI renderer candidate
