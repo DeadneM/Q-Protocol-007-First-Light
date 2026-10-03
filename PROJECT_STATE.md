@@ -1,5 +1,18 @@
 # Q Protocol — Project State
 
+## Fresh Core A8 direct DXGI renderer candidate
+
+- Build: `Q-Protocol_FreshCore_A8_DirectDXGI_Renderer_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **A5**, verified by `docs/A5_A7B_GAMEPLAY_AUDIT.md`.
+- A8 removes Kiero from the overlay path.
+- It hooks DXGI factory swapchain creation directly, captures the game's real D3D12 command queue, then hooks the real Present/ResizeBuffers path.
+- First A8 UI is intentionally renderer-only: a compact in-game status panel.
+- Full Loadout / Weapons / Hotkeys UI returns only after this renderer is validated.
+- A5 gameplay remains fail-open if the renderer fails.
+- Build hashes: pending final README rebuild.
+
+
 ## Fresh Core A7B fail-open DX12 overlay candidate
 
 - Build: `Q-Protocol_FreshCore_A7B_DX12_FailOpen_TEST.zip`
@@ -235,7 +248,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A7B**, making the DX12 ImGui overlay fail-open and fence-safe while preserving A5 gameplay.
+- Current test candidate: **Fresh Core A8**, testing a direct DXGI/D3D12 overlay path without Kiero while preserving A5 gameplay.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
