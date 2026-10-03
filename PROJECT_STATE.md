@@ -1,5 +1,35 @@
 # Q Protocol — Project State
 
+## Fresh Core A10 weapon revalidation + UI fix candidate
+
+- Build: `Q-Protocol_FreshCore_A10_WeaponRevalidation_UIFix_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**.
+- Retains the working A9 Arsenal overlay architecture.
+- Weapon catalogue status is reset to October-only evidence:
+  - Validated = post-update Fresh Core success;
+  - Not Working = post-update Fresh Core failure;
+  - Experimental = legacy/known RID requiring re-validation.
+- October-Validated defaults:
+  - QPistolSilenced;
+  - QPistolUnsilenced;
+  - HeavyPistol50Cal;
+  - ARMilitary;
+  - Taser;
+  - MachinePistolHighRecoil;
+  - ShotgunSemiAuto;
+  - LightPistolNonLethal;
+  - AssaultRifleNonLethal;
+  - SMGNonLethal.
+- Known current failures:
+  - AgencyFocusGun;
+  - SocomPistol;
+  - BurstPistol.
+- Ammo UI rebuilt as one row per class with wider numeric fields and no clipped +/- steppers.
+- Overlay maximum target size increased to 980x740.
+- ASI/ZIP hashes: pending workflow build.
+
+
 ## Fresh Core A9 Arsenal overlay candidate
 
 - Build: `Q-Protocol_FreshCore_A9_ArsenalOverlay_TEST.zip`
@@ -279,7 +309,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A9**, testing the runtime D3D12 Arsenal overlay while preserving A5 gameplay.
+- Current test candidate: **Fresh Core A10**, rebuilding October weapon validation status and fixing ammo UI clipping while preserving A5 gameplay.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
