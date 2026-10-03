@@ -144,6 +144,7 @@ std::atomic<bool> g_ammoPending{false};
 
 std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
 bool g_graphIndexBuilt = false;
+std::vector<std::uint64_t> g_seenRuntimeGraphRids;
 std::deque<std::uint64_t> g_weaponQueue;
 ActiveWeapon g_activeWeapon{};
 ULONGLONG g_nextWeaponAllowedAt = 0;
@@ -673,10 +674,40 @@ bool BuildGraphIndex() {
     }
 
     g_graphIndexBuilt = true;
+
+    std::vector<std::uint64_t> displayRids;
+    displayRids.reserve(g_graphs.size());
+
+    for (const auto& [internalRid, graph] : g_graphs) {
+        (void)graph;
+        displayRids.push_back(RotateRid(internalRid));
+    }
+
+    std::sort(displayRids.begin(), displayRids.end());
+
+    OverlayPublishRuntimeWeaponRids(
+        displayRids.empty() ? nullptr : displayRids.data(),
+        displayRids.size());
+
     Log(
         "Weapon graph index built: %zu ItemEntry/Spawner RID graph(s), %zu spawner candidate(s).",
         g_graphs.size(),
         spawners.size());
+
+    for (const std::uint64_t displayRid : displayRids) {
+        if (std::find(
+                g_seenRuntimeGraphRids.begin(),
+                g_seenRuntimeGraphRids.end(),
+                displayRid) ==
+            g_seenRuntimeGraphRids.end()) {
+
+            g_seenRuntimeGraphRids.push_back(displayRid);
+
+            Log(
+                "DISCOVERY runtime graph RID=%016llX",
+                static_cast<unsigned long long>(displayRid));
+        }
+    }
 
     return !g_graphs.empty();
 }
@@ -1178,6 +1209,7 @@ void ResetWeaponRuntime(const char* reason) {
     g_ammoPending.store(false, std::memory_order_release);
     g_graphs.clear();
     g_graphIndexBuilt = false;
+    OverlayPublishRuntimeWeaponRids(nullptr, 0);
     Log("Weapon runtime reset: %s", reason);
 }
 
@@ -1195,8 +1227,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A10");
-    Log("Scope: validated A5 gameplay core + A10 Arsenal overlay + October weapon revalidation UI.");
+    Log("Q Protocol Fresh Core A11");
+    Log("Scope: validated A5 gameplay core + A11 Q-Pistol Off + runtime weapon RID discovery.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A8 disabled because executable validation failed.");
