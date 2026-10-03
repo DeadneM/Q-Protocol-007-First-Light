@@ -1,89 +1,104 @@
-Q Protocol - Fresh Core A8
+Q Protocol - Fresh Core A9
 ==========================
 
-DIRECT DXGI / D3D12 RENDERER TEST
+ARSENAL OVERLAY TEST
 
 Canonical gameplay base
 -----------------------
-Fresh Core A5 remains the validated gameplay base.
+Fresh Core A5 remains the validated gameplay core.
 
-A8 exists only to validate a new true in-game overlay renderer.
-
-A5 vs A7B gameplay audit
-------------------------
-The repository comparison confirms that the gameplay implementation itself did
-not drift between A5 and A7B.
-
-Unchanged:
-- all October executable mappings / RVAs
-- ResolvePlayer
-- License To Kill
-- AddAmmo
-- GiveWeapon / pair-clone path
-- source-graph scan
-- 500 ms weapon stabilization
-- ManualLoadout
-- AutoLoadout
-- ManualAmmo
-- AutoAmmo
-- AUTO one-shot READY logic
-- QpGameplayTick
-- GameplayHook.asm (identical file SHA)
-
-QProtocol.cpp differs only where the overlay is integrated in WorkerThread:
-- include Overlay.h
-- overlay bootstrap/status logging
-- OverlayPump / reload handling
-- suppress F1-F12 only while a renderer-ready overlay is visible
-- OverlayShutdown
-
-A8 renderer architecture
-------------------------
-A7/A7B used Kiero to discover/hook the D3D12 method table.
-
-A8 removes Kiero completely.
+A9 overlay architecture
+-----------------------
+A9 removes the A8 late DXGI-factory dependency.
 
 Instead it:
-1. creates a real DXGI factory only to obtain the system factory vtable;
-2. hooks the actual DXGI CreateSwapChain/CreateSwapChainForHwnd methods;
-3. captures the game's real ID3D12CommandQueue from the pDevice parameter;
-4. hooks Present and ResizeBuffers on the real game swapchain;
-5. renders Dear ImGui directly inside that swapchain.
+1. creates temporary local D3D12/DXGI probe objects;
+2. reads the runtime addresses of:
+   - IDXGISwapChain::Present
+   - IDXGISwapChain::ResizeBuffers
+   - ID3D12CommandQueue::ExecuteCommandLists
+3. hooks those runtime functions globally with MinHook;
+4. captures the game's first real DIRECT command queue;
+5. identifies the real game swapchain by process/window/device;
+6. initializes Dear ImGui only on that real swapchain.
 
-No visible Win32 configuration window is created.
+This works even if the game's swapchain existed before QProtocol.asi loaded.
 
-A8 deliberately renders only a compact diagnostic panel. This isolates renderer
-validation from the rest of the UI. Once A8 is visible and stable, the full
-Loadout / Weapons / Hotkeys interface will be moved onto this renderer.
+A5 gameplay remains fail-open:
+if the overlay does not initialize, F1-F12 and AUTO remain active.
+
+Overlay tabs
+------------
+Loadout
+- Manual Q-Pistol / One-handed / Two-handed
+- Automatic Q-Pistol / One-handed / Two-handed
+- Manual and Automatic reserve ammo
+- Automatic enable switch
+- Experimental weapons can optionally be shown in loadout selectors
+- Not Working weapons remain hidden from loadout selectors
+
+Weapons
+- full known firearm list
+- search
+- Role
+- TEMP RID
+- Status
+
+Weapon Status
+-------------
+Each weapon has one editable status:
+
+Validated
+Not Working
+Experimental
+
+Status is stored in [WeaponValidation] in QProtocol.ini.
+
+Current known Not Working entries from previous tests:
+- AgencyFocusGun
+- SocomPistol
+- BurstPistol
+
+The user can change any status from the Weapons tab and press Save.
+
+Spawn Weapon
+------------
+The Weapons tab has exactly one gameplay action button:
+
+Spawn Weapon
+
+The overlay does NOT call native Spawn itself.
+
+It places the selected display RID in an atomic mailbox.
+The A5 WorkerThread consumes that request and calls the existing:
+
+QueueWeapon() -> GiveWeapon
+
+Therefore Spawn Weapon uses the same validated queue, pair-clone path and
+500 ms stabilization as F4/F5-F12.
+
+Hotkeys
+-------
+The Hotkeys tab currently shows the authoritative mapping.
+Hotkey rebinding is intentionally not part of A9.
 
 Controls
 --------
-Insert = show/hide the A8 renderer test panel.
-
-Fail-open rule
---------------
-If the renderer is not ready or fails, A5 gameplay remains active.
-F1-F12 are suppressed only while a genuinely initialized in-game overlay is
-visible.
-
-Expected QProtocol.log states
------------------------------
-A8 DXGI bootstrap
-A8 factory hooks ready; waiting for game swapchain
-A8 game swapchain captured; waiting for first Present
-A8 DX12 ImGui ready
-
-Failure states:
-A8 overlay initialization failed (A5 gameplay unaffected)
-A8 overlay fence timeout (overlay disabled; A5 gameplay unaffected)
+Insert   = open/close overlay
+Save     = save loadouts/ammo/statuses and reload runtime configuration
+Reload   = reload QProtocol.ini
+Defaults = restore Manual/Automatic profile defaults
 
 Test
 ----
-1. Confirm normal A5 gameplay/hotkeys work.
+1. Confirm A5 hotkeys and AUTO still work before opening the overlay.
 2. Press Insert.
-3. Confirm an in-game dark Q PROTOCOL panel appears with no Windows title bar.
-4. Confirm mouse interaction works.
-5. Close with Insert.
-6. Test Alt-Tab and a mission transition.
-7. If it does not appear, attach QProtocol.log. The last Overlay status line is
-   the important diagnostic.
+3. Confirm the in-game ImGui overlay appears.
+4. Open Weapons.
+5. Select a Validated weapon and press Spawn Weapon.
+6. Confirm the weapon is queued/given using the normal A5 path.
+7. Change a weapon Status, press Save, close/reopen and confirm it persists.
+8. Test an Experimental/Not Working weapon if desired.
+9. Confirm no crash on Alt-Tab, resize, respawn or mission transition.
+
+If the overlay does not appear, attach QProtocol.log.
