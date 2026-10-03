@@ -1195,11 +1195,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A7B");
-    Log("Scope: validated A5 gameplay core + fail-open fence-safe DX12 ImGui overlay + classified firearm catalog.");
+    Log("Q Protocol Fresh Core A8");
+    Log("Scope: validated A5 gameplay core + direct DXGI/D3D12 renderer test overlay + classified firearm catalog.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A7B disabled because executable validation failed.");
+        Log("Fresh Core A8 disabled because executable validation failed.");
         return 0;
     }
 
@@ -1207,7 +1207,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A7B disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core A8 disabled: gameplay hook unavailable.");
         return 0;
     }
 
