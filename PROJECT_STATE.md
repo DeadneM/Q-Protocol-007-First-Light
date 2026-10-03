@@ -1,5 +1,28 @@
 # Q Protocol — Project State
 
+## Fresh Core A11 runtime weapon discovery candidate
+
+- Build: `Q-Protocol_FreshCore_A11_RuntimeWeaponDiscovery_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**.
+- Retains A10/A9 DX12 Arsenal renderer.
+- Adds Q-Pistol `Off` for both Manual and Automatic loadouts.
+  - UI `Off` persists as `QPistol=None`;
+  - A5 already parses `None` as RID 0, so no new gameplay implementation exists.
+- Preserves the user's latest `Validated / Not Working / Experimental` classifications exactly.
+- Not Working / Experimental entries are intentionally retained as rediscovery targets.
+- Adds `Weapons -> Runtime Discovery`:
+  - current loaded ItemEntry/Spawner graph RIDs;
+  - uncatalogued RIDs;
+  - current-level vs seen-earlier-this-session state;
+  - Spawn Weapon through existing A5 QueueWeapon path.
+- Runtime discoveries accumulate across level transitions for the current session.
+- QProtocol.log writes each newly observed graph as:
+  - `DISCOVERY runtime graph RID=XXXXXXXXXXXXXXXX`
+- Goal: recover new October RIDs for legacy failures and detect weapons absent from the catalogue.
+- ASI/ZIP hashes: pending workflow build.
+
+
 ## Fresh Core A10 weapon revalidation + UI fix candidate
 
 - Build: `Q-Protocol_FreshCore_A10_WeaponRevalidation_UIFix_TEST.zip`
@@ -311,7 +334,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A10**, rebuilding October weapon validation status and fixing ammo UI clipping while preserving A5 gameplay.
+- Current test candidate: **Fresh Core A11**, adding Q-Pistol Off and runtime RID discovery while preserving A5 gameplay.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
