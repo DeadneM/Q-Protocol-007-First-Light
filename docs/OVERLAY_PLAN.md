@@ -391,3 +391,29 @@ Ammo layout:
 - use a 100px numeric field;
 - remove ImGui InputInt +/- steppers;
 - increase profile panel height and overall overlay target size.
+
+
+## A11 runtime weapon discovery
+
+User requirements:
+- Manual Q-Pistol needs an Off option;
+- Automatic Q-Pistol needs an Off option;
+- never delete Not Working or Experimental weapons;
+- recover their correct current IDs;
+- detect weapons missing from the catalogue.
+
+Implementation:
+- Off is represented by `None`, already supported by the A5 RID parser;
+- the existing graph index is published to the overlay after each rebuild;
+- current graph RIDs are shown separately from the named catalogue;
+- session discovery accumulates RIDs across level transitions;
+- only RIDs absent from WeaponCatalog appear as uncatalogued discovery entries;
+- discovery rows have one action: Spawn Weapon;
+- spawned discovery RIDs cross through the same atomic mailbox and A5 QueueWeapon
+  path as named catalog entries.
+
+Logging:
+- every graph RID seen for the first time during a session is emitted as
+  `DISCOVERY runtime graph RID=...`.
+
+This is intentionally a discovery tool. It does not guess a weapon name from a RID.
