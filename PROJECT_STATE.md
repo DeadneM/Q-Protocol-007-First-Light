@@ -1,5 +1,32 @@
 # Q Protocol — Project State
 
+## Fresh Core A9 Arsenal overlay candidate
+
+- Build: `Q-Protocol_FreshCore_A9_ArsenalOverlay_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**.
+- Renderer discovery:
+  - no Kiero;
+  - no late-only DXGI factory dependence;
+  - temporary D3D12/DXGI probe objects provide shared runtime method addresses;
+  - MinHook intercepts Present, ResizeBuffers and ExecuteCommandLists globally;
+  - first real DIRECT game queue is captured;
+  - ImGui initializes only on a same-process/same-device game swapchain.
+- Adds full Loadout / Weapons / Hotkeys UI.
+- Weapons tab:
+  - search;
+  - role;
+  - RID;
+  - editable Status = Validated / Not Working / Experimental;
+  - one gameplay action: Spawn Weapon.
+- Spawn Weapon crosses to the A5 WorkerThread through an atomic RID mailbox and calls existing QueueWeapon().
+- Known prior failures are initialized as Not Working:
+  - AgencyFocusGun;
+  - SocomPistol;
+  - BurstPistol.
+- ASI/ZIP hashes: pending workflow build.
+
+
 ## Fresh Core A8 direct DXGI renderer candidate
 
 - Build: `Q-Protocol_FreshCore_A8_DirectDXGI_Renderer_TEST.zip`
@@ -250,7 +277,7 @@
   - configurable AutoLoadout + AutoAmmo;
   - one-shot AUTO behavior per READY cycle;
   - minimal gameplay-thread native spawn/ammo dispatch hook.
-- Current test candidate: **Fresh Core A8**, testing a direct DXGI/D3D12 overlay path without Kiero while preserving A5 gameplay.
+- Current test candidate: **Fresh Core A9**, testing the runtime D3D12 Arsenal overlay while preserving A5 gameplay.
 - U80, U81, U81B, U82, U82A, U83, U84 and U85 are rejected compatibility experiments.
 - Never use U80-U85 as a new base.
 - Gadget support is removed from Q Protocol and must not be reintroduced.
