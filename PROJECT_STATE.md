@@ -20,7 +20,9 @@
 - QProtocol.log writes each newly observed graph as:
   - `DISCOVERY runtime graph RID=XXXXXXXXXXXXXXXX`
 - Goal: recover new October RIDs for legacy failures and detect weapons absent from the catalogue.
-- ASI/ZIP hashes: pending workflow build.
+- ASI SHA-256: `e555bec0dbd22ef201d93bc7cb34f2bdb478bfc5e44f96ca154b4738bf61e4dd`
+- ZIP SHA-256: `cfe919f41b413193674096cf2eed58dd92f7c88dffd9ecd48c6689b300dad078`
+- GitHub Actions run: `37145362694` (PASS).
 
 
 ## Fresh Core A10 weapon revalidation + UI fix candidate
