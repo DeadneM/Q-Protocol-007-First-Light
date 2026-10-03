@@ -71,3 +71,8 @@ fc12b734426e03c19cc2e3cb7a0ad8d28f31a33afe595892ad2bb0d425118dc2  Q-Protocol_Fre
 # Fresh Core A8 direct DXGI renderer test candidate, NOT canonical
 70418bf41a06340c603cc003fcfef952b7c2682f45f8da5eeb511b70dca35702  FreshCore_A8/QProtocol.asi
 8091800624f097f20c3818269a542b9db4e3487ae2b43b8663c67649b596baec  Q-Protocol_FreshCore_A8_DirectDXGI_Renderer_TEST.zip
+
+
+# Fresh Core A9 Arsenal overlay test candidate, NOT canonical
+9ef3bedec76cfe7dd499288092244a7e87ff26b30bbe2d0b17b9b1227401fa12  FreshCore_A9/QProtocol.asi
+223781380f2bc5d9498deaacda0fe631e3a35b24269e00cb88b40f04149f66e4  Q-Protocol_FreshCore_A9_ArsenalOverlay_TEST.zip
