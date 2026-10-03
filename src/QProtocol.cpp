@@ -1195,8 +1195,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A8");
-    Log("Scope: validated A5 gameplay core + direct DXGI/D3D12 renderer test overlay + classified firearm catalog.");
+    Log("Q Protocol Fresh Core A9");
+    Log("Scope: validated A5 gameplay core + A9 runtime DX12 overlay + interactive Weapons arsenal.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A8 disabled because executable validation failed.");
@@ -1303,6 +1303,24 @@ DWORD WINAPI WorkerThread(LPVOID) {
         if (OverlayConsumeReloadRequest()) {
             LoadConfig(iniPath);
             Log("Overlay requested INI reload: runtime config refreshed.");
+        }
+
+        std::uint64_t overlayDisplayRid = 0;
+        if (OverlayConsumeSpawnRequest(overlayDisplayRid)) {
+            if (!ready) {
+                Log("Overlay Spawn Weapon ignored: player not ready.");
+            } else {
+                const std::uint64_t internalRid = RotateRid(overlayDisplayRid);
+                if (QueueWeapon(internalRid, "Overlay Spawn Weapon")) {
+                    Log(
+                        "Overlay Spawn Weapon queued RID=%016llX.",
+                        static_cast<unsigned long long>(overlayDisplayRid));
+                } else {
+                    Log(
+                        "[ERROR] Overlay Spawn Weapon rejected RID=%016llX.",
+                        static_cast<unsigned long long>(overlayDisplayRid));
+                }
+            }
         }
 
         const bool overlayVisible = OverlayIsVisible();
