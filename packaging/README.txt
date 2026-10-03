@@ -1,74 +1,89 @@
-Q Protocol - Fresh Core A7B
-===========================
+Q Protocol - Fresh Core A8
+==========================
 
-TEST BUILD
+DIRECT DXGI / D3D12 RENDERER TEST
 
 Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay base.
 
-A7 verdict
-----------
-Fresh Core A7 is REJECTED.
+A8 exists only to validate a new true in-game overlay renderer.
 
-Reason:
-- the first DX12 ImGui integration could enter a visible/open logical state
-  before the renderer was actually ready;
-- gameplay hotkeys could then be suppressed even though no overlay was visible;
-- command allocators were reset without explicit per-frame fence ownership.
+A5 vs A7B gameplay audit
+------------------------
+The repository comparison confirms that the gameplay implementation itself did
+not drift between A5 and A7B.
 
-A7B correction
+Unchanged:
+- all October executable mappings / RVAs
+- ResolvePlayer
+- License To Kill
+- AddAmmo
+- GiveWeapon / pair-clone path
+- source-graph scan
+- 500 ms weapon stabilization
+- ManualLoadout
+- AutoLoadout
+- ManualAmmo
+- AutoAmmo
+- AUTO one-shot READY logic
+- QpGameplayTick
+- GameplayHook.asm (identical file SHA)
+
+QProtocol.cpp differs only where the overlay is integrated in WorkerThread:
+- include Overlay.h
+- overlay bootstrap/status logging
+- OverlayPump / reload handling
+- suppress F1-F12 only while a renderer-ready overlay is visible
+- OverlayShutdown
+
+A8 renderer architecture
+------------------------
+A7/A7B used Kiero to discover/hook the D3D12 method table.
+
+A8 removes Kiero completely.
+
+Instead it:
+1. creates a real DXGI factory only to obtain the system factory vtable;
+2. hooks the actual DXGI CreateSwapChain/CreateSwapChainForHwnd methods;
+3. captures the game's real ID3D12CommandQueue from the pDevice parameter;
+4. hooks Present and ResizeBuffers on the real game swapchain;
+5. renders Dear ImGui directly inside that swapchain.
+
+No visible Win32 configuration window is created.
+
+A8 deliberately renders only a compact diagnostic panel. This isolates renderer
+validation from the rest of the UI. Once A8 is visible and stable, the full
+Loadout / Weapons / Hotkeys interface will be moved onto this renderer.
+
+Controls
+--------
+Insert = show/hide the A8 renderer test panel.
+
+Fail-open rule
 --------------
-A7B keeps the true in-game DX12 / Dear ImGui direction, but makes it fail-open
-and fence-safe.
+If the renderer is not ready or fails, A5 gameplay remains active.
+F1-F12 are suppressed only while a genuinely initialized in-game overlay is
+visible.
 
-Gameplay safety:
-- OverlayIsVisible() is true only when ImGui/DX12 is genuinely ready.
-- If the renderer is not ready, F1-F12 remain active.
-- If overlay initialization fails, gameplay remains active.
-- If an overlay fence times out, the overlay disables itself and gameplay
-  remains active.
+Expected QProtocol.log states
+-----------------------------
+A8 DXGI bootstrap
+A8 factory hooks ready; waiting for game swapchain
+A8 game swapchain captured; waiting for first Present
+A8 DX12 ImGui ready
 
-DX12 synchronization:
-- every swap-chain backbuffer has its own fenceValue;
-- a command allocator is reset only after its previous overlay submission has
-  completed;
-- overlay GPU work is waited before DX12 resources are released;
-- the high-frequency ExecuteCommandLists hook is retired after the first DIRECT
-  queue is captured.
+Failure states:
+A8 overlay initialization failed (A5 gameplay unaffected)
+A8 overlay fence timeout (overlay disabled; A5 gameplay unaffected)
 
-Diagnostics
------------
-QProtocol.log now reports overlay transitions such as:
-
-DX12 waiting for hooks
-DX12 hooks installed; waiting for DIRECT queue
-DX12 queue captured; waiting for swapchain/ImGui
-DX12 ImGui ready
-DX12 ImGui initialization failed (gameplay fail-open)
-DX12 overlay fence timeout (overlay disabled; gameplay fail-open)
-
-The goal is that a renderer problem can no longer make Q Protocol itself look
-dead.
-
-Overlay / catalogue
--------------------
-The A7 interface design is retained:
-- true in-game DX12 ImGui rendering;
-- Insert toggle;
-- Loadout / Weapons / Hotkeys tabs;
-- full firearm catalogue;
-- role classification;
-- Validated vs Experimental weapon status.
-
-Test order
-----------
-1. Launch the game and confirm F1/F2/F3/F4/F5-F12 still work BEFORE pressing Insert.
+Test
+----
+1. Confirm normal A5 gameplay/hotkeys work.
 2. Press Insert.
-3. If the overlay appears, test mouse, tabs, Save, Alt-Tab and level transition.
-4. If the overlay does not appear, do not keep pressing Insert: quit normally and
-   attach QProtocol.log. The final "Overlay status:" line tells exactly which DX12
-   stage failed.
-5. Confirm that even if the overlay fails, gameplay hotkeys continue to work.
-
-A7B does not change GiveWeapon or AddAmmo.
+3. Confirm an in-game dark Q PROTOCOL panel appears with no Windows title bar.
+4. Confirm mouse interaction works.
+5. Close with Insert.
+6. Test Alt-Tab and a mission transition.
+7. If it does not appear, attach QProtocol.log. The last Overlay status line is
+   the important diagnostic.
