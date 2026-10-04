@@ -2,8 +2,9 @@
 
 ## Active state
 
+- Current test candidate: **Fresh Core A17 Optional Loadout Slots**.
 - Current public release: **Q Protocol v0.9.0 / Fresh Core A16**.
-- A16 preserves the audited A15 catalogue and A5 gameplay while hiding Experimental weapons from Manual/Auto by default.
+- A17 adds Off/None to OneHanded and TwoHanded selectors, uses Off/Off as the public Auto defaults, and merges the latest user-validated weapon statuses. A5 gameplay remains unchanged.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

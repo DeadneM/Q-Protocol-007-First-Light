@@ -1,5 +1,22 @@
 # Q Protocol — Project State
 
+## Fresh Core A17 optional loadout slots candidate
+
+- Build: `Q-Protocol_FreshCore_A17_OptionalLoadoutSlots_TEST.zip`
+- Status: **test candidate, not canonical/public release yet**
+- Gameplay foundation: **validated Fresh Core A5**.
+- OneHanded and TwoHanded selectors now accept `None (Off)` in both Manual and Auto.
+- New public Auto defaults:
+  - QPistol = QPistolSilenced
+  - OneHanded = None
+  - TwoHanded = None
+  - Auto.Enabled = 0
+- Reset Defaults now matches those public defaults.
+- User-supplied INI status promotions merged: AssaultRiflePirate, SocomPistol, LightPistolLargeMag, ShotgunCompact, ShotgunCompactOneHanded, AssaultRifleNonLethal, SMGNonLethal, ServicePistol are now Validated.
+- Experimental weapons remain hidden from loadout selectors by default.
+- No RID mapping or gameplay primitive changed.
+- Hashes and Actions run: pending build.
+
 ## Q Protocol v0.9.0 — Fresh Core A16 release
 
 - Build: `Q-Protocol_v0.9.0.zip`

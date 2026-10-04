@@ -3,6 +3,30 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A17 optional One/Two-Handed slots
+
+User-supplied `QProtocol.ini` was used as the authority for weapon validation
+status updates only. Personal Auto enable/loadout choices were not promoted to
+public defaults.
+
+Promoted to Validated:
+- AssaultRiflePirate
+- SocomPistol
+- LightPistolLargeMag
+- ShotgunCompact
+- ShotgunCompactOneHanded
+- AssaultRifleNonLethal
+- SMGNonLethal
+- ServicePistol
+
+Loadout UI now allows `Off` for QPistol, OneHanded and TwoHanded. `Off` is
+stored as `None`, which the existing core already resolves as RID 0.
+
+Public Auto defaults are now QPistolSilenced + Off + Off. Reset Defaults was
+also corrected to keep Auto disabled and restore the same Off/Off profile.
+
+No gameplay primitive or RID mapping changed.
+
 ## 2026-10-04 — Fresh Core A16 / v0.9.0 release
 
 A16 is a release-only polish step over the audited A15 line.
