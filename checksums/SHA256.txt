@@ -94,3 +94,7 @@ d37dcebc3e117f727f0fe187f8ecfb8ab9c3a5c4bb43864802594e9be74467b4  Q-Protocol_Fre
 # Fresh Core A13 October RID remap test candidate, NOT canonical
 73695e97036f2428c35e678e958f1c6689869af2daf421e1dbc2c6b834e467e6  FreshCore_A13/QProtocol.asi
 a91ab0c4ac7703a0d4f8b854ae7847f4508d5193c877e397a8d51773141b4949  Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip
+
+# Fresh Core A14 completed A11 firearm catalog test candidate, NOT canonical
+0d661c1a1c911d2bec873f2c4f3ff175d4d078213725f6795da0cb813334e76a  FreshCore_A14/QProtocol.asi
+b4a2ee0deb3e4fa6f337ef39eab01fbe237a4bacff1a62b66d80476aa3abad34  Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip

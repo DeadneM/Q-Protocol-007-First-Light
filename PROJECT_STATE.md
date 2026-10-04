@@ -11,7 +11,10 @@
   - AssassinRifle `0142DF24DDF6819F` — TwoHanded
 - All three start as Experimental and are visible in Manual/Auto selectors.
 - Every RID from the A11 runtime sweep is now accounted for.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `0d661c1a1c911d2bec873f2c4f3ff175d4d078213725f6795da0cb813334e76a`
+- ZIP SHA-256: `b4a2ee0deb3e4fa6f337ef39eab01fbe237a4bacff1a62b66d80476aa3abad34`
+- GitHub Actions run: `37189392074` (PASS).
+- Source build commit: `799b04030fdb6f1d57d1b6294a2a49f420182a35`.
 
 ## Fresh Core A13 October firearm RID remap candidate
 
