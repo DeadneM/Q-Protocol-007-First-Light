@@ -98,3 +98,7 @@ a91ab0c4ac7703a0d4f8b854ae7847f4508d5193c877e397a8d51773141b4949  Q-Protocol_Fre
 # Fresh Core A14 completed A11 firearm catalog test candidate, NOT canonical
 0d661c1a1c911d2bec873f2c4f3ff175d4d078213725f6795da0cb813334e76a  FreshCore_A14/QProtocol.asi
 b4a2ee0deb3e4fa6f337ef39eab01fbe237a4bacff1a62b66d80476aa3abad34  Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip
+
+# Fresh Core A15 audited weapon catalog test candidate, NOT canonical
+ada0fce570ec50cf74a3ecc3177a643ca7d37dc698ea0b18d147461631496fb2  FreshCore_A15/QProtocol.asi
+84e7ab3e6a84fdf9ddac39b74e60dd164fe866ea8f3eb83647e96f0316eceedf  Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip

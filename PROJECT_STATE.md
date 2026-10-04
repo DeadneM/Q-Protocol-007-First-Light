@@ -13,7 +13,10 @@
 - Gameplay source audit: A13 -> A14 changed only version strings; A5 primitives/hook/timing are untouched.
 - Adds a permanent CI catalogue-consistency check for duplicate RIDs, missing roles/statuses, invalid references, Runtime overlap and stale-RID reuse.
 - Experimental weapons remain visible in Manual/Auto by default for testing.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `ada0fce570ec50cf74a3ecc3177a643ca7d37dc698ea0b18d147461631496fb2`
+- ZIP SHA-256: `84e7ab3e6a84fdf9ddac39b74e60dd164fe866ea8f3eb83647e96f0316eceedf`
+- GitHub Actions run: `37190013537` (PASS).
+- Source build commit: `06ec8fd1857f582f5da038621431479c356cc4b4`.
 
 ## Fresh Core A14 completed A11 firearm catalogue candidate
 
