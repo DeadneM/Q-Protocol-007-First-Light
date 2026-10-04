@@ -102,3 +102,9 @@ b4a2ee0deb3e4fa6f337ef39eab01fbe237a4bacff1a62b66d80476aa3abad34  Q-Protocol_Fre
 # Fresh Core A15 audited weapon catalog test candidate, NOT canonical
 ada0fce570ec50cf74a3ecc3177a643ca7d37dc698ea0b18d147461631496fb2  FreshCore_A15/QProtocol.asi
 84e7ab3e6a84fdf9ddac39b74e60dd164fe866ea8f3eb83647e96f0316eceedf  Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip
+
+# Q Protocol v0.9.0 / Fresh Core A16 public release
+98717095f40b4e34985afdb3e218420697d5fc2b3f7ec4a700ec094d41280d75  v0.9.0/QProtocol.asi
+23e1b76e295ed71ad6b58d3255fd6976e959563285e298ab995515af1870ea1e  v0.9.0/QProtocol.ini
+d66cf35f5c1101f36cb62df7cd789c8d06e427753acd4731333e34d73ba79d6e  v0.9.0/README.txt
+425f78baa079948dff7b039132c5cbecedbf0e2306baf3d0566126b258270785  Q-Protocol_v0.9.0.zip

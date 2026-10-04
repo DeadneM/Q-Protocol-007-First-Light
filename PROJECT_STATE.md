@@ -12,7 +12,11 @@
   - no WeaponCatalog mapping changed from A15;
   - no gameplay primitive, hook, ammo path or 500 ms stabilization changed.
 - A15 catalogue CI audit remains mandatory before compilation.
-- Hashes and GitHub Actions run: pending build.
+- ASI SHA-256: `98717095f40b4e34985afdb3e218420697d5fc2b3f7ec4a700ec094d41280d75`
+- ZIP SHA-256: `425f78baa079948dff7b039132c5cbecedbf0e2306baf3d0566126b258270785`
+- GitHub Actions run: `37191187144` (PASS).
+- Release ID: `402934502`; asset `Q-Protocol_v0.9.0.zip`.
+- Release source commit/tag target: `f172fe246172994dab42d68afd147abc94c8faee`.
 
 ## Fresh Core A15 audited weapon catalogue candidate
 
