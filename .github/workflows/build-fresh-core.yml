@@ -224,6 +224,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Q-Protocol_FreshCore_A17
-          path: dist/Q-Protocol_v0.9.0.zip
+          path: dist/Q-Protocol_FreshCore_A17_OptionalLoadoutSlots_TEST.zip
           if-no-files-found: error
 
