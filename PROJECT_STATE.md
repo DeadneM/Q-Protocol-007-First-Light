@@ -11,7 +11,10 @@
 - Escape cancels capture; modifier-only and mouse buttons are not accepted.
 - A17 Off/None loadout behavior, Auto Off/Off defaults, validation statuses and catalogue audit are preserved.
 - No gameplay primitive changed.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `47fbccccc0295b883e4ad9d86301775455c7f423220409f4f38d805ca9cd2fff`
+- ZIP SHA-256: `1b816f3f47e8da43db69a3bf6e073652b5feb573318a5693a00812a548410801`
+- GitHub Actions run: `37231849616` (PASS).
+- Source build commit: `bf912711128337649e1988f296cefd36f60e6825`.
 
 ## Fresh Core A17 optional loadout slots candidate
 
