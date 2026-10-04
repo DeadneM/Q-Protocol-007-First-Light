@@ -3,6 +3,25 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A19 full audit hardening
+
+A full static audit was performed across the active gameplay core, A18 DX12
+overlay, INI schema, CI workflow and user-facing documentation.
+
+Corrections:
+- overlay toggle presses are consumed before F1-F12 gameplay dispatch;
+- F1-F12 edge state now advances even while the overlay is visible;
+- ToggleKey reload latches the physical key state instead of forcing "up";
+- runtime AUTO fallback now matches the shipped default (0);
+- failed MinHook bootstrap is immediately uninitialized;
+- stale Insert-only logging removed;
+- CI config audit expanded;
+- README/STATUS now state that generic F1-F12 Action reassignment remains
+  unimplemented rather than presenting the old design plan as current behavior.
+
+No gameplay primitive, weapon RID, ammo class or 500 ms weapon stabilization
+was changed.
+
 ## 2026-10-04 — Fresh Core A18 remappable overlay key
 
 The overlay invocation key is no longer hardcoded to `VK_INSERT`.

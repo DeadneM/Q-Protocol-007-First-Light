@@ -500,7 +500,7 @@ void LoadConfig(const std::wstring& iniPath) {
     ResolveConfiguredRid(iniPath, L"AutoLoadout", L"TwoHanded", g_autoLoadout.twoHanded);
 
     g_autoEnabled =
-        GetPrivateProfileIntW(L"Auto", L"Enabled", 1, iniPath.c_str()) != 0;
+        GetPrivateProfileIntW(L"Auto", L"Enabled", 0, iniPath.c_str()) != 0;
 
     g_manualAmmo.qPistol = ReadAmmoAmount(iniPath, L"ManualAmmo", L"QPistol");
     g_manualAmmo.smg = ReadAmmoAmount(iniPath, L"ManualAmmo", L"SMG");
@@ -1227,11 +1227,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A18");
-    Log("Scope: validated A5 gameplay core + A18 remappable overlay key.");
+    Log("Q Protocol Fresh Core A19");
+    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
 
     if (!ValidateTargetExecutable()) {
-        Log("Fresh Core A8 disabled because executable validation failed.");
+        Log("Fresh Core disabled because executable validation failed.");
         return 0;
     }
 
@@ -1239,12 +1239,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
     LoadConfig(iniPath);
 
     if (!InstallGameplayHook()) {
-        Log("[ERROR] Fresh Core A8 disabled: gameplay hook unavailable.");
+        Log("[ERROR] Fresh Core disabled: gameplay hook unavailable.");
         return 0;
     }
 
     if (OverlayInitialize(iniPath)) {
-        Log("Overlay bootstrap started in fail-open mode. Insert = open/close when DX12 ImGui is ready.");
+        Log("Overlay bootstrap started in fail-open mode. Toggle key loaded from [Overlay] ToggleKey.");
         Log("Overlay status: %s", OverlayStatus());
     } else {
         Log("[ERROR] Overlay bootstrap failed. Gameplay core remains active.");
@@ -1256,7 +1256,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
     Log("F5-F12 = configured weapons through shared GiveWeapon.");
     Log("AUTO = same shared GiveWeapon + AddAmmo primitives using AutoLoadout/AutoAmmo.");
-    Log("Overlay = Insert, INI-backed, Save/Reload/Reset Defaults.");
+    Log("Overlay = remappable [Overlay] ToggleKey, INI-backed, Save/Reload/Reset Defaults.");
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
@@ -1320,11 +1320,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 autoAmmoQueued ? "queued" : "not queued");
         }
 
-        OverlayPump(
-            ready,
-            autoDone,
-            g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
-            g_qpistolNextB);
+        const bool overlayTogglePressed =
+            OverlayPump(
+                ready,
+                autoDone,
+                g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
+                g_qpistolNextB);
 
         const char* overlayStatus = OverlayStatus();
         if (overlayStatus && lastOverlayStatus != overlayStatus) {
@@ -1355,13 +1356,42 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
-        const bool overlayVisible = OverlayIsVisible();
+        const bool overlayVisible =
+            OverlayIsVisible();
 
-        if (!overlayVisible && KeyPressedEdge(VK_F1, keyPrevious[1])) {
+        // Always advance edge state, even while the overlay is open.
+        // This prevents held keys from leaking into gameplay when the menu closes.
+        const bool f1Pressed =
+            KeyPressedEdge(
+                VK_F1,
+                keyPrevious[1]);
+
+        const bool f2Pressed =
+            KeyPressedEdge(
+                VK_F2,
+                keyPrevious[2]);
+
+        const bool f3Pressed =
+            KeyPressedEdge(
+                VK_F3,
+                keyPrevious[3]);
+
+        const bool f4Pressed =
+            KeyPressedEdge(
+                VK_F4,
+                keyPrevious[4]);
+
+        if (!overlayVisible &&
+            !overlayTogglePressed &&
+            f1Pressed) {
+
             ToggleLicenseToKill();
         }
 
-        if (!overlayVisible && KeyPressedEdge(VK_F2, keyPrevious[2])) {
+        if (!overlayVisible &&
+            !overlayTogglePressed &&
+            f2Pressed) {
+
             if (!ready) {
                 Log("F2 ignored: player not ready.");
             } else {
@@ -1372,12 +1402,17 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
-        if (!overlayVisible && KeyPressedEdge(VK_F3, keyPrevious[3])) {
+        if (!overlayVisible &&
+            !overlayTogglePressed &&
+            f3Pressed) {
+
             if (!ready) {
                 Log("F3 ignored: player not ready.");
             } else {
                 const std::size_t queued =
-                    QueueLoadout(g_manualLoadout, "F3 ManualLoadout");
+                    QueueLoadout(
+                        g_manualLoadout,
+                        "F3 ManualLoadout");
 
                 Log(
                     "F3 ManualLoadout queued %zu/3 role(s).",
@@ -1385,29 +1420,60 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
-        if (!overlayVisible && KeyPressedEdge(VK_F4, keyPrevious[4])) {
+        if (!overlayVisible &&
+            !overlayTogglePressed &&
+            f4Pressed) {
+
             if (!ready) {
                 Log("F4 ignored: player not ready.");
             } else {
                 const std::uint64_t rid =
-                    g_qpistolNextB ? g_qpistolModeB : g_qpistolModeA;
-                if (QueueWeapon(rid, "F4 Q-Pistol")) {
-                    g_qpistolNextB = !g_qpistolNextB;
+                    g_qpistolNextB
+                        ? g_qpistolModeB
+                        : g_qpistolModeA;
+
+                if (QueueWeapon(
+                        rid,
+                        "F4 Q-Pistol")) {
+
+                    g_qpistolNextB =
+                        !g_qpistolNextB;
                 }
             }
         }
 
-        for (int i = 0; i < 8; ++i) {
-            const int vk = VK_F5 + i;
-            if (!overlayVisible && KeyPressedEdge(vk, keyPrevious[5 + i])) {
-                char source[16]{};
-                sprintf_s(source, "F%d", i + 5);
+        for (int i = 0;
+             i < 8;
+             ++i) {
 
-                if (!ready) {
-                    Log("%s ignored: player not ready.", source);
-                } else {
-                    QueueWeapon(g_hotkeyWeapons[i], source);
-                }
+            const int vk =
+                VK_F5 + i;
+
+            const bool pressed =
+                KeyPressedEdge(
+                    vk,
+                    keyPrevious[5 + i]);
+
+            if (overlayVisible ||
+                overlayTogglePressed ||
+                !pressed) {
+                continue;
+            }
+
+            char source[16]{};
+            sprintf_s(
+                source,
+                "F%d",
+                i + 5);
+
+            if (!ready) {
+                Log(
+                    "%s ignored: player not ready.",
+                    source);
+            } else {
+                QueueWeapon(
+                    g_hotkeyWeapons[i],
+                    source);
             }
         }
 

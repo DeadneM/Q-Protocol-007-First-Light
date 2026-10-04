@@ -38,6 +38,7 @@ jobs:
         run: |
           @'
           from pathlib import Path
+          import re
 
           path = Path("config/QProtocol.ini")
           lines = path.read_text(encoding="utf-8").splitlines()
@@ -160,9 +161,68 @@ jobs:
               require_alias(sec, "OneHanded", allow_none=True)
               require_alias(sec, "TwoHanded", allow_none=True)
 
+          rid_pattern = re.compile(r"^[0-9A-Fa-f]{16}$")
+          for section_name, mapping in (
+              ("WeaponCatalog", weapons),
+              ("RuntimeCatalog", runtime),
+              ("WeaponPreviousRid", previous),
+          ):
+              for alias, rid in mapping.items():
+                  if not rid_pattern.fullmatch(rid):
+                      raise SystemExit(
+                          f"[{section_name}] invalid 16-hex RID for {alias}: {rid}"
+                      )
+
+          runtime_categories = table("RuntimeCategory")
+          if set(runtime_categories) != set(runtime):
+              missing = sorted(set(runtime) - set(runtime_categories))
+              extra = sorted(set(runtime_categories) - set(runtime))
+              raise SystemExit(
+                  f"RuntimeCategory mismatch missing={missing} extra={extra}"
+              )
+
+          if len(set(v.upper() for v in previous.values())) != len(previous):
+              raise SystemExit("Duplicate RID inside [WeaponPreviousRid]")
+
+          if not set(previous).issubset(set(weapons)):
+              raise SystemExit(
+                  "WeaponPreviousRid contains alias absent from WeaponCatalog"
+              )
+
+          auto = table("Auto")
+          if auto.get("Enabled") not in {"0", "1"}:
+              raise SystemExit("[Auto] Enabled must be 0 or 1")
+
+          overlay = table("Overlay")
+          if not overlay.get("ToggleKey", "").strip():
+              raise SystemExit("[Overlay] ToggleKey must be present and non-empty")
+
+          ammo_keys = {
+              "QPistol", "SMG", "AssaultRifle",
+              "Shotgun", "Sniper", "HeavyPistol"
+          }
+          for section_name in ("ManualAmmo", "AutoAmmo"):
+              ammo = table(section_name)
+              if set(ammo) != ammo_keys:
+                  missing = sorted(ammo_keys - set(ammo))
+                  extra = sorted(set(ammo) - ammo_keys)
+                  raise SystemExit(
+                      f"[{section_name}] keys mismatch missing={missing} extra={extra}"
+                  )
+              for key, value in ammo.items():
+                  if not value.isdigit():
+                      raise SystemExit(
+                          f"[{section_name}] {key} is not an integer: {value}"
+                      )
+                  amount = int(value)
+                  if amount < 0 or amount > 100000:
+                      raise SystemExit(
+                          f"[{section_name}] {key} out of range: {amount}"
+                      )
+
           print(
-              f"Catalog audit PASS: {len(weapons)} weapons, "
-              f"{len(runtime)} runtime-only items, no duplicate RIDs."
+              f"Full config audit PASS: {len(weapons)} weapons, "
+              f"{len(runtime)} runtime-only items, strict RID/category/default checks OK."
           )
           '@ | python -
 
@@ -176,7 +236,7 @@ jobs:
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
-            src\QProtocol.cpp src\OverlayA18.cpp ^
+            src\QProtocol.cpp src\OverlayA19.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
@@ -204,7 +264,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A18_RemappableOverlayKey_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A19_AuditHardening_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -223,7 +283,7 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A18
-          path: dist/Q-Protocol_FreshCore_A18_RemappableOverlayKey_TEST.zip
+          name: Q-Protocol_FreshCore_A19
+          path: dist/Q-Protocol_FreshCore_A19_AuditHardening_TEST.zip
           if-no-files-found: error
 

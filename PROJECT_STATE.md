@@ -1,5 +1,24 @@
 # Q Protocol — Project State
 
+## Fresh Core A19 full-audit hardening candidate
+
+- Build: `Q-Protocol_FreshCore_A19_AuditHardening_TEST.zip`
+- Status: **test candidate, not public release yet**
+- Gameplay foundation: **validated Fresh Core A5**.
+- Full source/config/workflow/documentation audit completed.
+- Fixed:
+  - overlay-toggle press leaking into F1-F12 when the menu closes;
+  - stale F-key edge states while the overlay is open;
+  - ToggleKey latch reset that could double-toggle while the opening key is held;
+  - core AUTO fallback 1 -> 0 to match shipped defaults;
+  - partial MinHook bootstrap cleanup;
+  - stale hardcoded-Insert logs;
+  - misleading docs claiming generic F1-F12 Action remapping is already implemented.
+- CI expanded to strict RID format, runtime category, ammo/default and previous-RID checks.
+- Verified current catalogue: 31 weapons (25 Validated, 6 Experimental), 10 runtime-only items, no RID overlap.
+- A5 GiveWeapon/AddAmmo/native gameplay hook logic and all weapon RIDs remain unchanged.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A18 remappable overlay key candidate
 
 - Build: `Q-Protocol_FreshCore_A18_RemappableOverlayKey_TEST.zip`

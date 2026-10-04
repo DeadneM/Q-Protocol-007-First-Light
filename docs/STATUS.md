@@ -2,9 +2,9 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A18 Remappable Overlay Key**.
+- Current test candidate: **Fresh Core A19 Audit Hardening**.
 - Current public release: **Q Protocol v0.9.0 / Fresh Core A16**.
-- A18 preserves A17 and makes the overlay invocation key configurable and remappable from the Hotkeys tab. A5 gameplay remains unchanged.
+- A19 preserves A17/A18 behavior and hardens overlay input, fail-open cleanup, defaults and CI after a full source/config audit. A5 gameplay remains unchanged.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.
@@ -30,7 +30,7 @@ F11 Weapon slot 7
 F12 Weapon slot 8
 ```
 
-Overlay toggle: **Insert**.
+Overlay toggle: **Insert by default, remappable from Hotkeys / `[Overlay] ToggleKey`**.
 
 ## Required core primitives
 
@@ -74,30 +74,24 @@ Manual and AUTO use the same gameplay functions. No separate AUTO weapon/ammo en
 
 ## Overlay
 
-F1-F12 are configurable slots:
+Current runtime bindings are fixed by role:
 
 ```text
-Key -> Action -> contextual parameters
+F1  LicenseToKill
+F2  Manual Ammo
+F3  ManualLoadout
+F4  SwapQPistol
+F5-F12 Weapon
 ```
 
-Actions:
+F5-F12 weapon aliases are INI-backed. Generic F1-F12 `Action=` reassignment
+is **not implemented yet** and the current `Action=` rows are descriptive.
 
-```text
-None
-LicenseToKill
-Ammo
-ManualLoadout
-SwapQPistol
-Weapon
-```
+The overlay toggle itself is remappable from the Hotkeys tab and persists to
+`[Overlay] ToggleKey`.
 
-Overlay controls:
-
-- Save
-- Reload
-- Reset Defaults
-
-INI is the only persisted configuration source.
+Overlay controls include Save, Reload and Reset Defaults. INI remains the only
+persisted configuration source.
 
 ## Primitive audit
 

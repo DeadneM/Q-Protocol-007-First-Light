@@ -1,46 +1,32 @@
-Q Protocol - Fresh Core A18
+Q Protocol - Fresh Core A19
 ===========================
 
-REMAPPABLE OVERLAY KEY TEST
+FULL AUDIT HARDENING TEST
 
-Gameplay foundation
--------------------
-Fresh Core A5 remains the validated gameplay primitive base.
+A19 is a consolidation build. It does not change the validated A5 gameplay
+primitives, weapon RIDs, ammo classes or 500 ms weapon stabilization.
 
-A18 change
-----------
-The overlay toggle is no longer hardcoded to Insert.
+Audit fixes
+-----------
+1. Remappable overlay key is now safe even when mapped to F1-F12.
+2. F1-F12 edge state is updated while the overlay is visible.
+3. ToggleKey reload latches the real physical key state.
+4. Core Auto.Enabled fallback is now 0, matching shipped defaults.
+5. Failed DX12/MinHook bootstrap cleans partial hooks immediately.
+6. Startup logs no longer falsely claim Insert is hardcoded.
+7. CI validates RID format, RuntimeCategory coverage, Auto.Enabled,
+   ammo keys/ranges, previous RID integrity and Overlay.ToggleKey.
+8. Docs now state the truth: generic F1-F12 Action remapping is planned but
+   NOT implemented. Current F1-F4 actions are fixed; F5-F12 weapon aliases are
+   INI-backed.
 
-The active key is read from:
-
-[Overlay]
-ToggleKey=Insert
-
-The Hotkeys tab now shows an Overlay / Menu toggle key control.
-
-To remap:
-1. Open Q Protocol with the current overlay key.
-2. Open Hotkeys.
-3. Click the current Overlay key button.
-4. Press the new keyboard key.
-5. Click Save.
-
-Escape cancels key capture.
-
-Supported persistence
----------------------
-Common navigation keys, F1-F24, A-Z, 0-9, numpad keys and other captured
-Windows virtual keys are saved as readable names or VK_XX fallback values.
-
-Invalid or missing ToggleKey values safely fall back to Insert.
-
-A17 behavior preserved
-----------------------
-- QPistol / OneHanded / TwoHanded support Off.
+Preserved
+---------
+- Overlay toggle remapping through [Overlay] ToggleKey.
+- QPistol / OneHanded / TwoHanded Off support.
 - Automatic defaults: QPistolSilenced + Off + Off.
-- Experimental weapons hidden from loadout lists by default.
-- Latest user-validated weapon statuses preserved.
-- Catalogue integrity audit preserved.
+- Experimental weapons hidden by default.
+- Latest user-validated weapon statuses.
+- 31 unique weapon RIDs and 10 separate runtime-only RIDs.
 
-No gameplay primitive changed.
-A18 is a TEST candidate until in-game validation.
+A19 is a TEST candidate until in-game validation.

@@ -13,9 +13,11 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 
-## Current release
+## Current state
 
-**Q Protocol v0.9.0 / Fresh Core A16** is the current public build.
+**Q Protocol v0.9.0 / Fresh Core A16** is the current public release.
+
+**Fresh Core A19 Audit Hardening** is the current test candidate.
 
 - Fresh Core A5 remains the validated gameplay primitive foundation.
 - The A15 weapon catalogue audit is enforced automatically by CI.
@@ -36,35 +38,30 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Overlay
 
-Default overlay key: **Insert**.
+Default overlay key: **Insert**, remappable from the **Hotkeys** tab and stored in
+`[Overlay] ToggleKey`.
 
-The overlay follows the clean Saboteur/Postal-style model:
+Current hotkey behavior is deliberately simple:
 
-```text
-F1-F12 slot
-    -> Action
-    -> only the parameters relevant to that action
-```
+- F1 = License To Kill
+- F2 = Manual ammo
+- F3 = Manual loadout
+- F4 = Q-Pistol swap
+- F5-F12 = weapon slots whose weapon aliases are read from the INI
 
-Available action categories:
+The `Action=` entries in the INI currently document those fixed semantics.
+**Generic F1-F12 Key -> Action reassignment is not implemented yet.**
 
-- None
-- License To Kill
-- Ammo
-- Manual Loadout
-- Swap Q-Pistol
-- Weapon
+The overlay currently provides:
 
-The overlay will provide:
-
-- **Save**
-- **Reload**
-- **Reset Defaults**
+- Manual and Automatic loadout/ammo editors
+- weapon catalogue status editing and Spawn Weapon testing
+- Experimental weapon visibility toggle
+- overlay-key capture/remapping
+- Save / Reload / Reset Defaults
 - player-ready state
-- AUTO state
-- current F1-F12 bindings
 
-Settings persist in [`config/QProtocol.ini`](config/QProtocol.ini). Rebinding should not require recompiling the ASI.
+Settings persist in [`config/QProtocol.ini`](config/QProtocol.ini).
 
 See [`docs/OVERLAY_PLAN.md`](docs/OVERLAY_PLAN.md).
 

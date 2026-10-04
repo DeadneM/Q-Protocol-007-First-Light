@@ -7,7 +7,7 @@
 namespace qp {
 
 bool OverlayInitialize(const std::wstring& iniPath);
-void OverlayPump(
+bool OverlayPump(
     bool playerReady,
     bool autoDone,
     std::size_t weaponQueueCount,

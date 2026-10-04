@@ -1,5 +1,23 @@
 # Q Protocol Overlay Plan
 
+# Current implementation note — A19
+
+This document began as the overlay design plan. The current Fresh Core does
+**not yet implement generic F1-F12 Action reassignment**.
+
+Current reality:
+- F1-F4 actions are fixed to LTK / Ammo / ManualLoadout / Q-Pistol swap;
+- F5-F12 are fixed Weapon actions with INI-backed weapon aliases;
+- the overlay toggle key itself is remappable and persisted through
+  `[Overlay] ToggleKey`;
+- Manual/Auto loadouts, ammo, weapon validation status and overlay toggle key
+  are editable in the current overlay.
+
+Sections below describing generic `Key -> Action` reassignment are retained as
+the design target, not as a claim about the current implementation.
+
+---
+
 ## Goal
 
 Provide a small in-game configuration overlay without creating a second gameplay architecture.
