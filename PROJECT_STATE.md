@@ -17,7 +17,12 @@
 - CI expanded to strict RID format, runtime category, ammo/default and previous-RID checks.
 - Verified current catalogue: 31 weapons (25 Validated, 6 Experimental), 10 runtime-only items, no RID overlap.
 - A5 GiveWeapon/AddAmmo/native gameplay hook logic and all weapon RIDs remain unchanged.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `3f869c7cc654814d0b4fcfbd7bda9e1770ee4ac23734d5f2857b945aac094236`
+- INI SHA-256: `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`
+- ZIP SHA-256: `cc71e3ce99ccd789a7dd330b975db896febd3f3f71a4dcd7fa035bc31e2e60b4`
+- GitHub Actions run: `37233791691` (PASS, no compiler warnings/errors).
+- Artifact ID: `11314633070`.
+- Source build commit: `85e52d8f32cbecdef8f3e82b30ae0e041a975d25`.
 
 ## Fresh Core A18 remappable overlay key candidate
 
