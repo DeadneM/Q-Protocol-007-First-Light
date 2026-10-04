@@ -3,6 +3,27 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A12 runtime item catalogue
+
+A12 continues directly from A11 without changing gameplay primitives.
+
+A11's runtime scan proved that the ItemEntry/Spawner set includes non-firearm
+items. A12 therefore separates runtime identities from WeaponCatalog.
+
+Confirmed runtime identities added:
+- MissilePen `01400A15903C9985`
+- Laser `01453F3961FC0BB7`
+- BlastDevice `015314707AE716BF`
+- ShockWave `011B83C48DAC20CA`
+- SmokePellets `01BA24E28342EA32`
+- Hack `019CF34A2C59C76F`
+- Dartgun `01C315FC8C1AEF95`
+- GrenadeFlashNPC `017D301CA6D6BF4E`
+
+The remaining A11 runtime RIDs stay Uncatalogued. No guessed identities are
+promoted into the catalogue.
+
+
 ## October 2026 architecture reset
 
 After the October 2026 game update, cumulative U80-U85 rebases were rejected.

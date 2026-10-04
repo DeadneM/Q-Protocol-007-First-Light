@@ -1,5 +1,27 @@
 # Q Protocol — Project State
 
+## Fresh Core A12 runtime item catalogue candidate
+
+- Build: `Q-Protocol_FreshCore_A12_RuntimeCatalog_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**.
+- Derived surgically from Fresh Core A11; gameplay primitives are unchanged.
+- Preserves the user's supplied A11 INI state, including `Auto.Enabled=0` and the complete weapon validation table.
+- Adds a separate `RuntimeCatalog` so non-firearm runtime graphs are named without entering `WeaponCatalog`.
+- Identified from A11 evidence:
+  - MissilePen `01400A15903C9985` — Gadget
+  - Laser `01453F3961FC0BB7` — Gadget
+  - BlastDevice `015314707AE716BF` — Gadget
+  - ShockWave `011B83C48DAC20CA` — Gadget
+  - SmokePellets `01BA24E28342EA32` — Gadget
+  - Hack `019CF34A2C59C76F` — Gadget
+  - Dartgun `01C315FC8C1AEF95` — Gadget
+  - GrenadeFlashNPC `017D301CA6D6BF4E` — Grenade
+- Runtime Discovery now shows Item / Type / Current level / Identified state / RID.
+- Unknown A11 RIDs remain visible as Uncatalogued; no speculative names are added.
+- Existing Spawn Weapon test path remains the A5 QueueWeapon mailbox.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A11 runtime weapon discovery candidate
 
 - Build: `Q-Protocol_FreshCore_A11_RuntimeWeaponDiscovery_TEST.zip`

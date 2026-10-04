@@ -2,8 +2,11 @@
 
 ## Active state
 
+- Current test candidate: **Fresh Core A12 Runtime Item Catalog**.
+- A12 preserves A11/A5 gameplay and only classifies known runtime ItemEntry/Spawner RIDs.
+
 - Behavioral reference: **U74** on the pre-October-2026 executable.
-- Current post-update canonical build: **Fresh Core A2**.
+- Current post-update canonical build: **Fresh Core A5**.
 - Rejected compatibility branches: U80, U81, U81B, U82, U82A, U83, U84, U85.
 - Gadgets: removed.
 - Overlay/config model: locked.
