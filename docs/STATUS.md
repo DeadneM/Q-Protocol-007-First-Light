@@ -2,8 +2,8 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A13 October Firearm RID Remap**.
-- A13 preserves A11/A5 gameplay, remaps stale October firearm RIDs, and exposes the corrected catalogue to Manual/Auto.
+- Current test candidate: **Fresh Core A14 Completed A11 Firearm Catalog**.
+- A14 preserves A11/A5 gameplay and completes the runtime firearm catalogue for Manual/Auto.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

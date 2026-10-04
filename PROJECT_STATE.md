@@ -1,5 +1,18 @@
 # Q Protocol — Project State
 
+## Fresh Core A14 completed A11 firearm catalogue candidate
+
+- Build: `Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**; gameplay primitives unchanged.
+- Completes the A11 41-graph runtime catalogue with three final in-game identifications:
+  - ShotgunCompactTwoHanded `01833561121578C4` — TwoHanded
+  - ShotgunCompactOneHanded `018DCB210A8B048B` — OneHanded
+  - AssassinRifle `0142DF24DDF6819F` — TwoHanded
+- All three start as Experimental and are visible in Manual/Auto selectors.
+- Every RID from the A11 runtime sweep is now accounted for.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A13 October firearm RID remap candidate
 
 - Build: `Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip`

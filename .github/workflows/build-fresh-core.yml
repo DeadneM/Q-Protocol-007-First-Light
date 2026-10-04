@@ -43,7 +43,7 @@ jobs:
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
-            src\QProtocol.cpp src\OverlayA13.cpp ^
+            src\QProtocol.cpp src\OverlayA14.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
@@ -71,7 +71,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -90,6 +90,6 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A13
-          path: dist/Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip
+          name: Q-Protocol_FreshCore_A14
+          path: dist/Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip
           if-no-files-found: error

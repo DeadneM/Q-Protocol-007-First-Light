@@ -1,64 +1,47 @@
-Q Protocol - Fresh Core A13
+Q Protocol - Fresh Core A14
 ===========================
 
-OCTOBER FIREARM RID REMAP TEST
+COMPLETED A11 FIREARM CATALOG TEST
 
 Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay core.
 
-A13 purpose
+A14 purpose
 -----------
-A13 continues directly from A12/A11 without changing any gameplay primitive.
+A14 completes the A11 runtime firearm catalogue.
 
-The A11 runtime sweep was cross-checked against Glacier Bond-Hashes. This resolves
-the current October TEMP resource paths for firearm graphs that were using stale
-pre-update IDs.
+New identifications supplied from in-game testing:
+- ShotgunCompactTwoHanded  = 01833561121578C4
+- ShotgunCompactOneHanded  = 018DCB210A8B048B
+- AssassinRifle            = 0142DF24DDF6819F
 
-Remapped firearm aliases
-------------------------
-AgencyFocusGun          -> 0198799A3CC4E437
-AssassinHandcannon      -> 017D8BD5B237B333
-ShotgunStandard         -> 01BD00B144B74AC0
-AssaultRiflePirate      -> 0110285AF7A95A01
-SocomPistol             -> 01D73DA578C4F423
-LightPistolLargeMag     -> 010ABE3F66032326
-AssaultRifleNonLethal   -> 016D12D89A0A658E
-SMGNonLethal            -> 018C90273080F785
-BurstPistol             -> 015E2DA84660F7D9
-ServicePistol           -> 01988D661ADF3BCE
-
-New current firearm:
-ShotgunCompact          -> 01833561121578C4
+Roles
+-----
+ShotgunCompactTwoHanded = TwoHanded
+ShotgunCompactOneHanded = OneHanded
+AssassinRifle           = TwoHanded
 
 Validation policy
 -----------------
-Remapped/new entries start as Experimental, not falsely Validated.
-A13 shows Experimental entries in Manual/Automatic selectors by default so they
-can be tested immediately.
+These three entries are added as Experimental so they appear in Manual/Auto
+selectors immediately without being falsely promoted to Validated.
 
-Previous stale IDs are preserved under [WeaponPreviousRid].
-
-Runtime Discovery cleanup
--------------------------
-Brick 0104F2D1C752B7A4 and Vase 01A05C4FEBD7B301 are classified as Throwable.
-
-Only these two A11 RIDs remain without a Bond-Hashes name:
-0142DF24DDF6819F
-018DCB210A8B048B
+A14 therefore accounts for every RID observed in the A11 41-graph runtime sweep.
 
 Manual / Automatic
 ------------------
-Both selectors read the corrected WeaponCatalog, so ManualLoadout, AutoLoadout
-and weapon hotkeys use the new RIDs through the SAME A5 GiveWeapon queue.
+Both selectors use the corrected WeaponCatalog directly.
 
-The user's other configuration is preserved, including Auto.Enabled=0.
+No gameplay primitive changed. Manual, Auto and hotkey requests still use the
+same A5 GiveWeapon queue and 500 ms stabilization.
 
 Test
 ----
-1. Open Loadout and confirm remapped Experimental entries are selectable.
-2. Test remapped OneHanded and TwoHanded entries one by one.
-3. Mark successful entries Validated in Weapons.
-4. Confirm F9/F10 now use the corrected SMGNonLethal / AssaultRifleNonLethal IDs.
+1. Open Loadout.
+2. Confirm both Shotgun Compact variants appear in the correct role lists.
+3. Confirm AssassinRifle appears under TwoHanded.
+4. Test each one in Manual and Auto.
+5. Promote successful entries to Validated from the Weapons tab.
 
-A13 is a TEST candidate and is not canonical until gameplay validation.
+A14 is a TEST candidate until in-game validation.

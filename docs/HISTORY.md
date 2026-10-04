@@ -3,6 +3,21 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A14 completed A11 firearm catalogue
+
+Final in-game identifications from the A11 runtime sweep:
+- ShotgunCompactTwoHanded `01833561121578C4`
+- ShotgunCompactOneHanded `018DCB210A8B048B`
+- AssassinRifle `0142DF24DDF6819F`
+
+The compact shotgun variants are now separated by role, and AssassinRifle is
+added as TwoHanded. All three are Experimental pending explicit gameplay
+validation.
+
+Every RID observed in the A11 41-graph sweep is now accounted for.
+
+No A5 gameplay primitive changed.
+
 ## 2026-10-04 — Fresh Core A13 firearm RID remap
 
 A Bond-Hashes audit was run against all 41 RIDs discovered by A11.
