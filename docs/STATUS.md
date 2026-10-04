@@ -2,8 +2,8 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A15 Audited Weapon Catalog**.
-- A15 preserves A11/A5 gameplay, restores the established ShotgunCompact alias, and adds automatic catalogue consistency checks.
+- Current public release: **Q Protocol v0.9.0 / Fresh Core A16**.
+- A16 preserves the audited A15 catalogue and A5 gameplay while hiding Experimental weapons from Manual/Auto by default.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

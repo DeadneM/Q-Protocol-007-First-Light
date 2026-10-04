@@ -3,6 +3,24 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A16 / v0.9.0 release
+
+A16 is a release-only polish step over the audited A15 line.
+
+Functional change:
+- `g_showExperimentalLoadout` default changed from `true` to `false`.
+
+Result:
+- Experimental entries remain in WeaponCatalog and Weapons UI;
+- they no longer appear in Manual/Auto loadout selectors by default;
+- the existing checkbox can still expose them for testing.
+
+No gameplay primitive, RID mapping, role, validation status, ammo path, hook or
+500 ms stabilization logic changed.
+
+The build workflow now publishes `Q-Protocol_v0.9.0.zip` as GitHub Release
+`v0.9.0` after the catalogue audit and compilation pass.
+
 ## 2026-10-04 — Fresh Core A15 catalogue audit
 
 Full A13/A14 audit result:

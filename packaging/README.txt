@@ -1,58 +1,61 @@
-Q Protocol - Fresh Core A15
-===========================
+Q Protocol v0.9.0 - Fresh Core A16
+========================================
 
-AUDITED WEAPON CATALOG TEST
+PUBLIC RELEASE BUILD
 
-Canonical gameplay base
------------------------
-Fresh Core A5 remains the validated gameplay core.
+Gameplay foundation
+-------------------
+Fresh Core A5 remains the validated gameplay primitive base.
 
-Why A15 exists
---------------
-A full A13/A14 audit found no gameplay-code regression, but it found one
-catalogue compatibility mistake in A14:
-
-A13 already used:
-ShotgunCompact = 01833561121578C4
-
-A14 unnecessarily renamed that existing alias to ShotgunCompactTwoHanded.
-The RID was not duplicated, but renaming the alias could break an existing INI
-that already selected ShotgunCompact.
-
-A15 fixes this by preserving the established alias:
-
-ShotgunCompact          = 01833561121578C4   TwoHanded
-ShotgunCompactOneHanded = 018DCB210A8B048B   OneHanded
-AssassinRifle           = 0142DF24DDF6819F   TwoHanded
-
-No duplicate WeaponCatalog RID is retained.
-
-Audit findings
---------------
-- GiveWeapon unchanged.
-- AUTO logic unchanged.
-- Ammo logic unchanged.
-- gameplay hook unchanged.
-- 500 ms weapon stabilization unchanged.
-- A13 -> A14 overlay code differed only in version/status strings.
-- Current WeaponCatalog has unique aliases and unique RIDs.
-- WeaponCatalog does not overlap RuntimeCatalog.
-- Current weapon RIDs do not reuse archived stale RIDs.
-
-Permanent CI guard
+A16 release change
 ------------------
-A15 adds a pre-build catalogue validator. Builds now fail if:
-- WeaponCatalog contains duplicate aliases or duplicate RIDs;
-- RuntimeCatalog contains duplicate RIDs;
-- WeaponCatalog and RuntimeCatalog overlap;
-- WeaponRole or WeaponValidation are missing/extra;
-- a role/status value is invalid;
-- Manual/Auto/F4/F5-F12 reference a missing weapon alias;
-- a current weapon accidentally reuses an archived stale RID.
+Experimental weapons are HIDDEN from Manual and Automatic loadout lists by
+default.
 
-Experimental visibility
------------------------
-Experimental weapons remain visible in Manual/Auto by default. This is an overlay
-testing preference only and does not change gameplay primitives.
+The overlay still includes:
+  Show Experimental weapons in loadout lists
 
-A15 is a TEST candidate until in-game validation.
+Enable that checkbox only when you want to test Experimental catalogue entries.
+
+Validated weapons remain available normally.
+
+Weapon catalogue
+----------------
+The A15 audited catalogue is preserved unchanged:
+- no duplicate WeaponCatalog RIDs;
+- no WeaponCatalog / RuntimeCatalog overlap;
+- no current weapon reuses an archived stale RID;
+- all weapon aliases have a role and validation status.
+
+The established compact shotgun aliases remain:
+- ShotgunCompact          01833561121578C4  TwoHanded
+- ShotgunCompactOneHanded 018DCB210A8B048B  OneHanded
+- AssassinRifle           0142DF24DDF6819F  TwoHanded
+
+Gameplay architecture
+---------------------
+No gameplay primitive changed for this release.
+
+Manual and AUTO still share:
+- ResolvePlayer()
+- GiveWeapon()
+- AddAmmo()
+- the same 500 ms weapon stabilization
+- the same native gameplay hook
+
+Installation
+------------
+Copy these files into the game directory where Q Protocol is installed:
+- QProtocol.asi
+- QProtocol.ini
+- README.txt
+
+Overlay key: Insert
+
+Default controls
+----------------
+F1  License To Kill
+F2  Ammo
+F3  Manual loadout
+F4  Q-Pistol swap
+F5-F12 configurable weapon hotkeys

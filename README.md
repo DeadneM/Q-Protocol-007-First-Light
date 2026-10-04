@@ -13,14 +13,16 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 
-## Current direction
+## Current release
 
-The old cumulative U74 architecture is no longer being ported wholesale after the October 2026 game update.
+**Q Protocol v0.9.0 / Fresh Core A16** is the current public build.
 
-- U74 remains a behavioral/reference library.
-- U80-U85 are rejected compatibility experiments.
-- Gadgets are removed from Q Protocol.
-- A fresh minimal ASI will be built around shared native primitives.
+- Fresh Core A5 remains the validated gameplay primitive foundation.
+- The A15 weapon catalogue audit is enforced automatically by CI.
+- Experimental weapons remain in the catalogue but are hidden from Manual/Auto lists by default.
+- The overlay can expose Experimental entries when testing is desired.
+- U74 remains a behavioral/reference library and U80-U85 remain rejected compatibility experiments.
+- Gadget gameplay code remains removed from the active Q Protocol direction.
 
 ## Default controls
 

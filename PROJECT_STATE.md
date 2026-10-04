@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## Q Protocol v0.9.0 — Fresh Core A16 release
+
+- Build: `Q-Protocol_v0.9.0.zip`
+- Release tag: `v0.9.0`
+- Status: **public release**
+- Gameplay foundation: **validated Fresh Core A5**.
+- A16 is intentionally minimal:
+  - Experimental weapons are hidden from Manual/Auto lists by default;
+  - the user can opt in with the existing overlay checkbox;
+  - no WeaponCatalog mapping changed from A15;
+  - no gameplay primitive, hook, ammo path or 500 ms stabilization changed.
+- A15 catalogue CI audit remains mandatory before compilation.
+- Hashes and GitHub Actions run: pending build.
+
 ## Fresh Core A15 audited weapon catalogue candidate
 
 - Build: `Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip`
