@@ -3,6 +3,22 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A13 firearm RID remap
+
+A Bond-Hashes audit was run against all 41 RIDs discovered by A11.
+
+Ten stale firearm aliases now point at their current October TEMP RIDs, and one
+new current firearm (ShotgunCompact) was added to WeaponCatalog.
+
+Those remapped/new entries start as Experimental and are visible in Manual/Auto
+selectors by default. Old RIDs remain preserved under [WeaponPreviousRid].
+
+Brick and Vase were classified as throwables. Two A11 RIDs remain unnamed:
+- 0142DF24DDF6819F
+- 018DCB210A8B048B
+
+No A5 gameplay primitive changed.
+
 ## 2026-10-04 — Fresh Core A12 runtime item catalogue
 
 A12 continues directly from A11 without changing gameplay primitives.

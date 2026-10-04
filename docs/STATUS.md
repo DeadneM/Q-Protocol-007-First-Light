@@ -2,8 +2,8 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A12 Runtime Item Catalog**.
-- A12 preserves A11/A5 gameplay and only classifies known runtime ItemEntry/Spawner RIDs.
+- Current test candidate: **Fresh Core A13 October Firearm RID Remap**.
+- A13 preserves A11/A5 gameplay, remaps stale October firearm RIDs, and exposes the corrected catalogue to Manual/Auto.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

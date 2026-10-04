@@ -1,78 +1,64 @@
-Q Protocol - Fresh Core A12
+Q Protocol - Fresh Core A13
 ===========================
 
-RUNTIME ITEM CATALOG TEST
+OCTOBER FIREARM RID REMAP TEST
 
 Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay core.
 
-A12 purpose
+A13 purpose
 -----------
-A12 is a surgical continuation of A11.
+A13 continues directly from A12/A11 without changing any gameplay primitive.
 
-It keeps:
-- the A5 gameplay primitives unchanged;
-- A11 runtime ItemEntry/Spawner discovery;
-- Q-Pistol Off;
-- the A9/A10/A11 DX12 overlay;
-- the user's complete Validated / Not Working / Experimental weapon status table.
+The A11 runtime sweep was cross-checked against Glacier Bond-Hashes. This resolves
+the current October TEMP resource paths for firearm graphs that were using stale
+pre-update IDs.
 
-It adds only a runtime item catalogue so known non-firearm graphs stop appearing
-as anonymous weapon candidates.
+Remapped firearm aliases
+------------------------
+AgencyFocusGun          -> 0198799A3CC4E437
+AssassinHandcannon      -> 017D8BD5B237B333
+ShotgunStandard         -> 01BD00B144B74AC0
+AssaultRiflePirate      -> 0110285AF7A95A01
+SocomPistol             -> 01D73DA578C4F423
+LightPistolLargeMag     -> 010ABE3F66032326
+AssaultRifleNonLethal   -> 016D12D89A0A658E
+SMGNonLethal            -> 018C90273080F785
+BurstPistol             -> 015E2DA84660F7D9
+ServicePistol           -> 01988D661ADF3BCE
 
-Identified A11 runtime items
-----------------------------
-MissilePen       01400A15903C9985   Gadget
-Laser            01453F3961FC0BB7   Gadget
-BlastDevice      015314707AE716BF   Gadget
-ShockWave        011B83C48DAC20CA   Gadget
-SmokePellets     01BA24E28342EA32   Gadget
-Hack             019CF34A2C59C76F   Gadget
-Dartgun          01C315FC8C1AEF95   Gadget
-GrenadeFlashNPC  017D301CA6D6BF4E   Grenade
+New current firearm:
+ShotgunCompact          -> 01833561121578C4
 
-Runtime Discovery
+Validation policy
 -----------------
-Weapons -> Runtime Discovery now shows:
-- resolved item name when known;
-- category (Gadget / Grenade / Unknown);
-- current-level presence;
-- Identified vs Uncatalogued state;
-- exact RID;
-- the existing Spawn Weapon test button.
+Remapped/new entries start as Experimental, not falsely Validated.
+A13 shows Experimental entries in Manual/Automatic selectors by default so they
+can be tested immediately.
 
-Unknown RIDs remain visible. A12 deliberately does not invent names for them.
+Previous stale IDs are preserved under [WeaponPreviousRid].
 
-Important
----------
-RuntimeCatalog is separate from WeaponCatalog.
+Runtime Discovery cleanup
+-------------------------
+Brick 0104F2D1C752B7A4 and Vase 01A05C4FEBD7B301 are classified as Throwable.
 
-This prevents gadgets and throwables from appearing in Manual/Automatic firearm
-loadout lists while still preserving them as useful runtime-discovery evidence.
+Only these two A11 RIDs remain without a Bond-Hashes name:
+0142DF24DDF6819F
+018DCB210A8B048B
 
-Configuration
--------------
-This test package preserves the user's supplied A11 INI state, including:
-- Auto.Enabled=0;
-- all current hotkey/loadout choices;
-- all current Validated / Not Working / Experimental classifications.
+Manual / Automatic
+------------------
+Both selectors read the corrected WeaponCatalog, so ManualLoadout, AutoLoadout
+and weapon hotkeys use the new RIDs through the SAME A5 GiveWeapon queue.
 
-Gameplay architecture
----------------------
-No gameplay primitive changed.
-
-Catalog and Runtime Discovery still use:
-
-overlay -> display RID -> A5 WorkerThread -> RotateRid -> QueueWeapon()
+The user's other configuration is preserved, including Auto.Enabled=0.
 
 Test
 ----
-1. Open Weapons -> Runtime Discovery.
-2. Confirm the seven gadgets and Grenade Flash NPC show names instead of bare RIDs.
-3. Confirm the remaining unidentified RIDs still show as Uncatalogued.
-4. Confirm Weapons -> Catalog keeps all existing weapon statuses.
-5. Confirm Manual/Automatic loadout lists contain firearms only.
-6. Test Spawn Weapon on unknown RIDs as before.
+1. Open Loadout and confirm remapped Experimental entries are selectable.
+2. Test remapped OneHanded and TwoHanded entries one by one.
+3. Mark successful entries Validated in Weapons.
+4. Confirm F9/F10 now use the corrected SMGNonLethal / AssaultRifleNonLethal IDs.
 
-A12 is a TEST candidate and is not canonical until validated in game.
+A13 is a TEST candidate and is not canonical until gameplay validation.

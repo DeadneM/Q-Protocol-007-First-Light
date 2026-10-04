@@ -1,5 +1,29 @@
 # Q Protocol — Project State
 
+## Fresh Core A13 October firearm RID remap candidate
+
+- Build: `Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip`
+- Status: **test candidate, not canonical**
+- Gameplay base: **validated Fresh Core A5**; gameplay primitives unchanged.
+- Derived from A12/A11 runtime discovery and a Bond-Hashes audit of all 41 A11 graph RIDs.
+- Updated current RIDs:
+  - AgencyFocusGun `0198799A3CC4E437`
+  - AssassinHandcannon `017D8BD5B237B333`
+  - ShotgunStandard `01BD00B144B74AC0`
+  - AssaultRiflePirate `0110285AF7A95A01`
+  - SocomPistol `01D73DA578C4F423`
+  - LightPistolLargeMag `010ABE3F66032326`
+  - AssaultRifleNonLethal `016D12D89A0A658E`
+  - SMGNonLethal `018C90273080F785`
+  - BurstPistol `015E2DA84660F7D9`
+  - ServicePistol `01988D661ADF3BCE`
+- New current firearm: ShotgunCompact `01833561121578C4`.
+- Remapped/new entries start Experimental and are visible in Manual/Auto selectors by default.
+- Previous stale RIDs are retained in `[WeaponPreviousRid]`.
+- Brick and Vase are classified as Throwable runtime items.
+- Only `0142DF24DDF6819F` and `018DCB210A8B048B` remain unnamed from the A11 runtime set.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A12 runtime item catalogue candidate
 
 - Build: `Q-Protocol_FreshCore_A12_RuntimeCatalog_TEST.zip`
