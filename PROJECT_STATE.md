@@ -15,7 +15,10 @@
 - User-supplied INI status promotions merged: AssaultRiflePirate, SocomPistol, LightPistolLargeMag, ShotgunCompact, ShotgunCompactOneHanded, AssaultRifleNonLethal, SMGNonLethal, ServicePistol are now Validated.
 - Experimental weapons remain hidden from loadout selectors by default.
 - No RID mapping or gameplay primitive changed.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `34baaa9998b3d79c56cdc7651a2d86b270d9f65b55acd170b2cd821db9618f8e`
+- ZIP SHA-256: `0bea70aba80661beca4fefeb6dcb02d1770adeae06b6b39513cb241a1b342f69`
+- GitHub Actions run: `37202542327` (PASS).
+- Built from main commit: `413c785f3992ef07131acde906ab4b63a4182194`.
 
 ## Q Protocol v0.9.0 — Fresh Core A16 release
 
