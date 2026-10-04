@@ -1,5 +1,20 @@
 # Q Protocol — Project State
 
+## Fresh Core A15 audited weapon catalogue candidate
+
+- Build: `Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip`
+- Status: **test candidate, not canonical**
+- Full A13/A14 audit completed.
+- **Correction:** restore the existing alias `ShotgunCompact=01833561121578C4` instead of A14's unnecessary rename to `ShotgunCompactTwoHanded`.
+- Keep the genuinely new aliases:
+  - `ShotgunCompactOneHanded=018DCB210A8B048B` — OneHanded
+  - `AssassinRifle=0142DF24DDF6819F` — TwoHanded
+- No duplicate RID exists in WeaponCatalog.
+- Gameplay source audit: A13 -> A14 changed only version strings; A5 primitives/hook/timing are untouched.
+- Adds a permanent CI catalogue-consistency check for duplicate RIDs, missing roles/statuses, invalid references, Runtime overlap and stale-RID reuse.
+- Experimental weapons remain visible in Manual/Auto by default for testing.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A14 completed A11 firearm catalogue candidate
 
 - Build: `Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip`

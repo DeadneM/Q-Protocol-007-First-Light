@@ -3,6 +3,21 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A15 catalogue audit
+
+Full A13/A14 audit result:
+
+- no gameplay primitive changed;
+- no duplicate WeaponCatalog RID was present;
+- A14 did unnecessarily rename the existing `ShotgunCompact` alias;
+- A15 restores `ShotgunCompact=01833561121578C4`;
+- `ShotgunCompactOneHanded=018DCB210A8B048B` remains a separate OneHanded entry;
+- `AssassinRifle=0142DF24DDF6819F` remains a separate TwoHanded entry.
+
+A permanent CI validator was added so future builds fail on duplicate RIDs,
+missing role/status rows, Weapon/Runtime overlap, stale-RID reuse, or broken
+Manual/Auto/hotkey aliases.
+
 ## 2026-10-04 — Fresh Core A14 completed A11 firearm catalogue
 
 Final in-game identifications from the A11 runtime sweep:

@@ -2,8 +2,8 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A14 Completed A11 Firearm Catalog**.
-- A14 preserves A11/A5 gameplay and completes the runtime firearm catalogue for Manual/Auto.
+- Current test candidate: **Fresh Core A15 Audited Weapon Catalog**.
+- A15 preserves A11/A5 gameplay, restores the established ShotgunCompact alias, and adds automatic catalogue consistency checks.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

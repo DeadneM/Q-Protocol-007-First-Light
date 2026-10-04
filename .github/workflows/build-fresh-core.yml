@@ -33,6 +33,139 @@ jobs:
           git clone --depth 1 --branch v1.91.5 https://github.com/ocornut/imgui.git _deps/imgui
           git clone --depth 1 --branch v1.3.4 https://github.com/TsudaKageyu/minhook.git _deps/minhook
 
+      - name: Validate weapon catalog consistency
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          path = Path("config/QProtocol.ini")
+          lines = path.read_text(encoding="utf-8").splitlines()
+
+          sections = {}
+          current = None
+          for line_no, raw in enumerate(lines, 1):
+              line = raw.strip()
+              if not line or line.startswith(";"):
+                  continue
+              if line.startswith("[") and line.endswith("]"):
+                  current = line[1:-1]
+                  sections.setdefault(current, [])
+                  continue
+              if current and "=" in line:
+                  key, value = line.split("=", 1)
+                  sections[current].append((key.strip(), value.strip(), line_no))
+
+          def table(name):
+              rows = sections.get(name, [])
+              out = {}
+              for key, value, line_no in rows:
+                  if key in out:
+                      raise SystemExit(f"Duplicate alias in [{name}]: {key} at line {line_no}")
+                  out[key] = value
+              return out
+
+          weapons = table("WeaponCatalog")
+          roles = table("WeaponRole")
+          statuses = table("WeaponValidation")
+          runtime = table("RuntimeCatalog")
+          previous = table("WeaponPreviousRid")
+
+          rid_owner = {}
+          for alias, rid in weapons.items():
+              rid_u = rid.upper()
+              if rid_u in rid_owner:
+                  raise SystemExit(
+                      f"Duplicate WeaponCatalog RID {rid_u}: "
+                      f"{rid_owner[rid_u]} and {alias}"
+                  )
+              rid_owner[rid_u] = alias
+
+          runtime_rids = {}
+          for alias, rid in runtime.items():
+              rid_u = rid.upper()
+              if rid_u in runtime_rids:
+                  raise SystemExit(
+                      f"Duplicate RuntimeCatalog RID {rid_u}: "
+                      f"{runtime_rids[rid_u]} and {alias}"
+                  )
+              runtime_rids[rid_u] = alias
+
+          overlap = sorted(set(rid_owner) & set(runtime_rids))
+          if overlap:
+              raise SystemExit(
+                  "WeaponCatalog / RuntimeCatalog RID overlap: " +
+                  ", ".join(overlap)
+              )
+
+          current_vs_previous = sorted(
+              set(rid_owner) &
+              {v.upper() for v in previous.values()}
+          )
+          if current_vs_previous:
+              raise SystemExit(
+                  "Current weapon reuses archived stale RID: " +
+                  ", ".join(current_vs_previous)
+              )
+
+          weapon_aliases = set(weapons)
+          if set(roles) != weapon_aliases:
+              missing = sorted(weapon_aliases - set(roles))
+              extra = sorted(set(roles) - weapon_aliases)
+              raise SystemExit(
+                  f"WeaponRole mismatch missing={missing} extra={extra}"
+              )
+
+          if set(statuses) != weapon_aliases:
+              missing = sorted(weapon_aliases - set(statuses))
+              extra = sorted(set(statuses) - weapon_aliases)
+              raise SystemExit(
+                  f"WeaponValidation mismatch missing={missing} extra={extra}"
+              )
+
+          valid_roles = {"QPistol", "OneHanded", "TwoHanded", "Any"}
+          bad_roles = {
+              alias: role
+              for alias, role in roles.items()
+              if role not in valid_roles
+          }
+          if bad_roles:
+              raise SystemExit(f"Invalid WeaponRole values: {bad_roles}")
+
+          valid_status = {"Validated", "Not Working", "Experimental"}
+          bad_status = {
+              alias: status
+              for alias, status in statuses.items()
+              if status not in valid_status
+          }
+          if bad_status:
+              raise SystemExit(f"Invalid WeaponValidation values: {bad_status}")
+
+          def require_alias(section, key, allow_none=False):
+              values = table(section)
+              value = values.get(key, "")
+              if allow_none and value in {"None", "Off"}:
+                  return
+              if value and value not in weapons:
+                  raise SystemExit(
+                      f"[{section}] {key} references unknown weapon alias: {value}"
+                  )
+
+          require_alias("Hotkey_F4", "ModeA")
+          require_alias("Hotkey_F4", "ModeB")
+          for n in range(5, 13):
+              require_alias(f"Hotkey_F{n}", "Weapon")
+          for sec in ("ManualLoadout", "AutoLoadout"):
+              require_alias(sec, "QPistol", allow_none=True)
+              require_alias(sec, "OneHanded")
+              require_alias(sec, "TwoHanded")
+
+          print(
+              f"Catalog audit PASS: {len(weapons)} weapons, "
+              f"{len(runtime)} runtime-only items, no duplicate RIDs."
+          )
+          '@ | python -
+
       - name: Build QProtocol.asi
         shell: cmd
         run: |
@@ -43,7 +176,7 @@ jobs:
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
-            src\QProtocol.cpp src\OverlayA14.cpp ^
+            src\QProtocol.cpp src\OverlayA15.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
@@ -71,7 +204,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -90,6 +223,6 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A14
-          path: dist/Q-Protocol_FreshCore_A14_CompletedWeaponCatalog_TEST.zip
+          name: Q-Protocol_FreshCore_A15
+          path: dist/Q-Protocol_FreshCore_A15_AuditedWeaponCatalog_TEST.zip
           if-no-files-found: error

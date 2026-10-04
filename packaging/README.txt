@@ -1,47 +1,58 @@
-Q Protocol - Fresh Core A14
+Q Protocol - Fresh Core A15
 ===========================
 
-COMPLETED A11 FIREARM CATALOG TEST
+AUDITED WEAPON CATALOG TEST
 
 Canonical gameplay base
 -----------------------
 Fresh Core A5 remains the validated gameplay core.
 
-A14 purpose
------------
-A14 completes the A11 runtime firearm catalogue.
+Why A15 exists
+--------------
+A full A13/A14 audit found no gameplay-code regression, but it found one
+catalogue compatibility mistake in A14:
 
-New identifications supplied from in-game testing:
-- ShotgunCompactTwoHanded  = 01833561121578C4
-- ShotgunCompactOneHanded  = 018DCB210A8B048B
-- AssassinRifle            = 0142DF24DDF6819F
+A13 already used:
+ShotgunCompact = 01833561121578C4
 
-Roles
------
-ShotgunCompactTwoHanded = TwoHanded
-ShotgunCompactOneHanded = OneHanded
-AssassinRifle           = TwoHanded
+A14 unnecessarily renamed that existing alias to ShotgunCompactTwoHanded.
+The RID was not duplicated, but renaming the alias could break an existing INI
+that already selected ShotgunCompact.
 
-Validation policy
------------------
-These three entries are added as Experimental so they appear in Manual/Auto
-selectors immediately without being falsely promoted to Validated.
+A15 fixes this by preserving the established alias:
 
-A14 therefore accounts for every RID observed in the A11 41-graph runtime sweep.
+ShotgunCompact          = 01833561121578C4   TwoHanded
+ShotgunCompactOneHanded = 018DCB210A8B048B   OneHanded
+AssassinRifle           = 0142DF24DDF6819F   TwoHanded
 
-Manual / Automatic
+No duplicate WeaponCatalog RID is retained.
+
+Audit findings
+--------------
+- GiveWeapon unchanged.
+- AUTO logic unchanged.
+- Ammo logic unchanged.
+- gameplay hook unchanged.
+- 500 ms weapon stabilization unchanged.
+- A13 -> A14 overlay code differed only in version/status strings.
+- Current WeaponCatalog has unique aliases and unique RIDs.
+- WeaponCatalog does not overlap RuntimeCatalog.
+- Current weapon RIDs do not reuse archived stale RIDs.
+
+Permanent CI guard
 ------------------
-Both selectors use the corrected WeaponCatalog directly.
+A15 adds a pre-build catalogue validator. Builds now fail if:
+- WeaponCatalog contains duplicate aliases or duplicate RIDs;
+- RuntimeCatalog contains duplicate RIDs;
+- WeaponCatalog and RuntimeCatalog overlap;
+- WeaponRole or WeaponValidation are missing/extra;
+- a role/status value is invalid;
+- Manual/Auto/F4/F5-F12 reference a missing weapon alias;
+- a current weapon accidentally reuses an archived stale RID.
 
-No gameplay primitive changed. Manual, Auto and hotkey requests still use the
-same A5 GiveWeapon queue and 500 ms stabilization.
+Experimental visibility
+-----------------------
+Experimental weapons remain visible in Manual/Auto by default. This is an overlay
+testing preference only and does not change gameplay primitives.
 
-Test
-----
-1. Open Loadout.
-2. Confirm both Shotgun Compact variants appear in the correct role lists.
-3. Confirm AssassinRifle appears under TwoHanded.
-4. Test each one in Manual and Auto.
-5. Promote successful entries to Validated from the Weapons tab.
-
-A14 is a TEST candidate until in-game validation.
+A15 is a TEST candidate until in-game validation.

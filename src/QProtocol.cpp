@@ -1227,8 +1227,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A14");
-    Log("Scope: validated A5 gameplay core + A14 completed A11 firearm catalogue.");
+    Log("Q Protocol Fresh Core A15");
+    Log("Scope: validated A5 gameplay core + A15 audited firearm catalogue.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core A8 disabled because executable validation failed.");
