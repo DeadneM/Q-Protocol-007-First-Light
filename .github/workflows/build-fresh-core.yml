@@ -33,6 +33,58 @@ jobs:
           git clone --depth 1 --branch v1.91.5 https://github.com/ocornut/imgui.git _deps/imgui
           git clone --depth 1 --branch v1.3.4 https://github.com/TsudaKageyu/minhook.git _deps/minhook
 
+      - name: Audit A11 runtime RIDs against Bond-Hashes
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/glacier-modding/Bond-Hashes/releases/download/v17/latest-hashes.7z" -OutFile "latest-hashes.7z"
+          & 7z x latest-hashes.7z -y | Out-Null
+
+          @'
+          from pathlib import Path
+
+          targets = {
+              "0104F2D1C752B7A4","010ABE3F66032326","010D8295A99561AB","010DB0A3EB45A100",
+              "0110285AF7A95A01","01184198E788A09E","011B83C48DAC20CA","0126A975EC177851",
+              "013117D0145E0958","013BD1F27CC907FA","013F40B3AD756F14","01400A15903C9985",
+              "0142DF24DDF6819F","01453F3961FC0BB7","015314707AE716BF","01587BEED983569A",
+              "015E2DA84660F7D9","016886A4B599391C","016D12D89A0A658E","01702FE09FEA3596",
+              "017D301CA6D6BF4E","017D8BD5B237B333","01833561121578C4","018C90273080F785",
+              "018DCB210A8B048B","0198799A3CC4E437","01988D661ADF3BCE","019973508A5E327B",
+              "019CF34A2C59C76F","01A05C4FEBD7B301","01BA24E28342EA32","01BD00B144B74AC0",
+              "01BE2C45AA55200D","01C28E735A2283A0","01C315FC8C1AEF95","01D73DA578C4F423",
+              "01DC3790D6AFFEBD","01E011D9ABFE4AAB","01E7EDCF4CA78A61","01F59A0E72315C02",
+              "01F5D65A1232F9F3",
+          }
+
+          p = Path("hash_list.txt")
+          print(f"BONDHASH_FILE={p.resolve()} EXISTS={p.exists()}")
+          if not p.exists():
+              print("FILES_AFTER_EXTRACT:")
+              for q in Path(".").glob("*"):
+                  print(q)
+              raise SystemExit(2)
+
+          matches = {}
+          with p.open("r", encoding="utf-8", errors="replace") as f:
+              for raw in f:
+                  line = raw.rstrip("\r\n")
+                  if len(line) < 22:
+                      continue
+                  rid = line[:16].upper()
+                  if rid in targets:
+                      matches.setdefault(rid, []).append(line)
+
+          print("===== BONDHASH A11 RID MAP BEGIN =====")
+          for rid in sorted(targets):
+              rows = matches.get(rid, [])
+              if not rows:
+                  print(f"{rid}|NO_MATCH")
+              else:
+                  for row in rows:
+                      print(row)
+          print("===== BONDHASH A11 RID MAP END =====")
+          '@ | python -
+
       - name: Build QProtocol.asi
         shell: cmd
         run: |
