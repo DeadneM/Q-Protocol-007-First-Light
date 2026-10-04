@@ -20,7 +20,10 @@
 - Runtime Discovery now shows Item / Type / Current level / Identified state / RID.
 - Unknown A11 RIDs remain visible as Uncatalogued; no speculative names are added.
 - Existing Spawn Weapon test path remains the A5 QueueWeapon mailbox.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `85b124a59d1c5f354d0ed50e053920624a7cd881b610270627980d43eb07b117`
+- ZIP SHA-256: `d37dcebc3e117f727f0fe187f8ecfb8ab9c3a5c4bb43864802594e9be74467b4`
+- GitHub Actions run: `37184389495` (PASS).
+- Source build commit: `a54b7f216fbdd4f3cd74bf7a31fb3ad98bea5b63`.
 
 ## Fresh Core A11 runtime weapon discovery candidate
 

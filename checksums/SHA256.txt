@@ -86,3 +86,7 @@ f7a2092aa09a4ed4c37901d0738bce6e346e0cce03e84e25ac23faece609cd69  Q-Protocol_Fre
 # Fresh Core A11 runtime weapon discovery test candidate, NOT canonical
 e555bec0dbd22ef201d93bc7cb34f2bdb478bfc5e44f96ca154b4738bf61e4dd  FreshCore_A11/QProtocol.asi
 cfe919f41b413193674096cf2eed58dd92f7c88dffd9ecd48c6689b300dad078  Q-Protocol_FreshCore_A11_RuntimeWeaponDiscovery_TEST.zip
+
+# Fresh Core A12 runtime item catalog test candidate, NOT canonical
+85b124a59d1c5f354d0ed50e053920624a7cd881b610270627980d43eb07b117  FreshCore_A12/QProtocol.asi
+d37dcebc3e117f727f0fe187f8ecfb8ab9c3a5c4bb43864802594e9be74467b4  Q-Protocol_FreshCore_A12_RuntimeCatalog_TEST.zip
