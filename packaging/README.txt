@@ -1,48 +1,46 @@
-Q Protocol - Fresh Core A17
+Q Protocol - Fresh Core A18
 ===========================
 
-OPTIONAL ONE/TWO-HANDED LOADOUT TEST
+REMAPPABLE OVERLAY KEY TEST
 
 Gameplay foundation
 -------------------
 Fresh Core A5 remains the validated gameplay primitive base.
 
-A17 changes
------------
-1. OneHanded and TwoHanded selectors now support Off / None in both Manual and
-   Automatic profiles.
-2. Public Automatic defaults are now:
-     QPistol   = QPistolSilenced
-     OneHanded = Off
-     TwoHanded = Off
-3. Reset Defaults now matches the shipped public defaults:
-     Auto.Enabled = 0
-     Auto OneHanded = Off
-     Auto TwoHanded = Off
-4. User-confirmed weapon status updates from the supplied October INI are merged.
-5. Experimental weapons remain hidden from loadout selectors by default.
+A18 change
+----------
+The overlay toggle is no longer hardcoded to Insert.
 
-User-confirmed promotions to Validated
----------------------------------------
-AssaultRiflePirate
-SocomPistol
-LightPistolLargeMag
-ShotgunCompact
-ShotgunCompactOneHanded
-AssaultRifleNonLethal
-SMGNonLethal
-ServicePistol
+The active key is read from:
 
-Off behavior
-------------
-Off is stored as None in QProtocol.ini.
+[Overlay]
+ToggleKey=Insert
 
-The existing shared core already treats None as RID 0, so no new gameplay writer,
-spawn path or AUTO implementation is introduced.
+The Hotkeys tab now shows an Overlay / Menu toggle key control.
 
-No gameplay primitive changed
------------------------------
-ResolvePlayer, GiveWeapon, AddAmmo, the native gameplay hook and the 500 ms
-weapon stabilization are unchanged.
+To remap:
+1. Open Q Protocol with the current overlay key.
+2. Open Hotkeys.
+3. Click the current Overlay key button.
+4. Press the new keyboard key.
+5. Click Save.
 
-A17 is a TEST candidate until in-game validation.
+Escape cancels key capture.
+
+Supported persistence
+---------------------
+Common navigation keys, F1-F24, A-Z, 0-9, numpad keys and other captured
+Windows virtual keys are saved as readable names or VK_XX fallback values.
+
+Invalid or missing ToggleKey values safely fall back to Insert.
+
+A17 behavior preserved
+----------------------
+- QPistol / OneHanded / TwoHanded support Off.
+- Automatic defaults: QPistolSilenced + Off + Off.
+- Experimental weapons hidden from loadout lists by default.
+- Latest user-validated weapon statuses preserved.
+- Catalogue integrity audit preserved.
+
+No gameplay primitive changed.
+A18 is a TEST candidate until in-game validation.

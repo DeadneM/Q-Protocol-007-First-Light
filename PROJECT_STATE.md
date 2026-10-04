@@ -1,5 +1,18 @@
 # Q Protocol — Project State
 
+## Fresh Core A18 remappable overlay key candidate
+
+- Build: `Q-Protocol_FreshCore_A18_RemappableOverlayKey_TEST.zip`
+- Status: **test candidate, not canonical/public release yet**
+- Gameplay foundation: **validated Fresh Core A5**.
+- Replaces hardcoded `VK_INSERT` overlay toggle with the existing `[Overlay] ToggleKey` setting.
+- Hotkeys tab now supports interactive key capture and persistence.
+- Invalid/missing ToggleKey safely falls back to Insert.
+- Escape cancels capture; modifier-only and mouse buttons are not accepted.
+- A17 Off/None loadout behavior, Auto Off/Off defaults, validation statuses and catalogue audit are preserved.
+- No gameplay primitive changed.
+- Hashes and Actions run: pending build.
+
 ## Fresh Core A17 optional loadout slots candidate
 
 - Build: `Q-Protocol_FreshCore_A17_OptionalLoadoutSlots_TEST.zip`

@@ -3,6 +3,22 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-04 — Fresh Core A18 remappable overlay key
+
+The overlay invocation key is no longer hardcoded to `VK_INSERT`.
+
+A18 reads `[Overlay] ToggleKey` at startup/reload and exposes an interactive
+key-capture control in the Hotkeys tab. The chosen key is persisted by Save.
+
+Rules:
+- Insert remains the safe fallback for missing/invalid values;
+- Escape cancels capture;
+- mouse buttons and modifier-only keys are ignored;
+- F1-F24, A-Z, 0-9, navigation/numpad keys and generic VK_XX values are supported.
+
+No gameplay primitive, weapon catalogue entry, ammo path or loadout behavior
+changed.
+
 ## 2026-10-04 — Fresh Core A17 optional One/Two-Handed slots
 
 User-supplied `QProtocol.ini` was used as the authority for weapon validation

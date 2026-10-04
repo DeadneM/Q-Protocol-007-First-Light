@@ -2,9 +2,9 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A17 Optional Loadout Slots**.
+- Current test candidate: **Fresh Core A18 Remappable Overlay Key**.
 - Current public release: **Q Protocol v0.9.0 / Fresh Core A16**.
-- A17 adds Off/None to OneHanded and TwoHanded selectors, uses Off/Off as the public Auto defaults, and merges the latest user-validated weapon statuses. A5 gameplay remains unchanged.
+- A18 preserves A17 and makes the overlay invocation key configurable and remappable from the Hotkeys tab. A5 gameplay remains unchanged.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.
