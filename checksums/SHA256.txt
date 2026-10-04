@@ -90,3 +90,7 @@ cfe919f41b413193674096cf2eed58dd92f7c88dffd9ecd48c6689b300dad078  Q-Protocol_Fre
 # Fresh Core A12 runtime item catalog test candidate, NOT canonical
 85b124a59d1c5f354d0ed50e053920624a7cd881b610270627980d43eb07b117  FreshCore_A12/QProtocol.asi
 d37dcebc3e117f727f0fe187f8ecfb8ab9c3a5c4bb43864802594e9be74467b4  Q-Protocol_FreshCore_A12_RuntimeCatalog_TEST.zip
+
+# Fresh Core A13 October RID remap test candidate, NOT canonical
+73695e97036f2428c35e678e958f1c6689869af2daf421e1dbc2c6b834e467e6  FreshCore_A13/QProtocol.asi
+a91ab0c4ac7703a0d4f8b854ae7847f4508d5193c877e397a8d51773141b4949  Q-Protocol_FreshCore_A13_WeaponRIDRemap_TEST.zip

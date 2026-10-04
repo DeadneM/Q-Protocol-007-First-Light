@@ -22,7 +22,10 @@
 - Previous stale RIDs are retained in `[WeaponPreviousRid]`.
 - Brick and Vase are classified as Throwable runtime items.
 - Only `0142DF24DDF6819F` and `018DCB210A8B048B` remain unnamed from the A11 runtime set.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `73695e97036f2428c35e678e958f1c6689869af2daf421e1dbc2c6b834e467e6`
+- ZIP SHA-256: `a91ab0c4ac7703a0d4f8b854ae7847f4508d5193c877e397a8d51773141b4949`
+- GitHub Actions run: `37186162147` (PASS).
+- Source build commit: `2f527c358d6b14a3ab82e5b3d3767621ca59fcd2`.
 
 ## Fresh Core A12 runtime item catalogue candidate
 
