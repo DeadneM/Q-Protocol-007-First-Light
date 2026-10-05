@@ -3,6 +3,13 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-05 — Q Protocol v0.9.1 / Fresh Core A19 release
+
+Fresh Core A19 Audit Hardening promoted to public release as `v0.9.1`.
+
+The release keeps the audited A19 source unchanged and publishes the exact
+three-file package `Q-Protocol_v0.9.1.zip`.
+
 ## 2026-10-04 — Fresh Core A19 full audit hardening
 
 A full static audit was performed across the active gameplay core, A18 DX12

@@ -15,9 +15,7 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
-**Q Protocol v0.9.0 / Fresh Core A16** is the current public release.
-
-**Fresh Core A19 Audit Hardening** is the current test candidate.
+**Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening** is the current public release.
 
 - Fresh Core A5 remains the validated gameplay primitive foundation.
 - The A15 weapon catalogue audit is enforced automatically by CI.

@@ -1,32 +1,50 @@
-Q Protocol - Fresh Core A19
-===========================
+Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
+====================================================
 
-FULL AUDIT HARDENING TEST
+PUBLIC RELEASE BUILD
 
-A19 is a consolidation build. It does not change the validated A5 gameplay
-primitives, weapon RIDs, ammo classes or 500 ms weapon stabilization.
+This release promotes the fully audited Fresh Core A19 line.
 
-Audit fixes
------------
-1. Remappable overlay key is now safe even when mapped to F1-F12.
-2. F1-F12 edge state is updated while the overlay is visible.
-3. ToggleKey reload latches the real physical key state.
-4. Core Auto.Enabled fallback is now 0, matching shipped defaults.
-5. Failed DX12/MinHook bootstrap cleans partial hooks immediately.
-6. Startup logs no longer falsely claim Insert is hardcoded.
-7. CI validates RID format, RuntimeCategory coverage, Auto.Enabled,
-   ammo keys/ranges, previous RID integrity and Overlay.ToggleKey.
-8. Docs now state the truth: generic F1-F12 Action remapping is planned but
-   NOT implemented. Current F1-F4 actions are fixed; F5-F12 weapon aliases are
-   INI-backed.
+Highlights
+----------
+- Remappable overlay invocation key through [Overlay] ToggleKey.
+- Overlay toggle safely coexists with F1-F12, including when remapped to them.
+- OneHanded and TwoHanded support Off / None.
+- Automatic defaults are QPistolSilenced + Off + Off.
+- Experimental weapons remain hidden from Manual/Auto selectors by default.
+- Latest user-validated weapon statuses are included.
+- Full catalogue/config audit runs before every build.
+- DX12 overlay bootstrap remains fail-open.
 
-Preserved
----------
-- Overlay toggle remapping through [Overlay] ToggleKey.
-- QPistol / OneHanded / TwoHanded Off support.
-- Automatic defaults: QPistolSilenced + Off + Off.
-- Experimental weapons hidden by default.
-- Latest user-validated weapon statuses.
-- 31 unique weapon RIDs and 10 separate runtime-only RIDs.
+Gameplay foundation
+-------------------
+Fresh Core A5 remains the validated gameplay primitive base.
 
-A19 is a TEST candidate until in-game validation.
+A19 does NOT alter:
+- ResolvePlayer
+- GiveWeapon
+- AddAmmo
+- weapon RIDs
+- ammo classes
+- 500 ms weapon stabilization
+- native gameplay hook semantics
+
+Current hotkeys
+---------------
+F1  License To Kill
+F2  Manual Ammo
+F3  Manual Loadout
+F4  Q-Pistol Swap
+F5-F12 Weapon slots
+
+Generic F1-F12 Action reassignment is not implemented yet.
+
+Installation
+------------
+Copy into the game directory:
+- QProtocol.asi
+- QProtocol.ini
+- README.txt
+
+Default overlay key: Insert
+It can be remapped from the Hotkeys tab.

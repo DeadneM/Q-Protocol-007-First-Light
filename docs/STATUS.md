@@ -2,9 +2,8 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A19 Audit Hardening**.
-- Current public release: **Q Protocol v0.9.0 / Fresh Core A16**.
-- A19 preserves A17/A18 behavior and hardens overlay input, fail-open cleanup, defaults and CI after a full source/config audit. A5 gameplay remains unchanged.
+- Current public release: **Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening**.
+- A19 is the current public release. It preserves the A5 gameplay foundation while hardening overlay input, defaults, fail-open cleanup and CI.
 
 - Behavioral reference: **U74** on the pre-October-2026 executable.
 - Current post-update canonical build: **Fresh Core A5**.

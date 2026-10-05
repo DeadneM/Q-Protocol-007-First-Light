@@ -1,9 +1,10 @@
 # Q Protocol — Project State
 
-## Fresh Core A19 full-audit hardening candidate
+## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
-- Build: `Q-Protocol_FreshCore_A19_AuditHardening_TEST.zip`
-- Status: **test candidate, not public release yet**
+- Build: `Q-Protocol_v0.9.1.zip`
+- Release tag: `v0.9.1`
+- Status: **public release**
 - Gameplay foundation: **validated Fresh Core A5**.
 - Full source/config/workflow/documentation audit completed.
 - Fixed:
