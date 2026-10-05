@@ -126,3 +126,9 @@ d66cf35f5c1101f36cb62df7cd789c8d06e427753acd4731333e34d73ba79d6e  v0.9.0/README.
 8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022  FreshCore_A19/QProtocol.ini
 d14ade68b1343ffdb43f7e552c5e62b676c3d8343990b9914f088e1b4c75a2f0  FreshCore_A19/README.txt
 cc71e3ce99ccd789a7dd330b975db896febd3f3f71a4dcd7fa035bc31e2e60b4  Q-Protocol_FreshCore_A19_AuditHardening_TEST.zip
+
+# Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening public release
+d77d2715ab519fd263fe301d2da06722d88e408768b1a7150035d65e474cb04e  v0.9.1/QProtocol.asi
+8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022  v0.9.1/QProtocol.ini
+c9e6cf311d7dcf9f473a28cc3ea4f64eb145569a4974d415ed6527a71d5694ee  v0.9.1/README.txt
+e666732645e0559717b0bfe60b43a1107c840a81ca4ffee6861f6bbec2eef4f4  Q-Protocol_v0.9.1.zip
