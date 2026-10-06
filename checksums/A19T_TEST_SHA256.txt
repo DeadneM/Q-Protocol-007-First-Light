@@ -1,0 +1,14 @@
+# Fresh Core A19T TacSim Compatibility TEST
+
+Branch: dev/a19t-tacsim-compat
+Source commit: 571192c9dc4fde66d3f8c31bade348b25f96fb3e
+GitHub Actions run: 37511599627
+Artifact ID: 11434222864
+
+SHA-256
+ae86cb094016f6aa115ac63fe05dac91de3f1104cf671eaed342f358c525c7af  Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip
+1d0dc2d36b3fe96a96a428c97ddd3e2b2660b3e03f7852b02d40f41bf38fe4a9  QProtocol.asi
+8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022  QProtocol.ini
+97b55ab8428a1acff512824a7ab8c78d5fd423fde76fe6e9a1af01fff0faff68  README.txt
+
+Public/canonical release remains v0.9.1 / Fresh Core A19 Audit Hardening.
