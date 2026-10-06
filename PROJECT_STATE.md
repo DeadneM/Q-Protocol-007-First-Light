@@ -1,14 +1,5 @@
 # Q Protocol — Project State
 
-## A19T2 TacSim AUTO re-arm test
-
-- A19T result: Manual weapon operations work with the split weapon/ammo readiness.
-- User report: AUTO did not visibly apply in TacSim.
-- Log analysis: AUTO GiveWeapon itself succeeds when triggered, but changing/reloading AutoLoadout does not reset the one-shot weapon latch.
-- A19T2 resets AUTO weapon/ammo latches on INI Reload and weapon AUTO latch on live loadout pointer refresh.
-- No gameplay primitive changes.
-- Public/canonical base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.
-
 ## A19T TacSim compatibility test
 
 - Public/canonical base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.

@@ -1,40 +1,40 @@
-Q Protocol - Fresh Core A19T2 TacSim Auto Rearm TEST
-======================================================
+Q Protocol - Fresh Core A19T TacSim Compatibility TEST
+=======================================================
 
 BASE
 ----
-Strictly built from the validated public v0.9.1 / Fresh Core A19 Audit Hardening,
-through the isolated A19T TacSim readiness candidate.
+Strictly built from the validated public v0.9.1 / Fresh Core A19 Audit Hardening.
 
-A19T2 CHANGE
--------------
-A19T proved Manual weapon operations work with the split WeaponReady/AmmoReady
-model. The log also proved AUTO GiveWeapon itself succeeds when triggered.
+PURPOSE
+-------
+Restore weapon Manual/AUTO operation in TacSim without restoring the old U74
+multi-state architecture.
 
-The remaining bug was the AUTO one-shot latch:
-- editing/reloading AutoLoadout did not reset autoWeaponsDone;
-- a live loadout pointer refresh did not reset autoWeaponsDone.
+A19 regression being tested:
+- Fresh Core used one strict ResolvePlayer() gate for both weapons and ammo.
+- That gate required both a valid ZKntPlayerLoadoutEntity and a runtime playerId.
+- GiveWeapon / QueueLoadout do not consume playerId.
+- AddAmmo does require playerId.
 
-A19T2 changes only those two re-arm points.
+A19T splits readiness:
+- WeaponReady = validated player loadout
+- AmmoReady   = WeaponReady + valid runtime playerId
 
-On INI Reload:
-- autoWeaponsDone = false
-- autoAmmoDone = false
-
-On weapon loadout pointer refresh:
-- autoWeaponsDone = false
-
-No weapon RID, GiveWeapon implementation, native spawner, graph scan, ammo native
-path, queue timing or overlay renderer is changed.
+Expected behavior:
+- F3/F4/F5-F12 and Overlay Spawn Weapon work whenever WeaponReady is available,
+  including TacSim if TacSim still exposes the validated loadout.
+- AUTO weapons use WeaponReady.
+- F2 and AUTO ammo remain protected by AmmoReady.
+- No weapon RID, native spawner, ItemEntry offsets, 500 ms queue delay,
+  ammo native path, overlay renderer, or A19 hardening is changed.
 
 TEST
 ----
-1. Enter TacSim.
-2. Configure AUTO with obvious OneHanded + TwoHanded choices.
-3. Save/Reload from the overlay.
-4. Confirm AUTO applies immediately without pressing F3.
-5. Change the AUTO weapons again and Reload; confirm the new profile applies.
-6. Leave/re-enter TacSim and confirm AUTO applies once to the refreshed loadout.
-7. Send QProtocol.log.
+1. Confirm normal gameplay Manual + AUTO still work.
+2. Enter TacSim.
+3. Test F3 and F4.
+4. If Auto is enabled, confirm Auto weapons can apply in TacSim.
+5. Return to gameplay and confirm no duplicate/broken weapon queue.
+6. Send QProtocol.log.
 
-Public release remains v0.9.1 / A19 until validated.
+Public release remains v0.9.1 / A19 until this test is validated.
