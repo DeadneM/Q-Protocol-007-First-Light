@@ -327,6 +327,11 @@ PlayerContext ResolvePlayer() {
         return result;
     }
 
+    // A valid ZKntPlayerLoadoutEntity is sufficient for weapon operations.
+    // TacSim can temporarily lack the normal runtime playerId while still
+    // exposing a valid weapon/loadout context.
+    result.loadout = loadout;
+
     std::uintptr_t root = 0;
     std::uintptr_t node = 0;
     std::uint32_t playerId = 0;
@@ -341,7 +346,6 @@ PlayerContext ResolvePlayer() {
         return result;
     }
 
-    result.loadout = loadout;
     result.playerId = playerId;
     return result;
 }
@@ -1227,8 +1231,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A19");
-    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
+    Log("Q Protocol Fresh Core A19T TacSim Compatibility");
+    Log("Scope: A19 baseline + split weapon/ammo readiness for TacSim compatibility.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1259,70 +1263,120 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("Overlay = remappable [Overlay] ToggleKey, INI-backed, Save/Reload/Reset Defaults.");
 
     PlayerContext previousPlayer{};
-    bool previousReady = false;
-    bool autoDone = false;
+    bool previousWeaponReady = false;
+    bool previousAmmoReady = false;
+    bool autoWeaponsDone = false;
+    bool autoAmmoDone = false;
     std::string lastOverlayStatus = OverlayStatus();
 
     SHORT keyPrevious[13]{};
 
     while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
-        const bool ready = static_cast<bool>(player);
 
-        const bool playerIdentityChanged =
-            ready && previousReady &&
-            player.playerId != previousPlayer.playerId;
+        const bool weaponReady =
+            player.loadout != nullptr;
+
+        const bool ammoReady =
+            weaponReady &&
+            player.playerId != 0;
 
         const bool loadoutPointerChanged =
-            ready && previousReady &&
-            player.playerId == previousPlayer.playerId &&
+            weaponReady &&
+            previousWeaponReady &&
             player.loadout != previousPlayer.loadout;
 
-        if (ready != previousReady || playerIdentityChanged) {
-            if (ready) {
+        const bool playerIdentityChanged =
+            ammoReady &&
+            previousAmmoReady &&
+            player.playerId != previousPlayer.playerId;
+
+        if (weaponReady != previousWeaponReady) {
+            if (weaponReady) {
                 Log(
-                    "PLAYER READY loadout=0x%p playerId=%u",
+                    "WEAPON CONTEXT READY loadout=0x%p playerId=%u",
                     player.loadout,
                     player.playerId);
-            } else if (previousReady) {
-                Log("PLAYER NOT READY");
+            } else {
+                Log("WEAPON CONTEXT NOT READY");
             }
 
             ResetWeaponRuntime(
-                ready ? "player identity changed/ready" : "player not ready");
+                weaponReady
+                    ? "weapon context ready"
+                    : "weapon context unavailable");
 
-            autoDone = false;
-            previousPlayer = player;
-            previousReady = ready;
+            autoWeaponsDone = false;
         } else if (loadoutPointerChanged) {
             Log(
-                "PLAYER LOADOUT REFRESH loadout=0x%p playerId=%u - preserving weapon queue.",
+                "WEAPON LOADOUT REFRESH loadout=0x%p playerId=%u - preserving weapon queue.",
                 player.loadout,
                 player.playerId);
 
             g_graphs.clear();
             g_graphIndexBuilt = false;
-
-            previousPlayer = player;
         }
 
-        if (ready && g_autoEnabled && !autoDone) {
-            const std::size_t autoWeapons =
-                QueueLoadout(g_autoLoadout, "AUTO Loadout");
-            const bool autoAmmoQueued =
-                QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo");
+        if (ammoReady != previousAmmoReady ||
+            playerIdentityChanged) {
 
-            autoDone = true;
+            if (ammoReady) {
+                Log(
+                    "AMMO CONTEXT READY playerId=%u",
+                    player.playerId);
+            } else if (previousAmmoReady) {
+                Log("AMMO CONTEXT NOT READY");
+            }
+
+            autoAmmoDone = false;
+        }
+
+        previousPlayer = player;
+        previousWeaponReady = weaponReady;
+        previousAmmoReady = ammoReady;
+
+        if (g_autoEnabled &&
+            weaponReady &&
+            !autoWeaponsDone) {
+
+            const std::size_t autoWeapons =
+                QueueLoadout(
+                    g_autoLoadout,
+                    "AUTO Loadout");
+
+            autoWeaponsDone = true;
 
             Log(
-                "AUTO committed once for current READY cycle: weapons=%zu ammo=%s.",
-                autoWeapons,
-                autoAmmoQueued ? "queued" : "not queued");
+                "AUTO weapons committed once for current weapon context: weapons=%zu.",
+                autoWeapons);
         }
+
+        if (g_autoEnabled &&
+            ammoReady &&
+            !autoAmmoDone) {
+
+            const bool autoAmmoQueued =
+                QueueAmmoProfile(
+                    g_autoAmmo,
+                    player.playerId,
+                    "AUTO Ammo");
+
+            autoAmmoDone = true;
+
+            Log(
+                "AUTO ammo committed once for current ammo context: ammo=%s.",
+                autoAmmoQueued
+                    ? "queued"
+                    : "not queued");
+        }
+
+        const bool autoDone =
+            autoWeaponsDone &&
+            (!ammoReady || autoAmmoDone);
 
         const bool overlayTogglePressed =
             OverlayPump(
-                ready,
+                weaponReady,
                 autoDone,
                 g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
                 g_qpistolNextB);
@@ -1340,8 +1394,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         std::uint64_t overlayDisplayRid = 0;
         if (OverlayConsumeSpawnRequest(overlayDisplayRid)) {
-            if (!ready) {
-                Log("Overlay Spawn Weapon ignored: player not ready.");
+            if (!weaponReady) {
+                Log("Overlay Spawn Weapon ignored: weapon context not ready.");
             } else {
                 const std::uint64_t internalRid = RotateRid(overlayDisplayRid);
                 if (QueueWeapon(internalRid, "Overlay Spawn Weapon")) {
@@ -1392,8 +1446,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f2Pressed) {
 
-            if (!ready) {
-                Log("F2 ignored: player not ready.");
+            if (!ammoReady) {
+                Log("F2 ignored: ammo context not ready.");
             } else {
                 QueueAmmoProfile(
                     g_manualAmmo,
@@ -1406,8 +1460,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f3Pressed) {
 
-            if (!ready) {
-                Log("F3 ignored: player not ready.");
+            if (!weaponReady) {
+                Log("F3 ignored: weapon context not ready.");
             } else {
                 const std::size_t queued =
                     QueueLoadout(
@@ -1424,8 +1478,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f4Pressed) {
 
-            if (!ready) {
-                Log("F4 ignored: player not ready.");
+            if (!weaponReady) {
+                Log("F4 ignored: weapon context not ready.");
             } else {
                 const std::uint64_t rid =
                     g_qpistolNextB
@@ -1466,9 +1520,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 "F%d",
                 i + 5);
 
-            if (!ready) {
+            if (!weaponReady) {
                 Log(
-                    "%s ignored: player not ready.",
+                    "%s ignored: weapon context not ready.",
                     source);
             } else {
                 QueueWeapon(
@@ -1477,10 +1531,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
-        if (ready) {
+        if (weaponReady) {
             ProcessWeaponQueue();
         } else if (g_activeWeapon.active || !g_weaponQueue.empty()) {
-            ResetWeaponRuntime("player unavailable");
+            ResetWeaponRuntime("weapon context unavailable");
         }
 
         Sleep(16);

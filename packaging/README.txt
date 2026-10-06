@@ -1,50 +1,40 @@
-Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
-====================================================
+Q Protocol - Fresh Core A19T TacSim Compatibility TEST
+=======================================================
 
-PUBLIC RELEASE BUILD
+BASE
+----
+Strictly built from the validated public v0.9.1 / Fresh Core A19 Audit Hardening.
 
-This release promotes the fully audited Fresh Core A19 line.
+PURPOSE
+-------
+Restore weapon Manual/AUTO operation in TacSim without restoring the old U74
+multi-state architecture.
 
-Highlights
-----------
-- Remappable overlay invocation key through [Overlay] ToggleKey.
-- Overlay toggle safely coexists with F1-F12, including when remapped to them.
-- OneHanded and TwoHanded support Off / None.
-- Automatic defaults are QPistolSilenced + Off + Off.
-- Experimental weapons remain hidden from Manual/Auto selectors by default.
-- Latest user-validated weapon statuses are included.
-- Full catalogue/config audit runs before every build.
-- DX12 overlay bootstrap remains fail-open.
+A19 regression being tested:
+- Fresh Core used one strict ResolvePlayer() gate for both weapons and ammo.
+- That gate required both a valid ZKntPlayerLoadoutEntity and a runtime playerId.
+- GiveWeapon / QueueLoadout do not consume playerId.
+- AddAmmo does require playerId.
 
-Gameplay foundation
--------------------
-Fresh Core A5 remains the validated gameplay primitive base.
+A19T splits readiness:
+- WeaponReady = validated player loadout
+- AmmoReady   = WeaponReady + valid runtime playerId
 
-A19 does NOT alter:
-- ResolvePlayer
-- GiveWeapon
-- AddAmmo
-- weapon RIDs
-- ammo classes
-- 500 ms weapon stabilization
-- native gameplay hook semantics
+Expected behavior:
+- F3/F4/F5-F12 and Overlay Spawn Weapon work whenever WeaponReady is available,
+  including TacSim if TacSim still exposes the validated loadout.
+- AUTO weapons use WeaponReady.
+- F2 and AUTO ammo remain protected by AmmoReady.
+- No weapon RID, native spawner, ItemEntry offsets, 500 ms queue delay,
+  ammo native path, overlay renderer, or A19 hardening is changed.
 
-Current hotkeys
----------------
-F1  License To Kill
-F2  Manual Ammo
-F3  Manual Loadout
-F4  Q-Pistol Swap
-F5-F12 Weapon slots
+TEST
+----
+1. Confirm normal gameplay Manual + AUTO still work.
+2. Enter TacSim.
+3. Test F3 and F4.
+4. If Auto is enabled, confirm Auto weapons can apply in TacSim.
+5. Return to gameplay and confirm no duplicate/broken weapon queue.
+6. Send QProtocol.log.
 
-Generic F1-F12 Action reassignment is not implemented yet.
-
-Installation
-------------
-Copy into the game directory:
-- QProtocol.asi
-- QProtocol.ini
-- README.txt
-
-Default overlay key: Insert
-It can be remapped from the Hotkeys tab.
+Public release remains v0.9.1 / A19 until this test is validated.

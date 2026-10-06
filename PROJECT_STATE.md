@@ -1,5 +1,18 @@
 # Q Protocol — Project State
 
+## A19T TacSim compatibility test
+
+- Public/canonical base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.
+- A19T is isolated on `dev/a19t-tacsim-compat`.
+- Regression hypothesis confirmed in source:
+  - A19 gates weapon and ammo actions behind one strict context requiring `loadout + playerId`.
+  - `QueueLoadout/GiveWeapon` do not consume `playerId`.
+  - `AddAmmo` does consume and validate `playerId`.
+- A19T restores two readiness levels without restoring U74 state machines:
+  - WeaponReady = validated `ZKntPlayerLoadoutEntity`.
+  - AmmoReady = WeaponReady + runtime `playerId`.
+- No public release promotion until gameplay + TacSim are validated.
+
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
 - Build: `Q-Protocol_v0.9.1.zip`

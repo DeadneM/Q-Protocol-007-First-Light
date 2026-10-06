@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev/a19t-tacsim-compat
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -251,7 +252,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package exact three-file release ZIP
+      - name: Package exact three-file test ZIP
         shell: pwsh
         run: |
           Copy-Item config\QProtocol.ini dist\QProtocol.ini
@@ -264,7 +265,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.1.zip"
+          out = dist / "Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -280,11 +281,11 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload release artifact
+      - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.1
-          path: dist/Q-Protocol_v0.9.1.zip
+          name: Q-Protocol_FreshCore_A19T
+          path: dist/Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.1
@@ -294,7 +295,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "v0.9.1"
-          $asset = "dist/Q-Protocol_v0.9.1.zip"
+          $asset = "dist/Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip"
           $title = "Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
