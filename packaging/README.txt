@@ -1,50 +1,42 @@
-Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
-====================================================
+Q Protocol - Fresh Core A19Q Q-Pistol Native Bootstrap TEST
+=============================================================
 
-PUBLIC RELEASE BUILD
+BASE
+----
+Strictly based on public v0.9.1 / Fresh Core A19 Audit Hardening.
 
-This release promotes the fully audited Fresh Core A19 line.
+ONE TESTED DIFFERENCE
+---------------------
+Recovered U84 shows the older October core kept the Q-Pistol on its own native
+ItemEntry/Spawner path. Extra firearms used the donor pair-clone GiveWeapon.
 
-Highlights
-----------
-- Remappable overlay invocation key through [Overlay] ToggleKey.
-- Overlay toggle safely coexists with F1-F12, including when remapped to them.
-- OneHanded and TwoHanded support Off / None.
-- Automatic defaults are QPistolSilenced + Off + Off.
-- Experimental weapons remain hidden from Manual/Auto selectors by default.
-- Latest user-validated weapon statuses are included.
-- Full catalogue/config audit runs before every build.
-- DX12 overlay bootstrap remains fail-open.
+Fresh Core A19 routed Q-Pistol through the same donor pair-clone.
 
-Gameplay foundation
--------------------
-Fresh Core A5 remains the validated gameplay primitive base.
+A19Q restores only the old Q-Pistol distinction:
+- QPistolSilenced / QPistolUnsilenced use their own native Spawner.
+- OneHanded / TwoHanded / F5-F12 keep the existing A19 pair-clone.
+- A19 queue order and 500 ms delay remain unchanged.
+- A19 AUTO trigger/readiness remains unchanged.
+- A19 F3 semantics remain unchanged.
+- AddAmmo, RIDs, overlay and config remain unchanged.
 
-A19 does NOT alter:
-- ResolvePlayer
-- GiveWeapon
-- AddAmmo
-- weapon RIDs
-- ammo classes
-- 500 ms weapon stabilization
-- native gameplay hook semantics
+IMPORTANT
+---------
+This test ZIP contains NO QProtocol.ini.
+Keep your current v0.9.1 QProtocol.ini.
 
-Current hotkeys
----------------
-F1  License To Kill
-F2  Manual Ammo
-F3  Manual Loadout
-F4  Q-Pistol Swap
-F5-F12 Weapon slots
+TEST
+----
+1. Replace only QProtocol.asi.
+2. Verify normal gameplay.
+3. Enter TacSim.
+4. Press F3 once.
+5. Restart/re-enter TacSim and test AUTO without pressing F3.
+6. Send QProtocol.log.
 
-Generic F1-F12 Action reassignment is not implemented yet.
+Expected log:
+Q-Pistol DIRECT prepared ...
+Q-Pistol DIRECT COMPLETE ...
+then normal GiveWeapon lines for OneHanded/TwoHanded.
 
-Installation
-------------
-Copy into the game directory:
-- QProtocol.asi
-- QProtocol.ini
-- README.txt
-
-Default overlay key: Insert
-It can be remapped from the Hotkeys tab.
+Public release remains v0.9.1 / A19.

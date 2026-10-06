@@ -1,5 +1,16 @@
 # Q Protocol — Project State
 
+## A19Q Q-Pistol native bootstrap test
+
+- Public/canonical base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.
+- Recovered U84 confirms the older October core kept Q-Pistol on a dedicated
+  native ItemEntry/Spawner path while extra firearms used pair-clone GiveWeapon.
+- Fresh Core A19 unified Q-Pistol into the donor pair-clone.
+- A19Q restores only the dedicated native Q-Pistol path.
+- AUTO lifecycle/readiness, F3 semantics, extra-weapon GiveWeapon, AddAmmo,
+  RIDs, overlay and 500 ms queue delay remain exactly A19.
+- Test ZIP intentionally omits QProtocol.ini.
+
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
 - Build: `Q-Protocol_v0.9.1.zip`
