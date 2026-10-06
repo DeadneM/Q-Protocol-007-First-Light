@@ -313,36 +313,32 @@ bool ResolveNativeLoadout(void** outLoadout) {
 PlayerContext ResolvePlayer() {
     PlayerContext result{};
 
+    // Weapon/loadout availability and runtime-player availability are
+    // intentionally resolved independently. Legacy AUTO behavior used the
+    // runtime-player lifecycle as its one-shot trigger; weapon operations
+    // themselves only require the validated live loadout/weapon context.
     void* loadout = nullptr;
-    if (!ResolveNativeLoadout(&loadout)) {
-        return result;
-    }
-
-    std::uintptr_t vtable = 0;
-    if (!SafeRead(reinterpret_cast<std::uintptr_t>(loadout), vtable)) {
-        return result;
-    }
-
-    if (vtable != g_exeBase + kPlayerLoadoutVtableRva) {
-        return result;
+    if (ResolveNativeLoadout(&loadout)) {
+        std::uintptr_t vtable = 0;
+        if (SafeRead(reinterpret_cast<std::uintptr_t>(loadout), vtable) &&
+            vtable == g_exeBase + kPlayerLoadoutVtableRva) {
+            result.loadout = loadout;
+        }
     }
 
     std::uintptr_t root = 0;
     std::uintptr_t node = 0;
     std::uint32_t playerId = 0;
 
-    if (!SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) || !root) {
-        return result;
-    }
-    if (!SafeRead(root + 0x10, node) || !node) {
-        return result;
-    }
-    if (!SafeRead(node + 0x30, playerId) || playerId == 0) {
-        return result;
+    if (SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) &&
+        root &&
+        SafeRead(root + 0x10, node) &&
+        node &&
+        SafeRead(node + 0x30, playerId) &&
+        playerId != 0) {
+        result.playerId = playerId;
     }
 
-    result.loadout = loadout;
-    result.playerId = playerId;
     return result;
 }
 
@@ -1227,8 +1223,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A19");
-    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
+    Log("Q Protocol Fresh Core A19R RuntimeAutoCycle TEST");
+    Log("Scope: A19 baseline + legacy runtime-player AUTO lifecycle only.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1259,7 +1255,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
     Log("Overlay = remappable [Overlay] ToggleKey, INI-backed, Save/Reload/Reset Defaults.");
 
     PlayerContext previousPlayer{};
-    bool previousReady = false;
+    bool previousWeaponReady = false;
+    bool previousRuntimeReady = false;
+    bool autoArmed = true;
     bool autoDone = false;
     std::string lastOverlayStatus = OverlayStatus();
 
@@ -1267,62 +1265,97 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
     while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
-        const bool ready = static_cast<bool>(player);
 
-        const bool playerIdentityChanged =
-            ready && previousReady &&
+        const bool weaponReady =
+            player.loadout != nullptr;
+
+        const bool runtimeReady =
+            player.playerId != 0;
+
+        const bool runtimeIdentityChanged =
+            runtimeReady &&
+            previousRuntimeReady &&
             player.playerId != previousPlayer.playerId;
 
         const bool loadoutPointerChanged =
-            ready && previousReady &&
-            player.playerId == previousPlayer.playerId &&
+            weaponReady &&
+            previousWeaponReady &&
             player.loadout != previousPlayer.loadout;
 
-        if (ready != previousReady || playerIdentityChanged) {
-            if (ready) {
+        if (weaponReady != previousWeaponReady) {
+            if (weaponReady) {
                 Log(
-                    "PLAYER READY loadout=0x%p playerId=%u",
-                    player.loadout,
-                    player.playerId);
-            } else if (previousReady) {
-                Log("PLAYER NOT READY");
+                    "WEAPON CONTEXT READY loadout=0x%p",
+                    player.loadout);
+            } else {
+                Log("WEAPON CONTEXT NOT READY");
             }
 
             ResetWeaponRuntime(
-                ready ? "player identity changed/ready" : "player not ready");
-
-            autoDone = false;
-            previousPlayer = player;
-            previousReady = ready;
+                weaponReady
+                    ? "weapon context ready"
+                    : "weapon context unavailable");
         } else if (loadoutPointerChanged) {
             Log(
-                "PLAYER LOADOUT REFRESH loadout=0x%p playerId=%u - preserving weapon queue.",
-                player.loadout,
-                player.playerId);
+                "WEAPON LOADOUT REFRESH loadout=0x%p - preserving queue and AUTO state.",
+                player.loadout);
 
             g_graphs.clear();
             g_graphIndexBuilt = false;
-
-            previousPlayer = player;
         }
 
-        if (ready && g_autoEnabled && !autoDone) {
-            const std::size_t autoWeapons =
-                QueueLoadout(g_autoLoadout, "AUTO Loadout");
-            const bool autoAmmoQueued =
-                QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo");
+        if (runtimeReady != previousRuntimeReady ||
+            runtimeIdentityChanged) {
 
+            if (runtimeReady) {
+                Log(
+                    "RUNTIME PLAYER READY playerId=%u: AUTO armed.",
+                    player.playerId);
+            } else {
+                Log(
+                    "RUNTIME PLAYER NOT READY: AUTO re-armed for next runtime cycle.");
+            }
+
+            // This is the only AUTO re-arm rule in this candidate.
+            // It mirrors the legacy runtime-player lifecycle and deliberately
+            // ignores INI reloads and loadout-pointer refreshes.
+            autoArmed = true;
+            autoDone = false;
+        }
+
+        if (g_autoEnabled &&
+            autoArmed &&
+            runtimeReady &&
+            weaponReady) {
+
+            const std::size_t autoWeapons =
+                QueueLoadout(
+                    g_autoLoadout,
+                    "AUTO Loadout");
+
+            const bool autoAmmoQueued =
+                QueueAmmoProfile(
+                    g_autoAmmo,
+                    player.playerId,
+                    "AUTO Ammo");
+
+            autoArmed = false;
             autoDone = true;
 
             Log(
-                "AUTO committed once for current READY cycle: weapons=%zu ammo=%s.",
+                "AUTO runtime-cycle commit: weapons=%zu ammo=%s playerId=%u.",
                 autoWeapons,
-                autoAmmoQueued ? "queued" : "not queued");
+                autoAmmoQueued ? "queued" : "not queued",
+                player.playerId);
         }
+
+        previousPlayer = player;
+        previousWeaponReady = weaponReady;
+        previousRuntimeReady = runtimeReady;
 
         const bool overlayTogglePressed =
             OverlayPump(
-                ready,
+                weaponReady,
                 autoDone,
                 g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
                 g_qpistolNextB);
@@ -1335,13 +1368,13 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (OverlayConsumeReloadRequest()) {
             LoadConfig(iniPath);
-            Log("Overlay requested INI reload: runtime config refreshed.");
+            Log("Overlay requested INI reload: runtime config refreshed; AUTO lifecycle unchanged.");
         }
 
         std::uint64_t overlayDisplayRid = 0;
         if (OverlayConsumeSpawnRequest(overlayDisplayRid)) {
-            if (!ready) {
-                Log("Overlay Spawn Weapon ignored: player not ready.");
+            if (!weaponReady) {
+                Log("Overlay Spawn Weapon ignored: weapon context not ready.");
             } else {
                 const std::uint64_t internalRid = RotateRid(overlayDisplayRid);
                 if (QueueWeapon(internalRid, "Overlay Spawn Weapon")) {
@@ -1392,8 +1425,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f2Pressed) {
 
-            if (!ready) {
-                Log("F2 ignored: player not ready.");
+            if (!weaponReady || !runtimeReady) {
+                Log("F2 ignored: ammo context not ready.");
             } else {
                 QueueAmmoProfile(
                     g_manualAmmo,
@@ -1406,8 +1439,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f3Pressed) {
 
-            if (!ready) {
-                Log("F3 ignored: player not ready.");
+            if (!weaponReady) {
+                Log("F3 ignored: weapon context not ready.");
             } else {
                 const std::size_t queued =
                     QueueLoadout(
@@ -1424,8 +1457,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f4Pressed) {
 
-            if (!ready) {
-                Log("F4 ignored: player not ready.");
+            if (!weaponReady) {
+                Log("F4 ignored: weapon context not ready.");
             } else {
                 const std::uint64_t rid =
                     g_qpistolNextB
@@ -1466,9 +1499,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 "F%d",
                 i + 5);
 
-            if (!ready) {
+            if (!weaponReady) {
                 Log(
-                    "%s ignored: player not ready.",
+                    "%s ignored: weapon context not ready.",
                     source);
             } else {
                 QueueWeapon(
@@ -1477,10 +1510,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
-        if (ready) {
+        if (weaponReady) {
             ProcessWeaponQueue();
         } else if (g_activeWeapon.active || !g_weaponQueue.empty()) {
-            ResetWeaponRuntime("player unavailable");
+            ResetWeaponRuntime("weapon context unavailable");
         }
 
         Sleep(16);

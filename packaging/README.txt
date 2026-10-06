@@ -1,50 +1,54 @@
-Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
-====================================================
+Q Protocol - Fresh Core A19R Runtime AUTO Cycle TEST
+======================================================
 
-PUBLIC RELEASE BUILD
+BASE
+----
+Strictly based on public v0.9.1 / Fresh Core A19 Audit Hardening.
 
-This release promotes the fully audited Fresh Core A19 line.
+PURPOSE
+-------
+Restore the pre-Fresh-Core AUTO trigger model without restoring the old U74
+state-machine complexity.
 
-Highlights
-----------
-- Remappable overlay invocation key through [Overlay] ToggleKey.
-- Overlay toggle safely coexists with F1-F12, including when remapped to them.
-- OneHanded and TwoHanded support Off / None.
-- Automatic defaults are QPistolSilenced + Off + Off.
-- Experimental weapons remain hidden from Manual/Auto selectors by default.
-- Latest user-validated weapon statuses are included.
-- Full catalogue/config audit runs before every build.
-- DX12 overlay bootstrap remains fail-open.
+ONLY BEHAVIORAL CHANGE
+----------------------
+- Weapon/loadout readiness and runtime-player readiness are observed separately.
+- Manual weapon actions use the validated weapon/loadout context.
+- F2 / AUTO ammo still require a real runtime playerId.
+- AUTO is armed/re-armed ONLY by the runtime-player lifecycle:
+  * runtime player becomes READY
+  * runtime player leaves READY
+  * runtime playerId changes
+- INI Reload does NOT re-arm AUTO.
+- Loadout pointer refresh does NOT re-arm AUTO.
+- Once armed, AUTO uses the same existing QueueLoadout / GiveWeapon / AddAmmo
+  primitives already validated in A19.
 
-Gameplay foundation
--------------------
-Fresh Core A5 remains the validated gameplay primitive base.
+NOT CHANGED
+-----------
+GiveWeapon
+AddAmmo
+Weapon RIDs
+Ammo classes
+500 ms weapon queue delay
+Gameplay hook
+Overlay renderer
+Manual/Auto profile format
 
-A19 does NOT alter:
-- ResolvePlayer
-- GiveWeapon
-- AddAmmo
-- weapon RIDs
-- ammo classes
-- 500 ms weapon stabilization
-- native gameplay hook semantics
+IMPORTANT TEST PACKAGING
+------------------------
+This ZIP intentionally contains NO QProtocol.ini.
+Keep your existing v0.9.1 QProtocol.ini so your AUTO weapon choices are not
+overwritten by test defaults.
 
-Current hotkeys
----------------
-F1  License To Kill
-F2  Manual Ammo
-F3  Manual Loadout
-F4  Q-Pistol Swap
-F5-F12 Weapon slots
+TEST
+----
+1. Keep your existing QProtocol.ini.
+2. Replace only QProtocol.asi with this test ASI.
+3. Enable AUTO with obvious OneHanded and TwoHanded weapons.
+4. Start normal gameplay and confirm AUTO once.
+5. Enter TacSim and confirm AUTO re-applies there without pressing F3.
+6. Leave TacSim and confirm AUTO re-arms on the next runtime-player cycle.
+7. Send QProtocol.log.
 
-Generic F1-F12 Action reassignment is not implemented yet.
-
-Installation
-------------
-Copy into the game directory:
-- QProtocol.asi
-- QProtocol.ini
-- README.txt
-
-Default overlay key: Insert
-It can be remapped from the Hotkeys tab.
+Public release remains v0.9.1 / Fresh Core A19.

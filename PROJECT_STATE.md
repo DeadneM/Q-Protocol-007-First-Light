@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## A19R Runtime AUTO Cycle test
+
+- Canonical/public base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.
+- Test branch: `dev/a19-runtime-auto-cycle`.
+- Goal: restore the old runtime-player lifecycle as the AUTO one-shot trigger without restoring U74's multiple gameplay state machines.
+- Manual weapon readiness remains separate from ammo/playerId readiness.
+- AUTO re-arms only when runtime-player readiness changes or playerId changes.
+- INI Reload and loadout refresh do not re-arm AUTO.
+- Test package intentionally omits `QProtocol.ini` to preserve the user's existing AUTO profile.
+
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
 - Build: `Q-Protocol_v0.9.1.zip`
