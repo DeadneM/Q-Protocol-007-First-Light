@@ -265,7 +265,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A19T22_TacSimAutoRearm_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -284,8 +284,8 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A19T
-          path: dist/Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip
+          name: Q-Protocol_FreshCore_A19T2
+          path: dist/Q-Protocol_FreshCore_A19T22_TacSimAutoRearm_TEST.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.1
@@ -295,7 +295,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "v0.9.1"
-          $asset = "dist/Q-Protocol_FreshCore_A19T_TacSimCompatibility_TEST.zip"
+          $asset = "dist/Q-Protocol_FreshCore_A19T22_TacSimAutoRearm_TEST.zip"
           $title = "Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null

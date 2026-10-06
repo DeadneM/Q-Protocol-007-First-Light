@@ -1231,7 +1231,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A19T TacSim Compatibility");
+    Log("Q Protocol Fresh Core A19T2 TacSim Auto Rearm");
     Log("Scope: A19 baseline + split weapon/ammo readiness for TacSim compatibility.");
 
     if (!ValidateTargetExecutable()) {
@@ -1315,6 +1315,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
             g_graphs.clear();
             g_graphIndexBuilt = false;
+
+            // A new loadout context must receive the AUTO weapon profile once.
+            autoWeaponsDone = false;
         }
 
         if (ammoReady != previousAmmoReady ||
@@ -1389,7 +1392,14 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (OverlayConsumeReloadRequest()) {
             LoadConfig(iniPath);
-            Log("Overlay requested INI reload: runtime config refreshed.");
+
+            // Reload can change Auto.Enabled and/or the selected AUTO weapons
+            // while the current gameplay/TacSim context stays alive.
+            // Re-arm both lanes so the newly loaded profile takes effect.
+            autoWeaponsDone = false;
+            autoAmmoDone = false;
+
+            Log("Overlay requested INI reload: runtime config refreshed; AUTO re-armed.");
         }
 
         std::uint64_t overlayDisplayRid = 0;
