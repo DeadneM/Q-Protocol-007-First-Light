@@ -26,7 +26,12 @@
   - fields `CanUnlock`, `GrantedItems`, `UnlockableUnlockState`, `RequiredXP`, `HasEnoughXP`.
 - A20 hooks four current-build runtime handlers only for diagnostics and writes `[COSDISC]` snapshots to `QProtocol.log`.
 - It does **not** call AcquireUnlockable, modify challenge state, or write cosmetic state/save data.
-- Hashes and Actions run: pending build.
+- ASI SHA-256: `7d735c8bb33fae0df5ab03ef1dab8f1438272507739470e45b30e17169d84b55`
+- ZIP SHA-256: `0af65bff24b14844a9e84c06fac9a9f907c54302ae95f5120789ec0840418146`
+- GitHub Actions run: `37474656454` (PASS).
+- Artifact ID: `11417679584`.
+- Source build commit: `e2f3825f58a13d41a21166adf26109ef13ef975a`.
+- Compiler warnings/errors: none detected.
 
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 

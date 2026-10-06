@@ -132,3 +132,9 @@ d77d2715ab519fd263fe301d2da06722d88e408768b1a7150035d65e474cb04e  v0.9.1/QProtoc
 8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022  v0.9.1/QProtocol.ini
 c9e6cf311d7dcf9f473a28cc3ea4f64eb145569a4974d415ed6527a71d5694ee  v0.9.1/README.txt
 e666732645e0559717b0bfe60b43a1107c840a81ca4ffee6861f6bbec2eef4f4  Q-Protocol_v0.9.1.zip
+
+# Fresh Core A20 cosmetic / NG+ discovery test candidate, read-only
+7d735c8bb33fae0df5ab03ef1dab8f1438272507739470e45b30e17169d84b55  FreshCore_A20/QProtocol.asi
+1a16aa10b3da42b2ec6e9013843f57e89c75f2135c26bb211222ca3677c3e8bf  FreshCore_A20/QProtocol.ini
+c5b706dc657700e040e7779c126139a7bbcce871d6cc36d75001e1f37aea76d4  FreshCore_A20/README.txt
+0af65bff24b14844a9e84c06fac9a9f907c54302ae95f5120789ec0840418146  Q-Protocol_FreshCore_A20_CosmeticDiscovery_TEST.zip
