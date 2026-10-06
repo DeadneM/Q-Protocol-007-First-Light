@@ -12,7 +12,7 @@ on:
       - ".github/workflows/build-fresh-core.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -236,7 +236,7 @@ jobs:
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
-            src\QProtocol.cpp src\OverlayA20.cpp src\CosmeticDiscovery.cpp ^
+            src\QProtocol.cpp src\OverlayA19.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
@@ -251,7 +251,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package exact three-file test ZIP
+      - name: Package exact three-file release ZIP
         shell: pwsh
         run: |
           Copy-Item config\QProtocol.ini dist\QProtocol.ini
@@ -264,7 +264,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A20B_ResolverDiagnostic_TEST.zip"
+          out = dist / "Q-Protocol_v0.9.1.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -280,10 +280,29 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload test artifact
+      - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20B
-          path: dist/Q-Protocol_FreshCore_A20B_ResolverDiagnostic_TEST.zip
+          name: Q-Protocol_v0.9.1
+          path: dist/Q-Protocol_v0.9.1.zip
           if-no-files-found: error
 
+      - name: Publish GitHub Release v0.9.1
+        if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release Fresh Core A19 v0.9.1')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v0.9.1"
+          $asset = "dist/Q-Protocol_v0.9.1.zip"
+          $title = "Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening"
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          $exists = ($LASTEXITCODE -eq 0)
+
+          if ($exists) {
+            gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
+            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A19.md --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A19.md --repo $env:GITHUB_REPOSITORY
+          }

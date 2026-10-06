@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "Overlay.h"
-#include "QProtocolInternal.h"
 
 namespace qp {
 
@@ -65,45 +64,6 @@ struct PlayerContext {
         return loadout != nullptr && playerId != 0;
     }
 };
-
-enum class ResolveStage {
-    Ready,
-    ResolveException,
-    PlayerHandleMissing,
-    LoadoutLookupMissing,
-    LoadoutVtableUnreadable,
-    LoadoutVtableMismatch,
-    RuntimeRootMissing,
-    RuntimeNodeMissing,
-    PlayerIdMissing
-};
-
-struct ResolveDiagnostics {
-    ResolveStage stage = ResolveStage::PlayerHandleMissing;
-    std::uint64_t handle0 = 0;
-    std::uint64_t handle1 = 0;
-    void* loadout = nullptr;
-    std::uintptr_t vtable = 0;
-    std::uintptr_t root = 0;
-    std::uintptr_t node = 0;
-    std::uint32_t playerId = 0;
-};
-
-const char* ResolveStageName(ResolveStage stage) {
-    switch (stage) {
-    case ResolveStage::Ready: return "READY";
-    case ResolveStage::ResolveException: return "resolve-exception";
-    case ResolveStage::PlayerHandleMissing: return "player-handle-missing";
-    case ResolveStage::LoadoutLookupMissing: return "loadout-lookup-missing";
-    case ResolveStage::LoadoutVtableUnreadable: return "loadout-vtable-unreadable";
-    case ResolveStage::LoadoutVtableMismatch: return "loadout-vtable-mismatch";
-    case ResolveStage::RuntimeRootMissing: return "runtime-root-missing";
-    case ResolveStage::RuntimeNodeMissing: return "runtime-node-missing";
-    case ResolveStage::PlayerIdMissing: return "player-id-missing";
-    default: return "unknown";
-    }
-}
-
 
 struct WeaponGraph {
     std::uintptr_t itemEntry = 0;
@@ -243,14 +203,6 @@ void Log(const char* fmt, ...) {
     FlushFileBuffers(g_log);
 }
 
-void QpDiagnosticLogLine(const char* line) {
-    if (!line) {
-        return;
-    }
-
-    Log("%s", line);
-}
-
 template <typename T>
 bool SafeRead(std::uintptr_t address, T& out) {
     SIZE_T bytes = 0;
@@ -328,110 +280,69 @@ bool ValidateTargetExecutable() {
     return true;
 }
 
-PlayerContext ResolvePlayer(
-    ResolveDiagnostics* diagnostics = nullptr) {
+bool ResolveNativeLoadout(void** outLoadout) {
+    if (!outLoadout || !g_exeBase) {
+        return false;
+    }
 
-    PlayerContext result{};
-    ResolveDiagnostics local{};
-    ResolveDiagnostics& diag =
-        diagnostics ? *diagnostics : local;
+    *outLoadout = nullptr;
 
-    auto resolve =
-        reinterpret_cast<ResolveLocalPlayerFn>(
-            g_exeBase + kPlayerResolverRva);
-
-    auto lookup =
-        reinterpret_cast<LookupPlayerFn>(
-            g_exeBase + kPlayerRegistryHelperRva);
+    auto resolve = reinterpret_cast<ResolveLocalPlayerFn>(g_exeBase + kPlayerResolverRva);
+    auto lookup = reinterpret_cast<LookupPlayerFn>(g_exeBase + kPlayerRegistryHelperRva);
 
     std::uint64_t handle[2]{};
 
     __try {
         resolve(0, handle);
-
-        diag.handle0 = handle[0];
-        diag.handle1 = handle[1];
-
         if (handle[0] == 0) {
-            diag.stage =
-                ResolveStage::PlayerHandleMissing;
-            return result;
+            return false;
         }
 
-        diag.loadout =
-            lookup(
-                handle,
-                reinterpret_cast<void*>(
-                    g_exeBase +
-                    kPlayerRegistryGlobalRva));
-
-        if (!diag.loadout) {
-            diag.stage =
-                ResolveStage::LoadoutLookupMissing;
-            return result;
-        }
+        *outLoadout = lookup(
+            handle,
+            reinterpret_cast<void*>(g_exeBase + kPlayerRegistryGlobalRva));
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        diag.stage =
-            ResolveStage::ResolveException;
-        diag.loadout = nullptr;
+        *outLoadout = nullptr;
+        return false;
+    }
+
+    return *outLoadout != nullptr;
+}
+
+PlayerContext ResolvePlayer() {
+    PlayerContext result{};
+
+    void* loadout = nullptr;
+    if (!ResolveNativeLoadout(&loadout)) {
         return result;
     }
 
-    if (!SafeRead(
-            reinterpret_cast<std::uintptr_t>(
-                diag.loadout),
-            diag.vtable)) {
-
-        diag.stage =
-            ResolveStage::LoadoutVtableUnreadable;
+    std::uintptr_t vtable = 0;
+    if (!SafeRead(reinterpret_cast<std::uintptr_t>(loadout), vtable)) {
         return result;
     }
 
-    if (diag.vtable !=
-        g_exeBase +
-        kPlayerLoadoutVtableRva) {
-
-        diag.stage =
-            ResolveStage::LoadoutVtableMismatch;
+    if (vtable != g_exeBase + kPlayerLoadoutVtableRva) {
         return result;
     }
 
-    if (!SafeRead(
-            g_exeBase +
-                kRuntimePlayerGlobalRva,
-            diag.root) ||
-        !diag.root) {
+    std::uintptr_t root = 0;
+    std::uintptr_t node = 0;
+    std::uint32_t playerId = 0;
 
-        diag.stage =
-            ResolveStage::RuntimeRootMissing;
+    if (!SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) || !root) {
+        return result;
+    }
+    if (!SafeRead(root + 0x10, node) || !node) {
+        return result;
+    }
+    if (!SafeRead(node + 0x30, playerId) || playerId == 0) {
         return result;
     }
 
-    if (!SafeRead(
-            diag.root + 0x10,
-            diag.node) ||
-        !diag.node) {
-
-        diag.stage =
-            ResolveStage::RuntimeNodeMissing;
-        return result;
-    }
-
-    if (!SafeRead(
-            diag.node + 0x30,
-            diag.playerId) ||
-        diag.playerId == 0) {
-
-        diag.stage =
-            ResolveStage::PlayerIdMissing;
-        return result;
-    }
-
-    diag.stage = ResolveStage::Ready;
-
-    result.loadout = diag.loadout;
-    result.playerId = diag.playerId;
+    result.loadout = loadout;
+    result.playerId = playerId;
     return result;
 }
 
@@ -1316,8 +1227,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20B");
-    Log("Scope: validated A5 gameplay core + A20 cosmetic discovery.");
+    Log("Q Protocol Fresh Core A19");
+    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1350,56 +1261,13 @@ DWORD WINAPI WorkerThread(LPVOID) {
     PlayerContext previousPlayer{};
     bool previousReady = false;
     bool autoDone = false;
-    ResolveStage previousResolveStage =
-        ResolveStage::Ready;
     std::string lastOverlayStatus = OverlayStatus();
 
     SHORT keyPrevious[13]{};
 
     while (g_running.load(std::memory_order_acquire)) {
-        ResolveDiagnostics resolveDiag{};
-        const PlayerContext player =
-            ResolvePlayer(&resolveDiag);
-        const bool ready =
-            static_cast<bool>(player);
-
-        if (resolveDiag.stage !=
-            previousResolveStage) {
-
-            if (resolveDiag.stage !=
-                ResolveStage::Ready) {
-
-                Log(
-                    "RESOLVE FAIL stage=%s handle0=%016llX handle1=%016llX loadout=0x%p vtable=0x%p expectedVtable=0x%p root=0x%p node=0x%p playerId=%u",
-                    ResolveStageName(
-                        resolveDiag.stage),
-                    static_cast<unsigned long long>(
-                        resolveDiag.handle0),
-                    static_cast<unsigned long long>(
-                        resolveDiag.handle1),
-                    resolveDiag.loadout,
-                    reinterpret_cast<void*>(
-                        resolveDiag.vtable),
-                    reinterpret_cast<void*>(
-                        g_exeBase +
-                        kPlayerLoadoutVtableRva),
-                    reinterpret_cast<void*>(
-                        resolveDiag.root),
-                    reinterpret_cast<void*>(
-                        resolveDiag.node),
-                    resolveDiag.playerId);
-
-            } else {
-
-                Log(
-                    "RESOLVE RECOVERED loadout=0x%p playerId=%u",
-                    player.loadout,
-                    player.playerId);
-            }
-
-            previousResolveStage =
-                resolveDiag.stage;
-        }
+        const PlayerContext player = ResolvePlayer();
+        const bool ready = static_cast<bool>(player);
 
         const bool playerIdentityChanged =
             ready && previousReady &&

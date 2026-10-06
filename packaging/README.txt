@@ -1,69 +1,50 @@
-Q Protocol - Fresh Core A20B
-===========================
+Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
+====================================================
 
-RESOLVER DIAGNOSTIC + COSMETIC DISCOVERY TEST
+PUBLIC RELEASE BUILD
 
-Purpose
--------
-A20 is the research build for the requested NG+-style cosmetic unlock feature:
+This release promotes the fully audited Fresh Core A19 line.
 
-- Unlock All Outfits
-- Unlock All Weapon Skins
-- Unlock All Gadget Skins
-- future master toggle: Unlock All Cosmetics
+Highlights
+----------
+- Remappable overlay invocation key through [Overlay] ToggleKey.
+- Overlay toggle safely coexists with F1-F12, including when remapped to them.
+- OneHanded and TwoHanded support Off / None.
+- Automatic defaults are QPistolSilenced + Off + Off.
+- Experimental weapons remain hidden from Manual/Auto selectors by default.
+- Latest user-validated weapon statuses are included.
+- Full catalogue/config audit runs before every build.
+- DX12 overlay bootstrap remains fail-open.
 
-A20 DOES NOT unlock anything yet.
-
-It installs read-only runtime probes on the current October 2026 executable and
-logs the structures used by:
-
-- $knt.loadout.firearmSkins
-- $knt.loadout.gadgetSkins
-- $knt.outfits.outfits
-- $knt.online.unlockables
-
-No save writes
---------------
-A20 does not edit data.save or index.save.
-A20 does not call knt.online.unlockable.acquire.
-A20 does not alter challenge completion or unlock states.
-
-Test procedure
---------------
-1. Install A20 over Q Protocol.
-2. Start the game normally.
-3. Open Customisation / TacSim.
-4. Browse:
-   - Outfits
-   - Weapon skins
-   - Gadget skins
-5. Spend a few seconds in each category.
-6. Exit the game.
-7. Send QProtocol.log back for analysis.
-
-Expected log prefix:
-[COSDISC]
-
-Configuration
--------------
-[CosmeticDiscovery]
-Enabled=1
-MaxCallsPerHook=8
-
-Set Enabled=0 to disable the A20 probes.
-
-All A19 gameplay functionality is preserved.
+Gameplay foundation
+-------------------
 Fresh Core A5 remains the validated gameplay primitive base.
 
+A19 does NOT alter:
+- ResolvePlayer
+- GiveWeapon
+- AddAmmo
+- weapon RIDs
+- ammo classes
+- 500 ms weapon stabilization
+- native gameplay hook semantics
 
-A20B resolver diagnostic
-------------------------
-A20B adds no new gameplay writes. It records the exact reason the shared player
-resolver becomes unavailable.
+Current hotkeys
+---------------
+F1  License To Kill
+F2  Manual Ammo
+F3  Manual Loadout
+F4  Q-Pistol Swap
+F5-F12 Weapon slots
 
-Look for:
-RESOLVE FAIL stage=...
-RESOLVE RECOVERED ...
+Generic F1-F12 Action reassignment is not implemented yet.
 
-This is specifically intended to diagnose Manual/AUTO weapon availability in
-TacSim/customisation and after returning to gameplay.
+Installation
+------------
+Copy into the game directory:
+- QProtocol.asi
+- QProtocol.ini
+- README.txt
+
+Default overlay key: Insert
+It can be remapped from the Hotkeys tab.

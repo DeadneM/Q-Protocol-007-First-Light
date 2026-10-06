@@ -1,49 +1,5 @@
 # Q Protocol — Project State
 
-## Fresh Core A20B resolver diagnostic candidate
-
-- Build: `Q-Protocol_FreshCore_A20B_ResolverDiagnostic_TEST.zip`
-- Status: **diagnostic test candidate**
-- Trigger: A20 test showed a real transition from PLAYER READY to PLAYER NOT READY; Manual F3 was then blocked.
-- Existing log proves AUTO executed once during the brief READY window and completed Q-Pistol GiveWeapon, but the resolver never recovered later in that session.
-- A20B preserves all A20 cosmetic probes and adds stage-specific resolver diagnostics only.
-- Diagnostic stages: player handle, loadout lookup, loadout vtable read/mismatch, runtime root, runtime node, player ID.
-- No resolver acceptance rule is loosened yet. No blind fallback/cached player is used.
-- Public release remains v0.9.1 / A19.
-
-## Fresh Core A20 cosmetic / NG+ discovery candidate
-
-- Build: `Q-Protocol_FreshCore_A20_CosmeticDiscovery_TEST.zip`
-- Status: **read-only research candidate**
-- Goal: prepare runtime-only `Unlock All Cosmetics` without editing saves.
-- Uploaded target executable verified:
-  - file size: `65,068,936` bytes
-  - SHA-256: `9d82479246d2c2fbcbcbb94e24aeb91bc8917241148278a3288031afb5828bf2`
-  - PE timestamp: `0x6ABCDDDB`
-  - SizeOfImage: `0x06EC1000`
-- Uploaded saves inspected:
-  - `data.save` SHA-256 `bec5e4cebb5b9550b39155a12742d5cdbce9a6be1290fcf6b3796eb39b8329e9`
-  - `index.save` SHA-256 `a28a8fc76ff69e277edae7f1e5e13effa03ead8c9be130018dd0fb47befe2251`
-  - both appear encoded/high-entropy; A20 deliberately avoids save editing.
-- EXE static audit found:
-  - `$knt.online.unlockables`
-  - `knt.online.unlockable.acquire`
-  - `$knt.loadout.firearmSkins`
-  - `$knt.loadout.gadgetSkins`
-  - `$knt.outfits.outfits`
-  - `JSONTemplate.SSkinCollectibleData`
-  - `JSONTemplate.SOutfitData`
-  - `JSONTemplate.SUnlockableStateData`
-  - fields `CanUnlock`, `GrantedItems`, `UnlockableUnlockState`, `RequiredXP`, `HasEnoughXP`.
-- A20 hooks four current-build runtime handlers only for diagnostics and writes `[COSDISC]` snapshots to `QProtocol.log`.
-- It does **not** call AcquireUnlockable, modify challenge state, or write cosmetic state/save data.
-- ASI SHA-256: `7d735c8bb33fae0df5ab03ef1dab8f1438272507739470e45b30e17169d84b55`
-- ZIP SHA-256: `0af65bff24b14844a9e84c06fac9a9f907c54302ae95f5120789ec0840418146`
-- GitHub Actions run: `37474656454` (PASS).
-- Artifact ID: `11417679584`.
-- Source build commit: `e2f3825f58a13d41a21166adf26109ef13ef975a`.
-- Compiler warnings/errors: none detected.
-
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
 - Build: `Q-Protocol_v0.9.1.zip`

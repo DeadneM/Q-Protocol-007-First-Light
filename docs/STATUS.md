@@ -2,7 +2,6 @@
 
 ## Active state
 
-- Current test candidate: **Fresh Core A20 Cosmetic / NG+ Discovery**.
 - Current public release: **Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening**.
 - A19 is the current public release. It preserves the A5 gameplay foundation while hardening overlay input, defaults, fail-open cleanup and CI.
 
