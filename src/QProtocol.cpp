@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Overlay.h"
+#include "QProtocolInternal.h"
 
 namespace qp {
 
@@ -201,6 +202,14 @@ void Log(const char* fmt, ...) {
     WriteFile(g_log, buffer, static_cast<DWORD>(strlen(buffer)), &out, nullptr);
     WriteFile(g_log, "\r\n", 2, &out, nullptr);
     FlushFileBuffers(g_log);
+}
+
+void QpDiagnosticLogLine(const char* line) {
+    if (!line) {
+        return;
+    }
+
+    Log("%s", line);
 }
 
 template <typename T>
@@ -1227,8 +1236,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A19");
-    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
+    Log("Q Protocol Fresh Core A20");
+    Log("Scope: validated A5 gameplay core + A20 cosmetic discovery.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");

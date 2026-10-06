@@ -3,6 +3,20 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-06 — Fresh Core A20 cosmetic / NG+ discovery
+
+New research direction: runtime-only cosmetic unlocks analogous to NG+.
+
+Static analysis of the current uploaded executable identified the game's central
+unlockable/cosmetic plumbing, including firearm skins, gadget skins, outfits and
+online unlockable state data.
+
+A20 adds read-only MinHook probes for the current-build handlers and logs
+`[COSDISC]` snapshots when the customisation/TacSim lists are built.
+
+A20 deliberately performs no unlock writes and does not modify the supplied
+save files.
+
 ## 2026-10-05 — Q Protocol v0.9.1 / Fresh Core A19 release
 
 Fresh Core A19 Audit Hardening promoted to public release as `v0.9.1`.
