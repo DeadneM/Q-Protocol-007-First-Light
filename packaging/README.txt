@@ -1,7 +1,7 @@
-Q Protocol - Fresh Core A20
+Q Protocol - Fresh Core A20B
 ===========================
 
-COSMETIC / NG+ DISCOVERY TEST
+RESOLVER DIAGNOSTIC + COSMETIC DISCOVERY TEST
 
 Purpose
 -------
@@ -54,3 +54,16 @@ Set Enabled=0 to disable the A20 probes.
 
 All A19 gameplay functionality is preserved.
 Fresh Core A5 remains the validated gameplay primitive base.
+
+
+A20B resolver diagnostic
+------------------------
+A20B adds no new gameplay writes. It records the exact reason the shared player
+resolver becomes unavailable.
+
+Look for:
+RESOLVE FAIL stage=...
+RESOLVE RECOVERED ...
+
+This is specifically intended to diagnose Manual/AUTO weapon availability in
+TacSim/customisation and after returning to gameplay.

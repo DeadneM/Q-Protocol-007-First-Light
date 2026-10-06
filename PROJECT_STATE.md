@@ -1,5 +1,16 @@
 # Q Protocol — Project State
 
+## Fresh Core A20B resolver diagnostic candidate
+
+- Build: `Q-Protocol_FreshCore_A20B_ResolverDiagnostic_TEST.zip`
+- Status: **diagnostic test candidate**
+- Trigger: A20 test showed a real transition from PLAYER READY to PLAYER NOT READY; Manual F3 was then blocked.
+- Existing log proves AUTO executed once during the brief READY window and completed Q-Pistol GiveWeapon, but the resolver never recovered later in that session.
+- A20B preserves all A20 cosmetic probes and adds stage-specific resolver diagnostics only.
+- Diagnostic stages: player handle, loadout lookup, loadout vtable read/mismatch, runtime root, runtime node, player ID.
+- No resolver acceptance rule is loosened yet. No blind fallback/cached player is used.
+- Public release remains v0.9.1 / A19.
+
 ## Fresh Core A20 cosmetic / NG+ discovery candidate
 
 - Build: `Q-Protocol_FreshCore_A20_CosmeticDiscovery_TEST.zip`

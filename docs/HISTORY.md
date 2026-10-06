@@ -3,6 +3,16 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-10-06 — Fresh Core A20B resolver diagnostic
+
+A20 testing exposed a real Manual/AUTO availability issue after the runtime
+player context became unavailable. The log showed one valid READY cycle followed
+by a persistent NOT READY state and rejected F3 requests.
+
+A20B adds stage-specific resolver diagnostics without changing resolver
+acceptance or gameplay behavior. The goal is to identify the exact native state
+that differs in TacSim/customisation before changing the shared player primitive.
+
 ## 2026-10-06 — Fresh Core A20 cosmetic / NG+ discovery
 
 New research direction: runtime-only cosmetic unlocks analogous to NG+.
