@@ -309,5 +309,5 @@ jobs:
             gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
             gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20F.md --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A19.md --repo $env:GITHUB_REPOSITORY
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A20F.md --repo $env:GITHUB_REPOSITORY
           }
