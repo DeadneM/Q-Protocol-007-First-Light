@@ -17,24 +17,24 @@
 
 namespace qp {
 
-constexpr std::uintptr_t kExpectedSizeOfImage = 0x06EC1000;
-constexpr DWORD kExpectedTimeDateStamp = 0x6ABCDDDB;
+constexpr std::uintptr_t kExpectedSizeOfImage = 0x06D31000;
+constexpr DWORD kExpectedTimeDateStamp = 0x6AC4D653;
 
 // October 2026 executable mappings.
-constexpr std::uintptr_t kPlayerResolverRva       = 0x0171DF40;
-constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D7770;
-constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x069225A0;
-constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x064576F8;
-constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x064576E0;
-constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDEB70;
-constexpr std::uintptr_t kLicenseToKillRva        = 0x0191C344;
+constexpr std::uintptr_t kPlayerResolverRva       = 0x0171C2B0;
+constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E20;
+constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
+constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
+constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
+constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD0D0;
+constexpr std::uintptr_t kLicenseToKillRva        = 0x0191A6B4;
 
-constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECB538;
-constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECC800;
-constexpr std::uintptr_t kNativeSpawnRva          = 0x016B6B10;
-constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00116170;
-constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8FC0;
-constexpr std::uintptr_t kGameplayHookRva         = 0x0194D891;
+constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
+constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
+constexpr std::uintptr_t kNativeSpawnRva          = 0x016B4E80;
+constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00115820;
+constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A7330;
+constexpr std::uintptr_t kGameplayHookRva         = 0x0194BC01;
 
 constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
 constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
@@ -46,8 +46,8 @@ constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 
 constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
 
-constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x53};
-constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x53};
+constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x23};
+constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x23};
 
 constexpr BYTE kGameplayHookPreimage[13] = {
     0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00,
@@ -1578,8 +1578,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20C PackageSequencer NativeConfirmation TEST");
-    Log("Scope: A19Q Q-Pistol DIRECT base + transactional AUTO/F3 package sequencer + strict native acceptance.");
+    Log("Q Protocol Fresh Core A20D GameUpdateRemap TEST");
+    Log("Scope: A20C package sequencer remapped for the 2026-10-07 007 First Light game update.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
