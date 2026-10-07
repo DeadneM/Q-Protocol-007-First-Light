@@ -26,7 +26,7 @@ constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E20;
 constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
 constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
 constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
-constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD0D0;
+constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
 constexpr std::uintptr_t kLicenseToKillRva        = 0x0191A6B4;
 
 constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
@@ -1578,8 +1578,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20D GameUpdateRemap TEST");
-    Log("Scope: A20C package sequencer remapped for the 2026-10-07 007 First Light game update.");
+    Log("Q Protocol Fresh Core A20E PlayerLoadoutVtableFix TEST");
+    Log("Scope: A20D game-update remap + corrected ZKntPlayerLoadoutEntity vtable.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
