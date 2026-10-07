@@ -57,6 +57,7 @@ The overlay currently provides:
 
 - Manual and Automatic loadout/ammo editors
 - Weapons tab with configurable Weapon 1-8 slots for F5-F12
+- F1 now toggles the actual native License To Kill state at press time
 - Debug tab with weapon catalogue status editing, Spawn Weapon testing and runtime discovery
 - Experimental weapon visibility toggle
 - overlay-key capture/remapping
