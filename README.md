@@ -56,8 +56,8 @@ The `Action=` entries in the INI currently document those fixed semantics.
 The overlay currently provides:
 
 - Manual and Automatic loadout/ammo editors
-- Mod tab with configurable Weapon 1-8 slots for F5-F12
-- weapon catalogue status editing and Spawn Weapon testing
+- Weapons tab with configurable Weapon 1-8 slots for F5-F12
+- Debug tab with weapon catalogue status editing, Spawn Weapon testing and runtime discovery
 - Experimental weapon visibility toggle
 - overlay-key capture/remapping
 - Save / Reload / Reset Defaults
