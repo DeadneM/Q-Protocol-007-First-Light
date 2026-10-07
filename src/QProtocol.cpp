@@ -27,8 +27,11 @@ constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
 constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
 constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
 constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
-constexpr std::uintptr_t kLicenseToKillRva        = 0x0191A6B4;
+constexpr std::uintptr_t kLicenseToKillRva         = 0x0191A6B4;
 constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191A71B;
+constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191A6D8;
+constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191A6E7;
+constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191A763;
 
 constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
 constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
@@ -48,9 +51,16 @@ constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
 
 constexpr BYTE kLtkNaturalFalse[2] = {0x32, 0xD2};
-constexpr BYTE kLtkForceTrue[2]    = {0xB2, 0x01};
-constexpr BYTE kLtkNativeTrue[2]   = {0xB2, 0x01};
-constexpr BYTE kLtkForceFalse[2]   = {0x32, 0xD2};
+constexpr BYTE kLtkForceTrue[2]     = {0xB2, 0x01};
+constexpr BYTE kLtkNativeTrue[2]    = {0xB2, 0x01};
+constexpr BYTE kLtkForceFalse[2]    = {0x32, 0xD2};
+
+constexpr BYTE kLtkObserveHookPreimage[15] = {
+    0x49, 0x8B, 0xBB, 0xF0, 0x06, 0x00, 0x00,
+    0x4C, 0x23, 0x04, 0xC7,
+    0x84, 0xD2,
+    0x74, 0x7C
+};
 
 constexpr BYTE kGameplayHookPreimage[13] = {
     0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00,
@@ -133,6 +143,11 @@ using NativeAmmoInsertFn = void(__fastcall*)(void*, const AddFirearmAmmunitionIn
 using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
 
 extern "C" void QpGameplayHook();
+extern "C" void QpLtkObserveHook();
+
+extern "C" volatile LONG g_qpLtkObservedPacked = 0;
+extern "C" std::uintptr_t g_qpLtkObserveTrueTarget = 0;
+extern "C" std::uintptr_t g_qpLtkObserveFalseTarget = 0;
 
 HMODULE g_module = nullptr;
 HANDLE g_log = INVALID_HANDLE_VALUE;
@@ -141,6 +156,7 @@ std::atomic<bool> g_running{true};
 
 NativeSpawnFn g_nativeSpawn = nullptr;
 bool g_gameplayHookInstalled = false;
+bool g_ltkObserveHookInstalled = false;
 
 std::atomic<std::uintptr_t> g_pendingSpawner{0};
 std::atomic<bool> g_spawnTriggered{false};
@@ -388,6 +404,93 @@ PlayerContext ResolvePlayer() {
     return result;
 }
 
+bool InstallLicenseToKillObserveHook() {
+    const std::uintptr_t site = g_exeBase + kLtkObserveHookRva;
+
+    BYTE current[sizeof(kLtkObserveHookPreimage)]{};
+    SIZE_T bytes = 0;
+
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            reinterpret_cast<LPCVOID>(site),
+            current,
+            sizeof(current),
+            &bytes) ||
+        bytes != sizeof(current) ||
+        memcmp(
+            current,
+            kLtkObserveHookPreimage,
+            sizeof(current)) != 0) {
+
+        Log("[ERROR] LTK observe hook preimage mismatch.");
+        return false;
+    }
+
+    g_qpLtkObserveTrueTarget =
+        g_exeBase + kLtkObserveTrueRva;
+    g_qpLtkObserveFalseTarget =
+        g_exeBase + kLtkObserveFalseRva;
+
+    InterlockedExchange(
+        &g_qpLtkObservedPacked,
+        0);
+
+    BYTE patch[15] = {
+        0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0x90
+    };
+
+    const std::uint64_t target =
+        reinterpret_cast<std::uint64_t>(
+            &QpLtkObserveHook);
+
+    memcpy(
+        &patch[6],
+        &target,
+        sizeof(target));
+
+    if (!WriteCodeBytes(
+            site,
+            patch,
+            sizeof(patch))) {
+
+        Log("[ERROR] LTK observe hook install write failed.");
+        return false;
+    }
+
+    g_ltkObserveHookInstalled = true;
+    Log(
+        "LTK native-state observe hook installed at EXE+0x%llX.",
+        static_cast<unsigned long long>(
+            kLtkObserveHookRva));
+    return true;
+}
+
+bool RemoveLicenseToKillObserveHook() {
+    if (!g_ltkObserveHookInstalled) {
+        return true;
+    }
+
+    const std::uintptr_t site =
+        g_exeBase + kLtkObserveHookRva;
+
+    const bool restored =
+        WriteCodeBytes(
+            site,
+            kLtkObserveHookPreimage,
+            sizeof(kLtkObserveHookPreimage));
+
+    if (restored) {
+        g_ltkObserveHookInstalled = false;
+        InterlockedExchange(
+            &g_qpLtkObservedPacked,
+            0);
+    }
+
+    return restored;
+}
+
 bool ReadCode2(std::uintptr_t address, BYTE (&out)[2]) {
     SIZE_T bytes = 0;
     return ReadProcessMemory(
@@ -477,29 +580,34 @@ bool RestoreLicenseToKillNatural() {
 }
 
 bool ToggleLicenseToKill() {
-    const LtkState state = ReadLicenseToKillState();
+    const LONG observed =
+        InterlockedCompareExchange(
+            &g_qpLtkObservedPacked,
+            0,
+            0);
 
-    if (state == LtkState::Natural ||
-        state == LtkState::ForceOff) {
-
+    if (observed == 1) {
         if (!ApplyLicenseToKillForce(true)) {
             return false;
         }
 
-        Log("F1 License To Kill = FORCE ON");
+        Log(
+            "F1 License To Kill: native state OFF -> FORCE ON");
         return true;
     }
 
-    if (state == LtkState::ForceOn) {
+    if (observed == 2) {
         if (!ApplyLicenseToKillForce(false)) {
             return false;
         }
 
-        Log("F1 License To Kill = FORCE OFF");
+        Log(
+            "F1 License To Kill: native state ON -> FORCE OFF");
         return true;
     }
 
-    Log("[ERROR] F1 License To Kill: patch state mismatch.");
+    Log(
+        "[ERROR] F1 License To Kill: native runtime state not observed yet.");
     return false;
 }
 
@@ -1562,8 +1670,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20H WeaponsDebug_LTKForceToggle TEST");
-    Log("Scope: A20G Weapons-tab UI + true F1 FORCE ON/FORCE OFF toggle over A20F.");
+    Log("Q Protocol Fresh Core A20I NativeLTKStateToggle TEST");
+    Log("Scope: A20H tab layout + F1 toggles the actual native LTK state observed at press time.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1576,6 +1684,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
     if (!InstallGameplayHook()) {
         Log("[ERROR] Fresh Core disabled: gameplay hook unavailable.");
         return 0;
+    }
+
+    if (!InstallLicenseToKillObserveHook()) {
+        Log("[ERROR] F1 native-state toggle disabled: observe hook unavailable.");
     }
 
     if (OverlayInitialize(iniPath)) {
@@ -1862,6 +1974,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
     if (!RestoreLicenseToKillNatural()) {
         Log("[ERROR] License To Kill natural-state restore failed during DLL shutdown.");
+    }
+
+    if (!RemoveLicenseToKillObserveHook()) {
+        Log("[ERROR] LTK observe hook restore failed during DLL shutdown.");
     }
 
     OverlayShutdown();
