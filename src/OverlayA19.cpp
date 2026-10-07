@@ -141,6 +141,16 @@ bool g_autoEnabledUi = false;
 bool g_showExperimentalLoadout = false;
 ProfileUi g_manualUi{};
 ProfileUi g_autoUi{};
+std::array<std::string, 8> g_modWeaponSlots{
+    "LightPistolNonLethal",
+    "Taser",
+    "HeavyPistol50Cal",
+    "MachinePistolHighRecoil",
+    "SMGNonLethal",
+    "AssaultRifleNonLethal",
+    "ShotgunSemiAuto",
+    "ARMilitary"
+};
 std::vector<WeaponEntry> g_weapons;
 std::vector<RuntimeEntry> g_runtimeCatalog;
 int g_selectedWeapon = -1;
@@ -873,6 +883,21 @@ void LoadUiFromIni() {
         L"AutoAmmo",
         g_autoUi);
 
+    for (int i = 0; i < 8; ++i) {
+        wchar_t section[32]{};
+        swprintf_s(section, L"Hotkey_F%d", i + 5);
+
+        const std::wstring fallback =
+            Utf8ToWide(g_modWeaponSlots[static_cast<std::size_t>(i)]);
+
+        g_modWeaponSlots[static_cast<std::size_t>(i)] =
+            WideToUtf8(
+                ReadIniW(
+                    section,
+                    L"Weapon",
+                    fallback.c_str()));
+    }
+
     g_uiLoaded = true;
 }
 
@@ -949,6 +974,18 @@ void SaveUiToIni() {
         L"AutoAmmo",
         g_autoUi);
 
+    for (int i = 0; i < 8; ++i) {
+        wchar_t section[32]{};
+        swprintf_s(section, L"Hotkey_F%d", i + 5);
+
+        WriteIniW(
+            section,
+            L"Weapon",
+            Utf8ToWide(
+                g_modWeaponSlots[
+                    static_cast<std::size_t>(i)]));
+    }
+
     SaveWeaponStatuses();
 
     WritePrivateProfileStringW(
@@ -993,6 +1030,17 @@ void ResetProfileDefaults() {
         10, 30, 30, 8, 5, 8
     };
 
+    g_modWeaponSlots = {
+        "LightPistolNonLethal",
+        "Taser",
+        "HeavyPistol50Cal",
+        "MachinePistolHighRecoil",
+        "SMGNonLethal",
+        "AssaultRifleNonLethal",
+        "ShotgunSemiAuto",
+        "ARMilitary"
+    };
+
     SaveUiToIni();
 }
 
@@ -1013,6 +1061,11 @@ const WeaponEntry* FindWeapon(
 bool RoleMatches(
     const WeaponEntry& weapon,
     const char* role) {
+
+    if (role &&
+        std::strcmp(role, "All") == 0) {
+        return true;
+    }
 
     return weapon.role == role ||
            weapon.role == "Any";
@@ -1985,6 +2038,83 @@ void DrawWeaponsTab() {
     }
 }
 
+void DrawModTab() {
+    ImGui::TextUnformatted(
+        "Weapon slots");
+
+    ImGui::SameLine();
+
+    ImGui::TextDisabled(
+        "F5-F12");
+
+    ImGui::Spacing();
+
+    ImGui::TextWrapped(
+        "Choose the weapon assigned to each Q Protocol weapon slot. "
+        "These use the same validated catalogue as Manual/Automatic loadouts. "
+        "Save applies the new F5-F12 configuration immediately.");
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (ImGui::BeginTable(
+            "mod_weapon_slots",
+            2,
+            ImGuiTableFlags_SizingStretchProp |
+            ImGuiTableFlags_RowBg |
+            ImGuiTableFlags_BordersInnerH)) {
+
+        ImGui::TableSetupColumn(
+            "Slot",
+            ImGuiTableColumnFlags_WidthFixed,
+            140.0f);
+
+        ImGui::TableSetupColumn(
+            "Weapon",
+            ImGuiTableColumnFlags_WidthStretch);
+
+        for (int i = 0; i < 8; ++i) {
+            ImGui::TableNextRow();
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+
+            ImGui::Text(
+                "Weapon %d  (F%d)",
+                i + 1,
+                i + 5);
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-1.0f);
+
+            std::string comboId =
+                "##mod_weapon_" +
+                std::to_string(i);
+
+            WeaponCombo(
+                comboId.c_str(),
+                g_modWeaponSlots[
+                    static_cast<std::size_t>(i)],
+                "All",
+                true);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::Spacing();
+
+    ImGui::Checkbox(
+        "Show Experimental weapons in slot lists",
+        &g_showExperimentalLoadout);
+
+    ImGui::SameLine();
+
+    ImGui::TextDisabled(
+        "Not Working weapons stay hidden");
+}
+
 void DrawHotkeysTab() {
     ImGui::TextUnformatted(
         "Overlay");
@@ -2420,6 +2550,13 @@ void DrawOverlayWindow() {
                 "Loadout")) {
 
             DrawLoadoutTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem(
+                "Mod")) {
+
+            DrawModTab();
             ImGui::EndTabItem();
         }
 
