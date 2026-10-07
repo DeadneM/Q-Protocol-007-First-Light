@@ -15,16 +15,19 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
-**Q Protocol v0.9.2 / Fresh Core A20F Direct Native Weapon Graphs** is the current public release.
+**Q Protocol v0.9.3 / Fresh Core A20I Native LTK State Toggle** is the current public release.
 
 - Updated for the October 7, 2026 game executable.
 - Player/loadout resolution is remapped for the new executable.
 - Weapon spawning now uses each weapon's native ItemEntry/Spawner graph directly.
 - The obsolete donor pair-clone path is no longer used.
+- The Weapons tab provides configurable Weapon 1-8 slots for F5-F12.
+- The previous catalogue/spawn tools are kept under Debug.
+- F1 reads the game's native License To Kill state and forces the opposite state.
 - The A15 weapon catalogue audit is still enforced automatically by CI.
 - Experimental weapons remain in the catalogue but are hidden from Manual/Auto lists by default.
 - The overlay can expose Experimental entries when testing is desired.
-- A20F is the validated post-update gameplay base; U74 remains a historical behavioral/reference library.
+- A20I is the validated post-update gameplay base; U74 remains a historical behavioral/reference library.
 - Gadget gameplay code remains removed from the active Q Protocol direction.
 
 ## Default controls
@@ -56,7 +59,9 @@ The `Action=` entries in the INI currently document those fixed semantics.
 The overlay currently provides:
 
 - Manual and Automatic loadout/ammo editors
-- weapon catalogue status editing and Spawn Weapon testing
+- Weapons tab with configurable Weapon 1-8 slots for F5-F12
+- F1 now toggles the actual native License To Kill state at press time
+- Debug tab with weapon catalogue status editing, Spawn Weapon testing and runtime discovery
 - Experimental weapon visibility toggle
 - overlay-key capture/remapping
 - Save / Reload / Reset Defaults

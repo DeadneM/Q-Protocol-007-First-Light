@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## Q Protocol v0.9.3 — Fresh Core A20I Native LTK State Toggle
+
+- Build: `Q-Protocol_v0.9.3.zip`
+- Release tag: `v0.9.3`
+- Status: **validated public release**
+- Keeps the validated A20F direct native ItemEntry/Spawner weapon architecture.
+- Adds the **Weapons** overlay tab for configuring Weapon 1-8 / F5-F12.
+- Renames the previous weapon catalogue / Spawn Weapon / Runtime Discovery area to **Debug**.
+- F1 now observes the game's native License To Kill boolean at runtime and forces the opposite state at press time.
+- LTK native instructions and the observation hook are restored on DLL shutdown.
+- Manual loadout, AUTO, ammo, Q-Pistol swap, F5-F12 and the 31-weapon catalogue remain unchanged.
+- Public defaults remain AUTO disabled with OneHanded/TwoHanded set to None.
+- Debug Spawn Weapon is retained as a diagnostic tool; normal-story activation can still be context-sensitive.
+
 ## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
 
 - Build: `Q-Protocol_v0.9.2.zip`
