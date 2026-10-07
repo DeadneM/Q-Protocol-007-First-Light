@@ -1670,8 +1670,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20I NativeLTKStateToggle TEST");
-    Log("Scope: A20H tab layout + F1 toggles the actual native LTK state observed at press time.");
+    Log("Q Protocol v0.9.3 / Fresh Core A20I Native LTK State Toggle");
+    Log("Scope: validated A20F direct weapon graphs + Weapons/Debug overlay + native-state License To Kill toggle.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");

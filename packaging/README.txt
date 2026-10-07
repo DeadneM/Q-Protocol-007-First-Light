@@ -1,46 +1,40 @@
-Q Protocol - Fresh Core A20I Native LTK State Toggle TEST
-=============================================================
+Q Protocol v0.9.3 - Fresh Core A20I
+========================================
 
-BASE
+COMPATIBILITY
+-------------
+For the October 7, 2026 version of 007 First Light.
+
+MAIN CHANGES
+------------
+- New Weapons tab for configuring Weapon 1-8 / F5-F12.
+- Previous weapon catalogue, Spawn Weapon and Runtime Discovery tools moved to Debug.
+- F1 now reads the native License To Kill state calculated by the game and forces the opposite state:
+  - native OFF -> FORCE ON
+  - native ON  -> FORCE OFF
+- Keeps the validated A20F direct native ItemEntry/Spawner weapon system.
+
+NOTE
 ----
-A20H:
-- Weapons tab = configurable F5-F12 slots
-- Debug tab = old catalogue / Spawn Weapon / Runtime Discovery
-- A20F direct native weapon graphs remain unchanged
+Debug -> Spawn Weapon is kept as a diagnostic tool. Story-mode gameplay state can
+still interfere with equipping a diagnostic spawn; this does not affect the normal
+F5-F12 configurable weapon slots.
 
-A20I CHANGE
------------
-F1 now reads the actual License To Kill state calculated by the game at runtime,
-then forces the opposite state.
+DEFAULT CONTROLS
+----------------
+F1  Toggle License To Kill from the current native state
+F2  Add ammunition
+F3  Manual loadout
+F4  Q-Pistol swap
+F5-F12  Configurable weapon slots
+Insert  Overlay
 
-At the moment F1 is pressed:
-- native LTK OFF -> FORCE ON
-- native LTK ON  -> FORCE OFF
-
-This also works on the first F1 press after launch once the game has evaluated
-its LTK state at least once.
-
-IMPLEMENTATION
---------------
-A tiny observation hook records the game's DL boolean immediately after the
-native Rules of Engagement / LTK calculation. It does not alter the calculation.
-
-F1 uses that observed value and then controls both native result paths:
-- FORCE ON makes both paths resolve true
-- FORCE OFF makes both paths resolve false
-
-DLL shutdown restores:
-- both original LTK instructions
-- the original observation-hook bytes
-
-TEST
-----
-1. Start a mission where License To Kill is naturally OFF.
-2. Press F1 once: lethal force should become allowed.
-3. Press F1 again: lethal force should become disallowed.
-4. Start / enter an area where License To Kill is naturally ON.
-5. Before using F1 in that area, press F1 once: lethal force should become OFF.
-6. Send QProtocol.log.
+DEFAULT AUTO PROFILE
+--------------------
+AUTO is disabled by default.
+QPistol=QPistolSilenced
+OneHanded=None
+TwoHanded=None
 
 FILES
 -----
