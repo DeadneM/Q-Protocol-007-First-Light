@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - dev/a19-qpistol-native-bootstrap
+      - dev/a20c-package-sequencer-native-confirmation
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -252,7 +253,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package A19Q test ZIP without INI
+      - name: Package A20C test ZIP without INI
         shell: pwsh
         run: |
           Copy-Item packaging\README.txt dist\README.txt
@@ -264,7 +265,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A19Q_QPistolNativeBootstrap_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A20C_QPistolNativeBootstrap_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -280,11 +281,11 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A19Q test artifact
+      - name: Upload A20C test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A19Q
-          path: dist/Q-Protocol_FreshCore_A19Q_QPistolNativeBootstrap_TEST.zip
+          name: Q-Protocol_FreshCore_A20C
+          path: dist/Q-Protocol_FreshCore_A20C_QPistolNativeBootstrap_TEST.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.1
