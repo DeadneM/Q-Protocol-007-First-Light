@@ -1,42 +1,40 @@
-Q Protocol - Fresh Core A19Q Q-Pistol Native Bootstrap TEST
-=============================================================
+Q Protocol v0.9.2 - Fresh Core A20F
+========================================
 
-BASE
-----
-Strictly based on public v0.9.1 / Fresh Core A19 Audit Hardening.
+COMPATIBILITY
+-------------
+Updated for the October 7, 2026 version of 007 First Light.
 
-ONE TESTED DIFFERENCE
----------------------
-Recovered U84 shows the older October core kept the Q-Pistol on its own native
-ItemEntry/Spawner path. Extra firearms used the donor pair-clone GiveWeapon.
+INSTALL
+-------
+Copy QProtocol.asi and QProtocol.ini to the same mod/ASI location used by your existing Q Protocol installation.
 
-Fresh Core A19 routed Q-Pistol through the same donor pair-clone.
+DEFAULT CONTROLS
+----------------
+F1  License To Kill
+F2  Add ammunition
+F3  Manual loadout
+F4  Q-Pistol swap
+F5-F12  Configurable weapon slots
+Insert  Overlay
 
-A19Q restores only the old Q-Pistol distinction:
-- QPistolSilenced / QPistolUnsilenced use their own native Spawner.
-- OneHanded / TwoHanded / F5-F12 keep the existing A19 pair-clone.
-- A19 queue order and 500 ms delay remain unchanged.
-- A19 AUTO trigger/readiness remains unchanged.
-- A19 F3 semantics remain unchanged.
-- AddAmmo, RIDs, overlay and config remain unchanged.
+DEFAULT AUTO PROFILE
+--------------------
+AUTO is disabled by default.
+QPistol=QPistolSilenced
+OneHanded=None
+TwoHanded=None
 
-IMPORTANT
----------
-This test ZIP contains NO QProtocol.ini.
-Keep your current v0.9.1 QProtocol.ini.
+v0.9.2 CHANGES
+--------------
+- Restores compatibility with the October 7 game update.
+- Fixes player-ready/loadout detection.
+- Replaces the obsolete donor-clone weapon path with direct native ItemEntry/Spawner graphs.
+- Restores F1, F2, F3, F4, F5-F12 and AUTO operation.
+- Keeps the validated 31-weapon catalogue and existing RIDs.
 
-TEST
-----
-1. Replace only QProtocol.asi.
-2. Verify normal gameplay.
-3. Enter TacSim.
-4. Press F3 once.
-5. Restart/re-enter TacSim and test AUTO without pressing F3.
-6. Send QProtocol.log.
-
-Expected log:
-Q-Pistol DIRECT prepared ...
-Q-Pistol DIRECT COMPLETE ...
-then normal GiveWeapon lines for OneHanded/TwoHanded.
-
-Public release remains v0.9.1 / A19.
+FILES
+-----
+QProtocol.asi
+QProtocol.ini
+README.txt
