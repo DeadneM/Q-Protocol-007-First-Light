@@ -1491,8 +1491,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20F DirectNativeWeaponGraphs TEST");
-    Log("Scope: A20E player-ready fix + direct native ItemEntry/Spawner graph for every weapon.");
+    Log("Q Protocol v0.9.2 / Fresh Core A20F DirectNativeWeaponGraphs");
+    Log("Scope: October 7 game-update compatibility + direct native ItemEntry/Spawner graph for every weapon.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
