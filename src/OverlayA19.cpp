@@ -2554,14 +2554,14 @@ void DrawOverlayWindow() {
         }
 
         if (ImGui::BeginTabItem(
-                "Mod")) {
+                "Weapons")) {
 
             DrawModTab();
             ImGui::EndTabItem();
         }
 
         if (ImGui::BeginTabItem(
-                "Weapons")) {
+                "Debug")) {
 
             DrawWeaponsTab();
             ImGui::EndTabItem();
