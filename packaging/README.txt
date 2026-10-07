@@ -1,37 +1,40 @@
-Q Protocol v0.9.2 - Fresh Core A20F
-========================================
+Q Protocol - Fresh Core A20G Mod Weapon Slots TEST
+=====================================================
 
-COMPATIBILITY
+BASE
+----
+Strictly based on validated public v0.9.2 / Fresh Core A20F.
+
+TESTED CHANGE
 -------------
-Updated for the October 7, 2026 version of 007 First Light.
+Adds a new "Mod" overlay tab for configuring the eight weapon hotkey slots:
 
-INSTALL
--------
-Copy QProtocol.asi and QProtocol.ini to the same mod/ASI location used by your existing Q Protocol installation.
+Weapon 1 = F5
+Weapon 2 = F6
+Weapon 3 = F7
+Weapon 4 = F8
+Weapon 5 = F9
+Weapon 6 = F10
+Weapon 7 = F11
+Weapon 8 = F12
 
-DEFAULT CONTROLS
-----------------
-F1  License To Kill
-F2  Add ammunition
-F3  Manual loadout
-F4  Q-Pistol swap
-F5-F12  Configurable weapon slots
-Insert  Overlay
+Each slot uses the same validated weapon catalogue and visibility rules as the
+Manual/Automatic loadout selectors. Experimental weapons can be shown with the
+existing checkbox; Not Working entries remain hidden.
 
-DEFAULT AUTO PROFILE
---------------------
-AUTO is disabled by default.
-QPistol=QPistolSilenced
-OneHanded=None
-TwoHanded=None
+The selections are saved directly to [Hotkey_F5] through [Hotkey_F12] in
+QProtocol.ini. Press Save in the overlay to apply the new assignments.
 
-v0.9.2 CHANGES
---------------
-- Restores compatibility with the October 7 game update.
-- Fixes player-ready/loadout detection.
-- Replaces the obsolete donor-clone weapon path with direct native ItemEntry/Spawner graphs.
-- Restores F1, F2, F3, F4, F5-F12 and AUTO operation.
-- Keeps the validated 31-weapon catalogue and existing RIDs.
+GAMEPLAY
+--------
+No A20F gameplay primitive is changed.
+Direct native ItemEntry/Spawner weapon spawning remains untouched.
+Manual loadout, AUTO, ammo and License To Kill remain untouched.
+
+NOTE
+----
+The Weapons -> Spawn Weapon button remains a diagnostic single-spawn tool.
+This build does not assume that Story mode accepts that path in every context.
 
 FILES
 -----
