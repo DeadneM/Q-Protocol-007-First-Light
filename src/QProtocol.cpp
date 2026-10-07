@@ -28,6 +28,7 @@ constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
 constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
 constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
 constexpr std::uintptr_t kLicenseToKillRva        = 0x0191A6B4;
+constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191A71B;
 
 constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
 constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
@@ -46,8 +47,10 @@ constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 
 constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
 
-constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x23};
-constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x23};
+constexpr BYTE kLtkNaturalFalse[2] = {0x32, 0xD2};
+constexpr BYTE kLtkForceTrue[2]    = {0xB2, 0x01};
+constexpr BYTE kLtkNativeTrue[2]   = {0xB2, 0x01};
+constexpr BYTE kLtkForceFalse[2]   = {0x32, 0xD2};
 
 constexpr BYTE kGameplayHookPreimage[13] = {
     0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00,
@@ -111,8 +114,9 @@ struct PendingAmmoRequest {
 };
 
 enum class LtkState {
-    Off,
-    On,
+    Natural,
+    ForceOff,
+    ForceOn,
     Unknown
 };
 
@@ -384,51 +388,118 @@ PlayerContext ResolvePlayer() {
     return result;
 }
 
-LtkState ReadLicenseToKillState() {
-    BYTE current[6]{};
+bool ReadCode2(std::uintptr_t address, BYTE (&out)[2]) {
     SIZE_T bytes = 0;
-    if (!ReadProcessMemory(
-            GetCurrentProcess(),
-            reinterpret_cast<LPCVOID>(g_exeBase + kLicenseToKillRva),
-            current,
-            sizeof(current),
-            &bytes) ||
-        bytes != sizeof(current)) {
+    return ReadProcessMemory(
+               GetCurrentProcess(),
+               reinterpret_cast<LPCVOID>(address),
+               out,
+               sizeof(out),
+               &bytes) &&
+           bytes == sizeof(out);
+}
+
+LtkState ReadLicenseToKillState() {
+    BYTE falsePath[2]{};
+    BYTE truePath[2]{};
+
+    if (!ReadCode2(g_exeBase + kLicenseToKillRva, falsePath) ||
+        !ReadCode2(g_exeBase + kLicenseToKillNativeOnRva, truePath)) {
         return LtkState::Unknown;
     }
 
-    if (memcmp(current, kLtkOff, sizeof(kLtkOff)) == 0) {
-        return LtkState::Off;
+    const bool falseIsNatural =
+        memcmp(falsePath, kLtkNaturalFalse, sizeof(falsePath)) == 0;
+    const bool falseIsForcedOn =
+        memcmp(falsePath, kLtkForceTrue, sizeof(falsePath)) == 0;
+    const bool trueIsNatural =
+        memcmp(truePath, kLtkNativeTrue, sizeof(truePath)) == 0;
+    const bool trueIsForcedOff =
+        memcmp(truePath, kLtkForceFalse, sizeof(truePath)) == 0;
+
+    if (falseIsNatural && trueIsNatural) {
+        return LtkState::Natural;
     }
-    if (memcmp(current, kLtkOn, sizeof(kLtkOn)) == 0) {
-        return LtkState::On;
+    if (falseIsForcedOn && trueIsNatural) {
+        return LtkState::ForceOn;
     }
+    if (falseIsNatural && trueIsForcedOff) {
+        return LtkState::ForceOff;
+    }
+
     return LtkState::Unknown;
 }
 
+bool ApplyLicenseToKillForce(bool enabled) {
+    const auto falseSite = g_exeBase + kLicenseToKillRva;
+    const auto trueSite = g_exeBase + kLicenseToKillNativeOnRva;
+
+    BYTE oldFalse[2]{};
+    BYTE oldTrue[2]{};
+    if (!ReadCode2(falseSite, oldFalse) ||
+        !ReadCode2(trueSite, oldTrue)) {
+        Log("[ERROR] F1 License To Kill: unable to read native sites.");
+        return false;
+    }
+
+    const BYTE* targetFalse =
+        enabled ? kLtkForceTrue : kLtkNaturalFalse;
+    const BYTE* targetTrue =
+        enabled ? kLtkNativeTrue : kLtkForceFalse;
+
+    // Patch the path that preserves the requested state first, then the other.
+    if (!WriteCodeBytes(trueSite, targetTrue, 2) ||
+        !WriteCodeBytes(falseSite, targetFalse, 2)) {
+
+        WriteCodeBytes(falseSite, oldFalse, 2);
+        WriteCodeBytes(trueSite, oldTrue, 2);
+        Log("[ERROR] F1 License To Kill: force write failed; rolled back.");
+        return false;
+    }
+
+    return true;
+}
+
+bool RestoreLicenseToKillNatural() {
+    const auto falseSite = g_exeBase + kLicenseToKillRva;
+    const auto trueSite = g_exeBase + kLicenseToKillNativeOnRva;
+
+    const bool a = WriteCodeBytes(
+        falseSite,
+        kLtkNaturalFalse,
+        sizeof(kLtkNaturalFalse));
+    const bool b = WriteCodeBytes(
+        trueSite,
+        kLtkNativeTrue,
+        sizeof(kLtkNativeTrue));
+
+    return a && b;
+}
+
 bool ToggleLicenseToKill() {
-    const auto site = g_exeBase + kLicenseToKillRva;
     const LtkState state = ReadLicenseToKillState();
 
-    if (state == LtkState::Off) {
-        if (!WriteCodeBytes(site, kLtkOn, sizeof(kLtkOn))) {
-            Log("[ERROR] F1 License To Kill: write failed.");
+    if (state == LtkState::Natural ||
+        state == LtkState::ForceOff) {
+
+        if (!ApplyLicenseToKillForce(true)) {
             return false;
         }
-        Log("F1 License To Kill = ON");
+
+        Log("F1 License To Kill = FORCE ON");
         return true;
     }
 
-    if (state == LtkState::On) {
-        if (!WriteCodeBytes(site, kLtkOff, sizeof(kLtkOff))) {
-            Log("[ERROR] F1 License To Kill: write failed.");
+    if (state == LtkState::ForceOn) {
+        if (!ApplyLicenseToKillForce(false)) {
             return false;
         }
-        Log("F1 License To Kill = OFF");
+
+        Log("F1 License To Kill = FORCE OFF");
         return true;
     }
 
-    Log("[ERROR] F1 License To Kill: preimage mismatch.");
+    Log("[ERROR] F1 License To Kill: patch state mismatch.");
     return false;
 }
 
@@ -1491,8 +1562,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.2 / Fresh Core A20F DirectNativeWeaponGraphs");
-    Log("Scope: October 7 game-update compatibility + direct native ItemEntry/Spawner graph for every weapon.");
+    Log("Q Protocol Fresh Core A20H WeaponsDebug_LTKForceToggle TEST");
+    Log("Scope: A20G Weapons-tab UI + true F1 FORCE ON/FORCE OFF toggle over A20F.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1787,6 +1858,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
     if (g_activeWeapon.active) {
         RestoreActiveDonor("DLL shutdown");
+    }
+
+    if (!RestoreLicenseToKillNatural()) {
+        Log("[ERROR] License To Kill natural-state restore failed during DLL shutdown.");
     }
 
     OverlayShutdown();
