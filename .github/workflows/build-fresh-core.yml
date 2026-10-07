@@ -9,6 +9,7 @@ on:
       - dev/a20c-package-sequencer-native-confirmation
       - dev/a20d-game-update-remap
       - dev/a20e-player-loadout-vtable-fix
+      - dev/a20f-direct-native-weapon-graphs
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -255,7 +256,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package A20E test ZIP with matching INI
+      - name: Package A20F test ZIP with matching INI
         shell: pwsh
         run: |
           Copy-Item packaging\README.txt dist\README.txt
@@ -268,7 +269,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A20E_PlayerLoadoutVtableFix_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A20F_DirectNativeWeaponGraphs_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -284,11 +285,11 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A20E test artifact
+      - name: Upload A20F test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20E
-          path: dist/Q-Protocol_FreshCore_A20E_PlayerLoadoutVtableFix_TEST.zip
+          name: Q-Protocol_FreshCore_A20F
+          path: dist/Q-Protocol_FreshCore_A20F_DirectNativeWeaponGraphs_TEST.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.1
