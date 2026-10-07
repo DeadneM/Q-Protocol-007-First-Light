@@ -74,7 +74,7 @@ struct ActiveWeapon {
     bool active = false;
     bool seenBusy = false;
     bool descriptorPatched = false;
-    bool directQPistol = false;
+    bool directGraph = false;
     bool packageOwned = false;
     bool observationLogged = false;
     std::uint64_t requestedRid = 0;
@@ -821,9 +821,9 @@ void RestoreActiveDonor(const char* reason) {
             reason,
             ridOk ? "OK" : "FAILED",
             templateOk ? "OK" : "FAILED");
-    } else if (g_activeWeapon.directQPistol) {
+    } else if (g_activeWeapon.directGraph) {
         Log(
-            "Q-Pistol DIRECT finished (%s): no donor descriptor restore needed.",
+            "DIRECT graph finished (%s): no donor descriptor restore needed.",
             reason);
     }
 
@@ -848,122 +848,35 @@ BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwn
         return BeginWeaponResult::Failed;
     }
 
-    const std::uint64_t displayRid = RotateRid(requestedRid);
-    const bool isQPistol =
-        displayRid == 0x019973508A5E327BULL ||
-        displayRid == 0x01BE2C45AA55200DULL;
-
-    // U84 kept Q-Pistol on its own native Spawner path.
-    // Restore only that distinction. Extra weapons remain on A19 pair-clone.
-    if (isQPistol) {
-        bool sourceIdle = false;
-        if (!IsSpawnerIdle(source.spawner, sourceIdle)) {
-            Log("[ERROR] Q-Pistol DIRECT: source spawner state unreadable.");
-            return BeginWeaponResult::Failed;
-        }
-
-        if (!sourceIdle) {
-            return BeginWeaponResult::DonorBusy;
-        }
-
-        g_activeWeapon = {};
-        g_activeWeapon.active = true;
-        g_activeWeapon.directQPistol = true;
-        g_activeWeapon.packageOwned = packageOwned;
-        g_activeWeapon.requestedRid = requestedRid;
-        g_activeWeapon.donorItem = source.itemEntry;
-        g_activeWeapon.donorSpawner = source.spawner;
-        g_activeWeapon.setupAt = GetTickCount64();
-
-        g_spawnTriggered.store(false, std::memory_order_release);
-        g_spawnException.store(false, std::memory_order_release);
-        g_spawnTriggeredAt.store(0, std::memory_order_release);
-        g_pendingSpawner.store(source.spawner, std::memory_order_release);
-
-        Log(
-            "Q-Pistol DIRECT prepared RID=%016llX item=0x%p spawner=0x%p",
-            static_cast<unsigned long long>(displayRid),
-            reinterpret_cast<void*>(source.itemEntry),
-            reinterpret_cast<void*>(source.spawner));
-
-        return BeginWeaponResult::Started;
-    }
-
-    const std::uint64_t donorRid = RotateRid(kDonorDisplayRid);
-    WeaponGraph donor{};
-
-    if (!ResolveGraph(donorRid, donor)) {
-        Log("[ERROR] GiveWeapon: donor graph NOT FOUND.");
+    bool sourceIdle = false;
+    if (!IsSpawnerIdle(source.spawner, sourceIdle)) {
+        Log("[ERROR] DIRECT graph: source spawner state unreadable.");
         return BeginWeaponResult::Failed;
     }
 
-    bool donorIdle = false;
-    if (!IsSpawnerIdle(donor.spawner, donorIdle)) {
-        Log("[ERROR] GiveWeapon: donor spawner state unreadable.");
-        return BeginWeaponResult::Failed;
-    }
-
-    if (!donorIdle) {
+    if (!sourceIdle) {
         return BeginWeaponResult::DonorBusy;
-    }
-
-    std::uint64_t donorCurrentRid = 0;
-    std::uint64_t donorTemplate = 0;
-    std::uint64_t sourceCurrentRid = 0;
-    std::uint64_t sourceTemplate = 0;
-
-    if (!SafeRead(donor.itemEntry + 0x120, donorCurrentRid) ||
-        !SafeRead(donor.itemEntry + 0x128, donorTemplate) ||
-        !SafeRead(source.itemEntry + 0x120, sourceCurrentRid) ||
-        !SafeRead(source.itemEntry + 0x128, sourceTemplate) ||
-        donorCurrentRid != donorRid ||
-        sourceCurrentRid != requestedRid ||
-        sourceTemplate == 0) {
-        Log("[ERROR] GiveWeapon: descriptor read/validation FAILED.");
-        return BeginWeaponResult::Failed;
-    }
-
-    if (!SafeWrite(donor.itemEntry + 0x120, requestedRid) ||
-        !SafeWrite(donor.itemEntry + 0x128, sourceTemplate)) {
-        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
-        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
-        Log("[ERROR] GiveWeapon: temporary descriptor write FAILED.");
-        return BeginWeaponResult::Failed;
-    }
-
-    std::uint64_t verifyRid = 0;
-    std::uint64_t verifyTemplate = 0;
-    if (!SafeRead(donor.itemEntry + 0x120, verifyRid) ||
-        !SafeRead(donor.itemEntry + 0x128, verifyTemplate) ||
-        verifyRid != requestedRid ||
-        verifyTemplate != sourceTemplate) {
-        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
-        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
-        Log("[ERROR] GiveWeapon: temporary descriptor verification FAILED.");
-        return BeginWeaponResult::Failed;
     }
 
     g_activeWeapon = {};
     g_activeWeapon.active = true;
-    g_activeWeapon.descriptorPatched = true;
+    g_activeWeapon.directGraph = true;
     g_activeWeapon.packageOwned = packageOwned;
     g_activeWeapon.requestedRid = requestedRid;
-    g_activeWeapon.donorItem = donor.itemEntry;
-    g_activeWeapon.donorSpawner = donor.spawner;
-    g_activeWeapon.originalDonorRid = donorCurrentRid;
-    g_activeWeapon.originalDonorTemplate = donorTemplate;
+    g_activeWeapon.donorItem = source.itemEntry;
+    g_activeWeapon.donorSpawner = source.spawner;
     g_activeWeapon.setupAt = GetTickCount64();
 
     g_spawnTriggered.store(false, std::memory_order_release);
     g_spawnException.store(false, std::memory_order_release);
     g_spawnTriggeredAt.store(0, std::memory_order_release);
-    g_pendingSpawner.store(donor.spawner, std::memory_order_release);
+    g_pendingSpawner.store(source.spawner, std::memory_order_release);
 
     Log(
-        "GiveWeapon prepared RID=%016llX donorItem=0x%p donorSpawner=0x%p",
-        static_cast<unsigned long long>(displayRid),
-        reinterpret_cast<void*>(donor.itemEntry),
-        reinterpret_cast<void*>(donor.spawner));
+        "DIRECT graph prepared RID=%016llX item=0x%p spawner=0x%p",
+        static_cast<unsigned long long>(RotateRid(requestedRid)),
+        reinterpret_cast<void*>(source.itemEntry),
+        reinterpret_cast<void*>(source.spawner));
 
     return BeginWeaponResult::Started;
 }
@@ -1159,13 +1072,13 @@ void CompleteActiveWeapon() {
     }
 
     const bool packageOwned = g_activeWeapon.packageOwned;
-    const bool directQPistol = g_activeWeapon.directQPistol;
+    const bool directGraph = g_activeWeapon.directGraph;
     const std::uint64_t rid = g_activeWeapon.requestedRid;
     const ULONGLONG now = GetTickCount64();
 
-    if (directQPistol) {
+    if (directGraph) {
         Log(
-            "Q-Pistol DIRECT COMPLETE RID=%016llX",
+            "DIRECT graph COMPLETE RID=%016llX",
             static_cast<unsigned long long>(RotateRid(rid)));
     } else {
         Log(
@@ -1578,8 +1491,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20E PlayerLoadoutVtableFix TEST");
-    Log("Scope: A20D game-update remap + corrected ZKntPlayerLoadoutEntity vtable.");
+    Log("Q Protocol Fresh Core A20F DirectNativeWeaponGraphs TEST");
+    Log("Scope: A20E player-ready fix + direct native ItemEntry/Spawner graph for every weapon.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
