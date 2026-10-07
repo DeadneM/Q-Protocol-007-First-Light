@@ -17,24 +17,24 @@
 
 namespace qp {
 
-constexpr std::uintptr_t kExpectedSizeOfImage = 0x06EC1000;
-constexpr DWORD kExpectedTimeDateStamp = 0x6ABCDDDB;
+constexpr std::uintptr_t kExpectedSizeOfImage = 0x06D31000;
+constexpr DWORD kExpectedTimeDateStamp = 0x6AC4D653;
 
 // October 2026 executable mappings.
-constexpr std::uintptr_t kPlayerResolverRva       = 0x0171DF40;
-constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D7770;
-constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x069225A0;
-constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x064576F8;
-constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x064576E0;
-constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDEB70;
-constexpr std::uintptr_t kLicenseToKillRva        = 0x0191C344;
+constexpr std::uintptr_t kPlayerResolverRva       = 0x0171C2B0;
+constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E20;
+constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
+constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
+constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
+constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
+constexpr std::uintptr_t kLicenseToKillRva        = 0x0191A6B4;
 
-constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECB538;
-constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECC800;
-constexpr std::uintptr_t kNativeSpawnRva          = 0x016B6B10;
-constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00116170;
-constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8FC0;
-constexpr std::uintptr_t kGameplayHookRva         = 0x0194D891;
+constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
+constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
+constexpr std::uintptr_t kNativeSpawnRva          = 0x016B4E80;
+constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00115820;
+constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A7330;
+constexpr std::uintptr_t kGameplayHookRva         = 0x0194BC01;
 
 constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
 constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
@@ -46,8 +46,8 @@ constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 
 constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
 
-constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x53};
-constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x53};
+constexpr BYTE kLtkOff[6] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x23};
+constexpr BYTE kLtkOn [6] = {0xB2, 0x01, 0x4C, 0x8B, 0x15, 0x23};
 
 constexpr BYTE kGameplayHookPreimage[13] = {
     0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00,
@@ -73,6 +73,10 @@ struct WeaponGraph {
 struct ActiveWeapon {
     bool active = false;
     bool seenBusy = false;
+    bool descriptorPatched = false;
+    bool directGraph = false;
+    bool packageOwned = false;
+    bool observationLogged = false;
     std::uint64_t requestedRid = 0;
     std::uintptr_t donorItem = 0;
     std::uintptr_t donorSpawner = 0;
@@ -137,6 +141,10 @@ bool g_gameplayHookInstalled = false;
 std::atomic<std::uintptr_t> g_pendingSpawner{0};
 std::atomic<bool> g_spawnTriggered{false};
 std::atomic<bool> g_spawnException{false};
+std::atomic<bool> g_spawnObservationValid{false};
+std::atomic<bool> g_spawnNativeAccepted{false};
+std::atomic<unsigned int> g_spawnPostState{0};
+std::atomic<bool> g_spawnPostPending{false};
 std::atomic<ULONGLONG> g_spawnTriggeredAt{0};
 
 PendingAmmoRequest g_pendingAmmo{};
@@ -148,7 +156,11 @@ std::vector<std::uint64_t> g_seenRuntimeGraphRids;
 std::deque<std::uint64_t> g_weaponQueue;
 ActiveWeapon g_activeWeapon{};
 ULONGLONG g_nextWeaponAllowedAt = 0;
+unsigned int g_unitaryRetryCount = 0;
+ULONGLONG g_unitaryRetryAt = 0;
 constexpr ULONGLONG kWeaponInterRequestDelayMs = 500;
+constexpr ULONGLONG kWeaponRetryDelayMs = 250;
+constexpr unsigned int kWeaponMaxRetries = 5;
 
 std::uint64_t g_qpistolModeA = 0;
 std::uint64_t g_qpistolModeB = 0;
@@ -160,6 +172,32 @@ struct LoadoutProfile {
     std::uint64_t oneHanded = 0;
     std::uint64_t twoHanded = 0;
 };
+
+enum class LoadoutSource {
+    None,
+    Manual,
+    Auto
+};
+
+enum class LoadoutPhase {
+    QPistol,
+    OneHanded,
+    TwoHanded
+};
+
+struct LoadoutPackage {
+    bool active = false;
+    bool justCompleted = false;
+    bool justFailed = false;
+    LoadoutSource source = LoadoutSource::None;
+    LoadoutProfile profile{};
+    std::uint32_t playerId = 0;
+    LoadoutPhase phase = LoadoutPhase::QPistol;
+    unsigned int retries = 0;
+    ULONGLONG retryAt = 0;
+};
+
+LoadoutPackage g_loadoutPackage{};
 
 LoadoutProfile g_manualLoadout{};
 LoadoutProfile g_autoLoadout{};
@@ -770,36 +808,38 @@ void RestoreActiveDonor(const char* reason) {
         return;
     }
 
-    const bool ridOk = SafeWrite(
-        g_activeWeapon.donorItem + 0x120,
-        g_activeWeapon.originalDonorRid);
-    const bool templateOk = SafeWrite(
-        g_activeWeapon.donorItem + 0x128,
-        g_activeWeapon.originalDonorTemplate);
+    if (g_activeWeapon.descriptorPatched) {
+        const bool ridOk = SafeWrite(
+            g_activeWeapon.donorItem + 0x120,
+            g_activeWeapon.originalDonorRid);
+        const bool templateOk = SafeWrite(
+            g_activeWeapon.donorItem + 0x128,
+            g_activeWeapon.originalDonorTemplate);
 
-    Log(
-        "GiveWeapon donor restored (%s): RID=%s template=%s",
-        reason,
-        ridOk ? "OK" : "FAILED",
-        templateOk ? "OK" : "FAILED");
+        Log(
+            "GiveWeapon donor restored (%s): RID=%s template=%s",
+            reason,
+            ridOk ? "OK" : "FAILED",
+            templateOk ? "OK" : "FAILED");
+    } else if (g_activeWeapon.directGraph) {
+        Log(
+            "DIRECT graph finished (%s): no donor descriptor restore needed.",
+            reason);
+    }
 
     g_activeWeapon = {};
     g_pendingSpawner.store(0, std::memory_order_release);
     g_spawnTriggered.store(false, std::memory_order_release);
     g_spawnException.store(false, std::memory_order_release);
+    g_spawnObservationValid.store(false, std::memory_order_release);
+    g_spawnNativeAccepted.store(false, std::memory_order_release);
+    g_spawnPostState.store(0, std::memory_order_release);
+    g_spawnPostPending.store(false, std::memory_order_release);
     g_spawnTriggeredAt.store(0, std::memory_order_release);
 }
 
-BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid) {
-    const std::uint64_t donorRid = RotateRid(kDonorDisplayRid);
-
-    WeaponGraph donor{};
+BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwned) {
     WeaponGraph source{};
-
-    if (!ResolveGraph(donorRid, donor)) {
-        Log("[ERROR] GiveWeapon: donor graph NOT FOUND.");
-        return BeginWeaponResult::Failed;
-    }
 
     if (!ResolveGraph(requestedRid, source)) {
         Log(
@@ -808,79 +848,277 @@ BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid) {
         return BeginWeaponResult::Failed;
     }
 
-    bool donorIdle = false;
-    if (!IsSpawnerIdle(donor.spawner, donorIdle)) {
-        Log("[ERROR] GiveWeapon: donor spawner state unreadable.");
+    bool sourceIdle = false;
+    if (!IsSpawnerIdle(source.spawner, sourceIdle)) {
+        Log("[ERROR] DIRECT graph: source spawner state unreadable.");
         return BeginWeaponResult::Failed;
     }
 
-    if (!donorIdle) {
+    if (!sourceIdle) {
         return BeginWeaponResult::DonorBusy;
     }
 
-    std::uint64_t donorCurrentRid = 0;
-    std::uint64_t donorTemplate = 0;
-    std::uint64_t sourceCurrentRid = 0;
-    std::uint64_t sourceTemplate = 0;
-
-    if (!SafeRead(donor.itemEntry + 0x120, donorCurrentRid) ||
-        !SafeRead(donor.itemEntry + 0x128, donorTemplate) ||
-        !SafeRead(source.itemEntry + 0x120, sourceCurrentRid) ||
-        !SafeRead(source.itemEntry + 0x128, sourceTemplate) ||
-        donorCurrentRid != donorRid ||
-        sourceCurrentRid != requestedRid ||
-        sourceTemplate == 0) {
-        Log("[ERROR] GiveWeapon: descriptor read/validation FAILED.");
-        return BeginWeaponResult::Failed;
-    }
-
-    if (!SafeWrite(donor.itemEntry + 0x120, requestedRid) ||
-        !SafeWrite(donor.itemEntry + 0x128, sourceTemplate)) {
-        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
-        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
-        Log("[ERROR] GiveWeapon: temporary descriptor write FAILED.");
-        return BeginWeaponResult::Failed;
-    }
-
-    std::uint64_t verifyRid = 0;
-    std::uint64_t verifyTemplate = 0;
-    if (!SafeRead(donor.itemEntry + 0x120, verifyRid) ||
-        !SafeRead(donor.itemEntry + 0x128, verifyTemplate) ||
-        verifyRid != requestedRid ||
-        verifyTemplate != sourceTemplate) {
-        SafeWrite(donor.itemEntry + 0x120, donorCurrentRid);
-        SafeWrite(donor.itemEntry + 0x128, donorTemplate);
-        Log("[ERROR] GiveWeapon: temporary descriptor verification FAILED.");
-        return BeginWeaponResult::Failed;
-    }
-
+    g_activeWeapon = {};
     g_activeWeapon.active = true;
-    g_activeWeapon.seenBusy = false;
+    g_activeWeapon.directGraph = true;
+    g_activeWeapon.packageOwned = packageOwned;
     g_activeWeapon.requestedRid = requestedRid;
-    g_activeWeapon.donorItem = donor.itemEntry;
-    g_activeWeapon.donorSpawner = donor.spawner;
-    g_activeWeapon.originalDonorRid = donorCurrentRid;
-    g_activeWeapon.originalDonorTemplate = donorTemplate;
+    g_activeWeapon.donorItem = source.itemEntry;
+    g_activeWeapon.donorSpawner = source.spawner;
     g_activeWeapon.setupAt = GetTickCount64();
 
     g_spawnTriggered.store(false, std::memory_order_release);
     g_spawnException.store(false, std::memory_order_release);
     g_spawnTriggeredAt.store(0, std::memory_order_release);
-    g_pendingSpawner.store(donor.spawner, std::memory_order_release);
+    g_pendingSpawner.store(source.spawner, std::memory_order_release);
 
     Log(
-        "GiveWeapon prepared RID=%016llX donorItem=0x%p donorSpawner=0x%p",
+        "DIRECT graph prepared RID=%016llX item=0x%p spawner=0x%p",
         static_cast<unsigned long long>(RotateRid(requestedRid)),
-        reinterpret_cast<void*>(donor.itemEntry),
-        reinterpret_cast<void*>(donor.spawner));
+        reinterpret_cast<void*>(source.itemEntry),
+        reinterpret_cast<void*>(source.spawner));
 
     return BeginWeaponResult::Started;
+}
+
+const char* LoadoutSourceName(LoadoutSource source) {
+    switch (source) {
+    case LoadoutSource::Manual:
+        return "F3 MANUAL";
+    case LoadoutSource::Auto:
+        return "AUTO";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+const char* LoadoutPhaseName(LoadoutPhase phase) {
+    switch (phase) {
+    case LoadoutPhase::QPistol:
+        return "QPistol";
+    case LoadoutPhase::OneHanded:
+        return "OneHanded";
+    case LoadoutPhase::TwoHanded:
+        return "TwoHanded";
+    default:
+        return "Unknown";
+    }
+}
+
+std::uint64_t CurrentPackageRid() {
+    switch (g_loadoutPackage.phase) {
+    case LoadoutPhase::QPistol:
+        return g_loadoutPackage.profile.qPistol;
+    case LoadoutPhase::OneHanded:
+        return g_loadoutPackage.profile.oneHanded;
+    case LoadoutPhase::TwoHanded:
+        return g_loadoutPackage.profile.twoHanded;
+    default:
+        return 0;
+    }
+}
+
+void FinishLoadoutPackage(bool success, const char* reason) {
+    const char* source = LoadoutSourceName(g_loadoutPackage.source);
+
+    g_loadoutPackage.active = false;
+    g_loadoutPackage.retryAt = 0;
+    g_loadoutPackage.retries = 0;
+    g_loadoutPackage.justCompleted = success;
+    g_loadoutPackage.justFailed = !success;
+
+    Log(
+        "%s PACKAGE %s%s%s",
+        source,
+        success ? "COMPLETE" : "FAILED",
+        reason ? ": " : "",
+        reason ? reason : "");
+}
+
+void AdvanceLoadoutPackage() {
+    if (!g_loadoutPackage.active) {
+        return;
+    }
+
+    g_loadoutPackage.retries = 0;
+    g_loadoutPackage.retryAt = 0;
+
+    if (g_loadoutPackage.phase == LoadoutPhase::QPistol) {
+        g_loadoutPackage.phase = LoadoutPhase::OneHanded;
+        return;
+    }
+
+    if (g_loadoutPackage.phase == LoadoutPhase::OneHanded) {
+        g_loadoutPackage.phase = LoadoutPhase::TwoHanded;
+        return;
+    }
+
+    FinishLoadoutPackage(true, nullptr);
+}
+
+bool StartLoadoutPackage(
+    const LoadoutProfile& profile,
+    LoadoutSource source,
+    std::uint32_t playerId) {
+
+    if (g_loadoutPackage.active) {
+        Log(
+            "%s package request ignored: another loadout package is already active.",
+            LoadoutSourceName(source));
+        return false;
+    }
+
+    g_loadoutPackage = {};
+    g_loadoutPackage.active = true;
+    g_loadoutPackage.source = source;
+    g_loadoutPackage.profile = profile;
+    g_loadoutPackage.playerId = playerId;
+    g_loadoutPackage.phase = LoadoutPhase::QPistol;
+
+    Log(
+        "%s PACKAGE START playerId=%u QPistol=%016llX OneHanded=%016llX TwoHanded=%016llX",
+        LoadoutSourceName(source),
+        playerId,
+        static_cast<unsigned long long>(RotateRid(profile.qPistol)),
+        static_cast<unsigned long long>(RotateRid(profile.oneHanded)),
+        static_cast<unsigned long long>(RotateRid(profile.twoHanded)));
+
+    return true;
+}
+
+void RetryLoadoutPackage(const char* reason) {
+    if (!g_loadoutPackage.active) {
+        return;
+    }
+
+    ++g_loadoutPackage.retries;
+
+    if (g_loadoutPackage.retries > kWeaponMaxRetries) {
+        FinishLoadoutPackage(false, reason);
+        return;
+    }
+
+    g_graphs.clear();
+    g_graphIndexBuilt = false;
+    g_loadoutPackage.retryAt = GetTickCount64() + kWeaponRetryDelayMs;
+
+    Log(
+        "[WARN] %s package role %s retry %u/%u in %llu ms: %s",
+        LoadoutSourceName(g_loadoutPackage.source),
+        LoadoutPhaseName(g_loadoutPackage.phase),
+        g_loadoutPackage.retries,
+        kWeaponMaxRetries,
+        static_cast<unsigned long long>(kWeaponRetryDelayMs),
+        reason ? reason : "unknown failure");
+}
+
+void RetryUnitaryWeapon(const char* reason) {
+    if (g_weaponQueue.empty()) {
+        return;
+    }
+
+    ++g_unitaryRetryCount;
+
+    if (g_unitaryRetryCount > kWeaponMaxRetries) {
+        Log(
+            "[ERROR] GiveWeapon unitary request DROPPED after %u retries RID=%016llX: %s",
+            kWeaponMaxRetries,
+            static_cast<unsigned long long>(RotateRid(g_weaponQueue.front())),
+            reason ? reason : "unknown failure");
+        g_weaponQueue.pop_front();
+        g_unitaryRetryCount = 0;
+        g_unitaryRetryAt = 0;
+        return;
+    }
+
+    g_graphs.clear();
+    g_graphIndexBuilt = false;
+    g_unitaryRetryAt = GetTickCount64() + kWeaponRetryDelayMs;
+
+    Log(
+        "[WARN] GiveWeapon unitary retry %u/%u in %llu ms RID=%016llX: %s",
+        g_unitaryRetryCount,
+        kWeaponMaxRetries,
+        static_cast<unsigned long long>(kWeaponRetryDelayMs),
+        static_cast<unsigned long long>(RotateRid(g_weaponQueue.front())),
+        reason ? reason : "unknown failure");
+}
+
+void FailActiveWeapon(const char* reason) {
+    if (!g_activeWeapon.active) {
+        return;
+    }
+
+    const bool packageOwned = g_activeWeapon.packageOwned;
+    const std::uint64_t rid = g_activeWeapon.requestedRid;
+
+    Log(
+        "[ERROR] GiveWeapon attempt FAILED RID=%016llX: %s",
+        static_cast<unsigned long long>(RotateRid(rid)),
+        reason ? reason : "unknown failure");
+
+    RestoreActiveDonor(reason ? reason : "failed");
+
+    if (packageOwned) {
+        RetryLoadoutPackage(reason);
+    } else {
+        RetryUnitaryWeapon(reason);
+    }
+}
+
+void CompleteActiveWeapon() {
+    if (!g_activeWeapon.active) {
+        return;
+    }
+
+    const bool packageOwned = g_activeWeapon.packageOwned;
+    const bool directGraph = g_activeWeapon.directGraph;
+    const std::uint64_t rid = g_activeWeapon.requestedRid;
+    const ULONGLONG now = GetTickCount64();
+
+    if (directGraph) {
+        Log(
+            "DIRECT graph COMPLETE RID=%016llX",
+            static_cast<unsigned long long>(RotateRid(rid)));
+    } else {
+        Log(
+            "GiveWeapon COMPLETE RID=%016llX",
+            static_cast<unsigned long long>(RotateRid(rid)));
+    }
+
+    g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
+    Log(
+        "GiveWeapon queue cooldown = %llu ms",
+        static_cast<unsigned long long>(kWeaponInterRequestDelayMs));
+
+    RestoreActiveDonor("complete");
+
+    if (packageOwned) {
+        Log(
+            "%s package role %s COMPLETE RID=%016llX",
+            LoadoutSourceName(g_loadoutPackage.source),
+            LoadoutPhaseName(g_loadoutPackage.phase),
+            static_cast<unsigned long long>(RotateRid(rid)));
+        AdvanceLoadoutPackage();
+        return;
+    }
+
+    if (!g_weaponQueue.empty() && g_weaponQueue.front() == rid) {
+        g_weaponQueue.pop_front();
+    } else {
+        Log(
+            "[ERROR] GiveWeapon unitary queue mismatch at completion RID=%016llX.",
+            static_cast<unsigned long long>(RotateRid(rid)));
+    }
+
+    g_unitaryRetryCount = 0;
+    g_unitaryRetryAt = 0;
 }
 
 void ProcessWeaponQueue() {
     if (g_activeWeapon.active) {
         if (g_spawnException.load(std::memory_order_acquire)) {
-            RestoreActiveDonor("native trigger exception");
+            FailActiveWeapon("native trigger exception");
             return;
         }
 
@@ -889,16 +1127,46 @@ void ProcessWeaponQueue() {
 
         if (!triggered) {
             if (now - g_activeWeapon.setupAt > 2000) {
-                Log("[ERROR] GiveWeapon: gameplay trigger timeout.");
-                RestoreActiveDonor("trigger timeout");
+                FailActiveWeapon("gameplay trigger timeout");
             }
+            return;
+        }
+
+        if (!g_activeWeapon.observationLogged) {
+            const bool valid =
+                g_spawnObservationValid.load(std::memory_order_acquire);
+            const bool accepted =
+                g_spawnNativeAccepted.load(std::memory_order_acquire);
+            const unsigned int state =
+                g_spawnPostState.load(std::memory_order_acquire);
+            const bool pending =
+                g_spawnPostPending.load(std::memory_order_acquire);
+
+            Log(
+                "Native Spawn observation RID=%016llX valid=%s accepted=%s state=%u pending=%s",
+                static_cast<unsigned long long>(
+                    RotateRid(g_activeWeapon.requestedRid)),
+                valid ? "yes" : "no",
+                accepted ? "yes" : "no",
+                state,
+                pending ? "yes" : "no");
+
+            g_activeWeapon.observationLogged = true;
+        }
+
+        if (!g_spawnObservationValid.load(std::memory_order_acquire)) {
+            FailActiveWeapon("native post-call state unreadable");
+            return;
+        }
+
+        if (!g_spawnNativeAccepted.load(std::memory_order_acquire)) {
+            FailActiveWeapon("native spawner did not accept request");
             return;
         }
 
         bool idle = false;
         if (!IsSpawnerIdle(g_activeWeapon.donorSpawner, idle)) {
-            Log("[ERROR] GiveWeapon: donor spawner became unreadable.");
-            RestoreActiveDonor("spawner unreadable");
+            FailActiveWeapon("spawner became unreadable");
             return;
         }
 
@@ -906,35 +1174,19 @@ void ProcessWeaponQueue() {
             g_activeWeapon.seenBusy = true;
         }
 
+        if (idle) {
+            CompleteActiveWeapon();
+            return;
+        }
+
         const ULONGLONG triggeredAt =
             g_spawnTriggeredAt.load(std::memory_order_acquire);
         const ULONGLONG elapsed = triggeredAt ? now - triggeredAt : 0;
 
-        if (idle && (g_activeWeapon.seenBusy || elapsed >= 250)) {
-            Log(
-                "GiveWeapon COMPLETE RID=%016llX",
-                static_cast<unsigned long long>(
-                    RotateRid(g_activeWeapon.requestedRid)));
-            g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
-            Log(
-                "GiveWeapon queue cooldown = %llu ms",
-                static_cast<unsigned long long>(kWeaponInterRequestDelayMs));
-            RestoreActiveDonor("complete");
-            return;
-        }
-
         if (elapsed > 5000) {
-            Log(
-                "[ERROR] GiveWeapon TIMEOUT RID=%016llX",
-                static_cast<unsigned long long>(
-                    RotateRid(g_activeWeapon.requestedRid)));
-            RestoreActiveDonor("completion timeout");
+            FailActiveWeapon("completion timeout");
         }
 
-        return;
-    }
-
-    if (g_weaponQueue.empty()) {
         return;
     }
 
@@ -943,12 +1195,47 @@ void ProcessWeaponQueue() {
         return;
     }
 
-    const std::uint64_t rid = g_weaponQueue.front();
-    const BeginWeaponResult result = BeginWeaponRequest(rid);
+    while (g_loadoutPackage.active && CurrentPackageRid() == 0) {
+        Log(
+            "%s package role %s = Off/None; skipping.",
+            LoadoutSourceName(g_loadoutPackage.source),
+            LoadoutPhaseName(g_loadoutPackage.phase));
+        AdvanceLoadoutPackage();
+    }
 
-    if (result == BeginWeaponResult::Started ||
-        result == BeginWeaponResult::Failed) {
-        g_weaponQueue.pop_front();
+    if (g_loadoutPackage.active) {
+        if (g_loadoutPackage.retryAt && now < g_loadoutPackage.retryAt) {
+            return;
+        }
+
+        const std::uint64_t rid = CurrentPackageRid();
+        const BeginWeaponResult result = BeginWeaponRequest(rid, true);
+
+        if (result == BeginWeaponResult::Started) {
+            Log(
+                "%s package role %s armed RID=%016llX",
+                LoadoutSourceName(g_loadoutPackage.source),
+                LoadoutPhaseName(g_loadoutPackage.phase),
+                static_cast<unsigned long long>(RotateRid(rid)));
+        } else if (result == BeginWeaponResult::Failed) {
+            RetryLoadoutPackage("BeginWeaponRequest failed");
+        }
+        return;
+    }
+
+    if (g_weaponQueue.empty()) {
+        return;
+    }
+
+    if (g_unitaryRetryAt && now < g_unitaryRetryAt) {
+        return;
+    }
+
+    const std::uint64_t rid = g_weaponQueue.front();
+    const BeginWeaponResult result = BeginWeaponRequest(rid, false);
+
+    if (result == BeginWeaponResult::Failed) {
+        RetryUnitaryWeapon("BeginWeaponRequest failed");
     }
 }
 
@@ -970,36 +1257,6 @@ bool QueueWeapon(std::uint64_t rid, const char* source) {
         static_cast<unsigned long long>(RotateRid(rid)));
     return true;
 }
-
-std::size_t QueueLoadout(const LoadoutProfile& profile, const char* source) {
-    std::size_t queued = 0;
-
-    struct Entry {
-        const char* role;
-        std::uint64_t rid;
-    };
-
-    const Entry entries[] = {
-        {"QPistol", profile.qPistol},
-        {"OneHanded", profile.oneHanded},
-        {"TwoHanded", profile.twoHanded},
-    };
-
-    for (const auto& entry : entries) {
-        if (!entry.rid) {
-            continue;
-        }
-
-        char label[80]{};
-        sprintf_s(label, "%s %s", source, entry.role);
-        if (QueueWeapon(entry.rid, label)) {
-            ++queued;
-        }
-    }
-
-    return queued;
-}
-
 
 bool QueueAmmoProfile(
     const AmmoProfile& profile,
@@ -1206,6 +1463,13 @@ void ResetWeaponRuntime(const char* reason) {
     }
     g_weaponQueue.clear();
     g_nextWeaponAllowedAt = 0;
+    g_unitaryRetryCount = 0;
+    g_unitaryRetryAt = 0;
+    g_loadoutPackage = {};
+    g_spawnObservationValid.store(false, std::memory_order_release);
+    g_spawnNativeAccepted.store(false, std::memory_order_release);
+    g_spawnPostState.store(0, std::memory_order_release);
+    g_spawnPostPending.store(false, std::memory_order_release);
     g_ammoPending.store(false, std::memory_order_release);
     g_graphs.clear();
     g_graphIndexBuilt = false;
@@ -1227,8 +1491,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A19");
-    Log("Scope: validated A5 gameplay core + A19 full-audit hardening.");
+    Log("Q Protocol v0.9.2 / Fresh Core A20F DirectNativeWeaponGraphs");
+    Log("Scope: October 7 game-update compatibility + direct native ItemEntry/Spawner graph for every weapon.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1260,6 +1524,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
+    bool autoStarted = false;
     bool autoDone = false;
     std::string lastOverlayStatus = OverlayStatus();
 
@@ -1291,6 +1556,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
             ResetWeaponRuntime(
                 ready ? "player identity changed/ready" : "player not ready");
 
+            autoStarted = false;
             autoDone = false;
             previousPlayer = player;
             previousReady = ready;
@@ -1306,18 +1572,15 @@ DWORD WINAPI WorkerThread(LPVOID) {
             previousPlayer = player;
         }
 
-        if (ready && g_autoEnabled && !autoDone) {
-            const std::size_t autoWeapons =
-                QueueLoadout(g_autoLoadout, "AUTO Loadout");
-            const bool autoAmmoQueued =
-                QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo");
+        if (ready && g_autoEnabled && !autoStarted) {
+            if (StartLoadoutPackage(
+                    g_autoLoadout,
+                    LoadoutSource::Auto,
+                    player.playerId)) {
 
-            autoDone = true;
-
-            Log(
-                "AUTO committed once for current READY cycle: weapons=%zu ammo=%s.",
-                autoWeapons,
-                autoAmmoQueued ? "queued" : "not queued");
+                autoStarted = true;
+                Log("AUTO package latched for current READY cycle; completion pending.");
+            }
         }
 
         const bool overlayTogglePressed =
@@ -1409,14 +1672,13 @@ DWORD WINAPI WorkerThread(LPVOID) {
             if (!ready) {
                 Log("F3 ignored: player not ready.");
             } else {
-                const std::size_t queued =
-                    QueueLoadout(
+                if (!StartLoadoutPackage(
                         g_manualLoadout,
-                        "F3 ManualLoadout");
+                        LoadoutSource::Manual,
+                        player.playerId)) {
 
-                Log(
-                    "F3 ManualLoadout queued %zu/3 role(s).",
-                    queued);
+                    Log("F3 ManualLoadout ignored: loadout package busy.");
+                }
             }
         }
 
@@ -1479,7 +1741,44 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (ready) {
             ProcessWeaponQueue();
-        } else if (g_activeWeapon.active || !g_weaponQueue.empty()) {
+
+            if (g_loadoutPackage.justCompleted) {
+                const LoadoutSource completedSource =
+                    g_loadoutPackage.source;
+                const std::uint32_t completedPlayerId =
+                    g_loadoutPackage.playerId;
+
+                g_loadoutPackage.justCompleted = false;
+
+                if (completedSource == LoadoutSource::Auto) {
+                    const bool ammoQueued =
+                        QueueAmmoProfile(
+                            g_autoAmmo,
+                            completedPlayerId,
+                            "AUTO Ammo");
+
+                    autoDone = true;
+
+                    Log(
+                        "AUTO PACKAGE COMMIT after weapon completion: ammo=%s.",
+                        ammoQueued ? "queued" : "not queued");
+                }
+            }
+
+            if (g_loadoutPackage.justFailed) {
+                const LoadoutSource failedSource =
+                    g_loadoutPackage.source;
+
+                g_loadoutPackage.justFailed = false;
+
+                if (failedSource == LoadoutSource::Auto) {
+                    autoDone = false;
+                    Log("[ERROR] AUTO PACKAGE failed; AUTO remains not-done for this READY cycle.");
+                }
+            }
+        } else if (g_activeWeapon.active ||
+                   !g_weaponQueue.empty() ||
+                   g_loadoutPackage.active) {
             ResetWeaponRuntime("player unavailable");
         }
 
@@ -1512,8 +1811,39 @@ extern "C" void QpGameplayTick() {
 
     __try {
         qp::g_nativeSpawn(reinterpret_cast<void*>(spawner));
-        qp::g_spawnTriggeredAt.store(GetTickCount64(), std::memory_order_release);
-        qp::g_spawnTriggered.store(true, std::memory_order_release);
+
+        std::uintptr_t begin = 0;
+        std::uintptr_t end = 0;
+        BYTE state = 0xFF;
+
+        const bool observationValid =
+            qp::SafeRead(spawner + 0x38, begin) &&
+            qp::SafeRead(spawner + 0x40, end) &&
+            qp::SafeRead(spawner + 0x50, state);
+
+        const bool pending =
+            observationValid && begin != end;
+        const bool accepted =
+            observationValid && (state != 0 || pending);
+
+        qp::g_spawnObservationValid.store(
+            observationValid,
+            std::memory_order_release);
+        qp::g_spawnNativeAccepted.store(
+            accepted,
+            std::memory_order_release);
+        qp::g_spawnPostState.store(
+            observationValid ? static_cast<unsigned int>(state) : 0xFFFFFFFFu,
+            std::memory_order_release);
+        qp::g_spawnPostPending.store(
+            pending,
+            std::memory_order_release);
+        qp::g_spawnTriggeredAt.store(
+            GetTickCount64(),
+            std::memory_order_release);
+        qp::g_spawnTriggered.store(
+            true,
+            std::memory_order_release);
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         qp::g_spawnException.store(true, std::memory_order_release);

@@ -1,50 +1,40 @@
-Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening
-====================================================
+Q Protocol v0.9.2 - Fresh Core A20F
+========================================
 
-PUBLIC RELEASE BUILD
+COMPATIBILITY
+-------------
+Updated for the October 7, 2026 version of 007 First Light.
 
-This release promotes the fully audited Fresh Core A19 line.
+INSTALL
+-------
+Copy QProtocol.asi and QProtocol.ini to the same mod/ASI location used by your existing Q Protocol installation.
 
-Highlights
-----------
-- Remappable overlay invocation key through [Overlay] ToggleKey.
-- Overlay toggle safely coexists with F1-F12, including when remapped to them.
-- OneHanded and TwoHanded support Off / None.
-- Automatic defaults are QPistolSilenced + Off + Off.
-- Experimental weapons remain hidden from Manual/Auto selectors by default.
-- Latest user-validated weapon statuses are included.
-- Full catalogue/config audit runs before every build.
-- DX12 overlay bootstrap remains fail-open.
-
-Gameplay foundation
--------------------
-Fresh Core A5 remains the validated gameplay primitive base.
-
-A19 does NOT alter:
-- ResolvePlayer
-- GiveWeapon
-- AddAmmo
-- weapon RIDs
-- ammo classes
-- 500 ms weapon stabilization
-- native gameplay hook semantics
-
-Current hotkeys
----------------
+DEFAULT CONTROLS
+----------------
 F1  License To Kill
-F2  Manual Ammo
-F3  Manual Loadout
-F4  Q-Pistol Swap
-F5-F12 Weapon slots
+F2  Add ammunition
+F3  Manual loadout
+F4  Q-Pistol swap
+F5-F12  Configurable weapon slots
+Insert  Overlay
 
-Generic F1-F12 Action reassignment is not implemented yet.
+DEFAULT AUTO PROFILE
+--------------------
+AUTO is disabled by default.
+QPistol=QPistolSilenced
+OneHanded=None
+TwoHanded=None
 
-Installation
-------------
-Copy into the game directory:
-- QProtocol.asi
-- QProtocol.ini
-- README.txt
+v0.9.2 CHANGES
+--------------
+- Restores compatibility with the October 7 game update.
+- Fixes player-ready/loadout detection.
+- Replaces the obsolete donor-clone weapon path with direct native ItemEntry/Spawner graphs.
+- Restores F1, F2, F3, F4, F5-F12 and AUTO operation.
+- Keeps the validated 31-weapon catalogue and existing RIDs.
 
-Default overlay key: Insert
-It can be remapped from the Hotkeys tab.
+FILES
+-----
+QProtocol.asi
+QProtocol.ini
+README.txt

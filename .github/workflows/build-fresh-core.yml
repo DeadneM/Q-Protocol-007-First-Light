@@ -5,6 +5,11 @@ on:
   push:
     branches:
       - main
+      - dev/a19-qpistol-native-bootstrap
+      - dev/a20c-package-sequencer-native-confirmation
+      - dev/a20d-game-update-remap
+      - dev/a20e-player-loadout-vtable-fix
+      - dev/a20f-direct-native-weapon-graphs
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -251,11 +256,11 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package exact three-file release ZIP
+      - name: Package Q Protocol v0.9.2
         shell: pwsh
         run: |
-          Copy-Item config\QProtocol.ini dist\QProtocol.ini
           Copy-Item packaging\README.txt dist\README.txt
+          Copy-Item config\QProtocol.ini dist\QProtocol.ini
 
           @'
           from pathlib import Path
@@ -264,7 +269,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.1.zip"
+          out = dist / "Q-Protocol_v0.9.2.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -280,29 +285,29 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload release artifact
+      - name: Upload Q Protocol v0.9.2 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.1
-          path: dist/Q-Protocol_v0.9.1.zip
+          name: Q-Protocol_v0.9.2
+          path: dist/Q-Protocol_v0.9.2.zip
           if-no-files-found: error
 
-      - name: Publish GitHub Release v0.9.1
-        if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release Fresh Core A19 v0.9.1')
+      - name: Publish GitHub Release v0.9.2
+        if: github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.1"
-          $asset = "dist/Q-Protocol_v0.9.1.zip"
-          $title = "Q Protocol v0.9.1 - Fresh Core A19 Audit Hardening"
+          $tag = "v0.9.2"
+          $asset = "dist/Q-Protocol_v0.9.2.zip"
+          $title = "Q Protocol v0.9.2 - Fresh Core A20F Game Update Compatibility"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           if ($exists) {
             gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
-            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A19.md --repo $env:GITHUB_REPOSITORY
+            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20F.md --repo $env:GITHUB_REPOSITORY
           } else {
             gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A19.md --repo $env:GITHUB_REPOSITORY
           }

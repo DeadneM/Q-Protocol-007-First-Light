@@ -15,13 +15,16 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
-**Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening** is the current public release.
+**Q Protocol v0.9.2 / Fresh Core A20F Direct Native Weapon Graphs** is the current public release.
 
-- Fresh Core A5 remains the validated gameplay primitive foundation.
-- The A15 weapon catalogue audit is enforced automatically by CI.
+- Updated for the October 7, 2026 game executable.
+- Player/loadout resolution is remapped for the new executable.
+- Weapon spawning now uses each weapon's native ItemEntry/Spawner graph directly.
+- The obsolete donor pair-clone path is no longer used.
+- The A15 weapon catalogue audit is still enforced automatically by CI.
 - Experimental weapons remain in the catalogue but are hidden from Manual/Auto lists by default.
 - The overlay can expose Experimental entries when testing is desired.
-- U74 remains a behavioral/reference library and U80-U85 remain rejected compatibility experiments.
+- A20F is the validated post-update gameplay base; U74 remains a historical behavioral/reference library.
 - Gadget gameplay code remains removed from the active Q Protocol direction.
 
 ## Default controls

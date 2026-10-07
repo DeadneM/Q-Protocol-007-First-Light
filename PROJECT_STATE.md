@@ -1,5 +1,30 @@
 # Q Protocol — Project State
 
+## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
+
+- Build: `Q-Protocol_v0.9.2.zip`
+- Release tag: `v0.9.2`
+- Status: **validated public release**
+- Updated for the October 7, 2026 game executable.
+- Corrected `ZKntPlayerLoadoutEntity` vtable mapping restores player-ready detection.
+- Weapon spawning now uses each weapon's own native `ItemEntry/Spawner` graph.
+- Removed the obsolete donor pair-clone path from active weapon spawning.
+- Validated in-game: F1, F2, F3, F4, F5-F12 and AUTO.
+- AUTO remains transactional: Q-Pistol -> OneHanded -> TwoHanded -> Ammo.
+- Public defaults remain AUTO disabled with OneHanded/TwoHanded set to None.
+- Current 31-weapon catalogue and RIDs remain unchanged from A15/A17/A19.
+
+## A19Q Q-Pistol native bootstrap test
+
+- Public/canonical base remains **v0.9.1 / Fresh Core A19 Audit Hardening**.
+- Recovered U84 confirms the older October core kept Q-Pistol on a dedicated
+  native ItemEntry/Spawner path while extra firearms used pair-clone GiveWeapon.
+- Fresh Core A19 unified Q-Pistol into the donor pair-clone.
+- A19Q restores only the dedicated native Q-Pistol path.
+- AUTO lifecycle/readiness, F3 semantics, extra-weapon GiveWeapon, AddAmmo,
+  RIDs, overlay and 500 ms queue delay remain exactly A19.
+- Test ZIP intentionally omits QProtocol.ini.
+
 ## Q Protocol v0.9.1 — Fresh Core A19 Audit Hardening release
 
 - Build: `Q-Protocol_v0.9.1.zip`
