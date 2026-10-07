@@ -2,11 +2,13 @@
 
 ## Active state
 
-- Current public release: **Q Protocol v0.9.1 / Fresh Core A19 Audit Hardening**.
-- A19 is the current public release. It preserves the A5 gameplay foundation while hardening overlay input, defaults, fail-open cleanup and CI.
+- Current public release: **Q Protocol v0.9.2 / Fresh Core A20F Direct Native Weapon Graphs**.
+- A20F is the validated post-update base for the October 7, 2026 executable.
+- Player-ready resolution, F1, F2, F3, F4, F5-F12 and AUTO are validated in-game.
+- Weapon spawning uses each RID's native ItemEntry/Spawner graph directly.
 
-- Behavioral reference: **U74** on the pre-October-2026 executable.
-- Current post-update canonical build: **Fresh Core A5**.
+- Behavioral reference: **U74** on the pre-update executable.
+- Current post-update canonical build: **Fresh Core A20F**.
 - Rejected compatibility branches: U80, U81, U81B, U82, U82A, U83, U84, U85.
 - Gadgets: removed.
 - Overlay/config model: locked.
@@ -98,7 +100,7 @@ Completed. See [`PRIMITIVE_AUDIT_OCT2026.md`](PRIMITIVE_AUDIT_OCT2026.md).
 
 Key result: the October executable exposes a native `AddFirearmAmmunitionToPlayer` input, so F2/AUTO ammo no longer need the low-level reserve-vector setter.
 
-The generic pair-clone/native weapon trigger used on the October executable is retained only behind one shared `GiveWeapon()`.
+The donor pair-clone path is retired. `GiveWeapon()` now resolves and triggers each weapon's native ItemEntry/Spawner graph directly.
 
 ## Next exact step
 
