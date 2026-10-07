@@ -254,7 +254,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package A20D test ZIP without INI
+      - name: Package A20D test ZIP with matching INI
         shell: pwsh
         run: |
           Copy-Item packaging\README.txt dist\README.txt
