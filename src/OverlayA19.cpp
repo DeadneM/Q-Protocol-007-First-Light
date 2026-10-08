@@ -98,9 +98,6 @@ std::atomic<bool> g_reloadRequested{false};
 std::atomic<std::uint64_t> g_spawnRequest{0};
 
 std::atomic<bool> g_playerReady{false};
-std::atomic<bool> g_autoDone{false};
-std::atomic<std::size_t> g_queueCount{0};
-std::atomic<bool> g_qpistolNextB{true};
 std::atomic<int> g_stage{static_cast<int>(OverlayStage::Bootstrap)};
 
 std::atomic<ID3D12CommandQueue*> g_commandQueue{nullptr};
@@ -111,7 +108,6 @@ std::atomic<bool> g_captureOverlayToggleKey{false};
 std::string g_overlayToggleKeyName = "Insert";
 
 bool g_minHookInitialized = false;
-bool g_hooksInstalled = false;
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -141,7 +137,7 @@ bool g_autoEnabledUi = false;
 bool g_showExperimentalLoadout = false;
 ProfileUi g_manualUi{};
 ProfileUi g_autoUi{};
-std::array<std::string, 8> g_modWeaponSlots{
+std::array<std::string, 8> g_weaponSlots{
     "LightPistolNonLethal",
     "Taser",
     "HeavyPistol50Cal",
@@ -888,9 +884,9 @@ void LoadUiFromIni() {
         swprintf_s(section, L"Hotkey_F%d", i + 5);
 
         const std::wstring fallback =
-            Utf8ToWide(g_modWeaponSlots[static_cast<std::size_t>(i)]);
+            Utf8ToWide(g_weaponSlots[static_cast<std::size_t>(i)]);
 
-        g_modWeaponSlots[static_cast<std::size_t>(i)] =
+        g_weaponSlots[static_cast<std::size_t>(i)] =
             WideToUtf8(
                 ReadIniW(
                     section,
@@ -982,7 +978,7 @@ void SaveUiToIni() {
             section,
             L"Weapon",
             Utf8ToWide(
-                g_modWeaponSlots[
+                g_weaponSlots[
                     static_cast<std::size_t>(i)]));
     }
 
@@ -1030,7 +1026,7 @@ void ResetProfileDefaults() {
         10, 30, 30, 8, 5, 8
     };
 
-    g_modWeaponSlots = {
+    g_weaponSlots = {
         "LightPistolNonLethal",
         "Taser",
         "HeavyPistol50Cal",
@@ -1413,6 +1409,10 @@ void DrawStatusText(
         "Experimental");
 }
 
+bool QueueOverlaySpawn(
+    std::uint64_t displayRid,
+    const std::string& label);
+
 void DrawCatalogWeaponsTab() {
     ImGui::SetNextItemWidth(
         280.0f);
@@ -1601,37 +1601,9 @@ void DrawCatalogWeaponsTab() {
                     155.0f,
                     32.0f))) {
 
-            if (!g_playerReady.load(
-                    std::memory_order_acquire)) {
-
-                g_spawnMessage =
-                    "Player not ready";
-
-            } else if (!weapon.rid) {
-
-                g_spawnMessage =
-                    "Invalid RID";
-
-            } else {
-
-                std::uint64_t expected = 0;
-
-                if (g_spawnRequest
-                        .compare_exchange_strong(
-                            expected,
-                            weapon.rid,
-                            std::memory_order_acq_rel)) {
-
-                    g_spawnMessage =
-                        "Queued: " +
-                        weapon.displayName;
-
-                } else {
-
-                    g_spawnMessage =
-                        "Spawn request already pending";
-                }
-            }
+            QueueOverlaySpawn(
+                weapon.rid,
+                weapon.displayName);
         }
 
         if (!g_spawnMessage.empty()) {
@@ -1803,9 +1775,9 @@ void DrawRuntimeDiscoveryTab() {
     ImGui::Spacing();
 
     ImGui::TextWrapped(
-        "A19 keeps A11 discovery intact but now identifies known non-firearm "
-        "ItemEntry/Spawner graphs. Gadgets and throwables stay outside "
-        "WeaponCatalog, while unknown RIDs remain visible for further mapping.");
+        "Runtime Discovery identifies known non-firearm ItemEntry/Spawner "
+        "graphs while keeping unknown RIDs visible for further mapping. "
+        "Gadgets and throwables remain outside WeaponCatalog.");
 
     ImGui::Spacing();
 
@@ -2016,7 +1988,7 @@ void DrawRuntimeDiscoveryTab() {
     ImGui::EndChild();
 }
 
-void DrawWeaponsTab() {
+void DrawDebugTab() {
     if (ImGui::BeginTabBar(
             "weapon_subtabs")) {
 
@@ -2038,7 +2010,7 @@ void DrawWeaponsTab() {
     }
 }
 
-void DrawModTab() {
+void DrawWeaponsTab() {
     ImGui::TextUnformatted(
         "Weapon slots");
 
@@ -2059,7 +2031,7 @@ void DrawModTab() {
     ImGui::Spacing();
 
     if (ImGui::BeginTable(
-            "mod_weapon_slots",
+            "weapon_slots",
             2,
             ImGuiTableFlags_SizingStretchProp |
             ImGuiTableFlags_RowBg |
@@ -2089,12 +2061,12 @@ void DrawModTab() {
             ImGui::SetNextItemWidth(-1.0f);
 
             std::string comboId =
-                "##mod_weapon_" +
+                "##weapon_slot_" +
                 std::to_string(i);
 
             WeaponCombo(
                 comboId.c_str(),
-                g_modWeaponSlots[
+                g_weaponSlots[
                     static_cast<std::size_t>(i)],
                 "All",
                 true);
@@ -2556,14 +2528,14 @@ void DrawOverlayWindow() {
         if (ImGui::BeginTabItem(
                 "Weapons")) {
 
-            DrawModTab();
+            DrawWeaponsTab();
             ImGui::EndTabItem();
         }
 
         if (ImGui::BeginTabItem(
                 "Debug")) {
 
-            DrawWeaponsTab();
+            DrawDebugTab();
             ImGui::EndTabItem();
         }
 
@@ -3577,8 +3549,6 @@ bool InstallRuntimeHooks() {
         return false;
     }
 
-    g_hooksInstalled = true;
-
     g_stage.store(
         static_cast<int>(
             OverlayStage::RuntimeHooksReady),
@@ -3635,26 +3605,10 @@ bool OverlayInitialize(
     return true;
 }
 
-bool OverlayPump(
-    bool playerReady,
-    bool autoDone,
-    std::size_t weaponQueueCount,
-    bool qpistolNextB) {
+bool OverlayPump(bool playerReady) {
 
     g_playerReady.store(
         playerReady,
-        std::memory_order_release);
-
-    g_autoDone.store(
-        autoDone,
-        std::memory_order_release);
-
-    g_queueCount.store(
-        weaponQueueCount,
-        std::memory_order_release);
-
-    g_qpistolNextB.store(
-        qpistolNextB,
         std::memory_order_release);
 
     const int toggleVk =
@@ -3773,25 +3727,25 @@ const char* OverlayStatus() {
                 std::memory_order_acquire))) {
 
     case OverlayStage::Bootstrap:
-        return "A19 DX12 bootstrap";
+        return "Q Protocol DX12 bootstrap";
 
     case OverlayStage::RuntimeHooksReady:
-        return "A19 runtime hooks ready; waiting for DIRECT queue";
+        return "Q Protocol runtime hooks ready; waiting for command queue";
 
     case OverlayStage::QueueCaptured:
-        return "A19 DIRECT queue captured; waiting for game Present";
+        return "Q Protocol command queue captured; waiting for game Present";
 
     case OverlayStage::ImGuiReady:
-        return "A19 DX12 ImGui ready";
+        return "Q Protocol DX12 ImGui ready";
 
     case OverlayStage::InitFailed:
-        return "A19 overlay initialization failed (A5 gameplay unaffected)";
+        return "Q Protocol overlay initialization failed; gameplay core remains active";
 
     case OverlayStage::FenceTimeout:
-        return "A19 overlay fence timeout (overlay disabled; A5 gameplay unaffected)";
+        return "Q Protocol overlay fence timeout; gameplay core remains active";
 
     default:
-        return "A19 overlay unknown state";
+        return "Q Protocol overlay unknown state";
     }
 }
 
@@ -3821,7 +3775,6 @@ void OverlayShutdown() {
             false;
     }
 
-    g_hooksInstalled = false;
 }
 
 } // namespace qp
