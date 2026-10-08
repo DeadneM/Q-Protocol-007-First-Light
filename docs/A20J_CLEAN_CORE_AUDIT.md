@@ -93,3 +93,25 @@ A20J is accepted only if:
 6. Public INI and RIDs remain unchanged.
 7. PE/import comparison is recorded against A20I.
 8. Any Defender change is treated as an observation, not as proof of safety by itself.
+
+
+## First A20J build result
+
+- Branch: `dev/a20j-clean-core`
+- Head: `567282129863899a424136795728e3f9c08e6d32`
+- GitHub Actions: run #113 / `37835613207`
+- Result: **PASS**
+- Config/catalogue validation: **PASS**
+- MSVC build: **PASS**
+- PE import audit: **PASS**
+- `WriteProcessMemory`: **absent**
+- `ReadProcessMemory`: present as expected
+- `VirtualProtect`: present as expected
+- Gameplay validation: **pending**
+
+Source diff against the documented A20I base is cleanup-dominant:
+- `src/QProtocol.cpp`: 112 deletions / 16 additions
+- `src/OverlayA19.cpp`: 77 deletions / 30 additions
+- `src/Overlay.h`: 5 deletions / 1 addition
+
+The public v0.9.3 release remains untouched while A20J is tested.
