@@ -107,7 +107,7 @@ A20J is accepted only if:
 - `WriteProcessMemory`: **absent**
 - `ReadProcessMemory`: present as expected
 - `VirtualProtect`: present as expected
-- Gameplay validation: **pending**
+- Gameplay validation: **PASS**
 
 Source diff against the documented A20I base is cleanup-dominant:
 - `src/QProtocol.cpp`: 112 deletions / 16 additions
@@ -115,3 +115,25 @@ Source diff against the documented A20I base is cleanup-dominant:
 - `src/Overlay.h`: 5 deletions / 1 addition
 
 The public v0.9.3 release remains untouched while A20J is tested.
+
+
+## In-game validation result
+
+User verdict: **everything works perfectly**.
+
+Validated from the A20J runtime log:
+- executable accepted;
+- gameplay hook installed;
+- native LTK observation hook installed;
+- DX12 overlay reached ImGui-ready state;
+- AUTO weapon package completed and AUTO ammo published;
+- F3 Manual package completed all three roles;
+- F1 toggled native LTK ON -> FORCE OFF and OFF -> FORCE ON;
+- F2 ammo published all six firearm classes;
+- F5/F6/F7/F10/F11 direct native weapon slots completed successfully;
+- Debug Spawn Weapon completed repeated direct native spawns;
+- PLAYER NOT READY -> READY transition reset correctly;
+- AUTO and Manual loadout worked again after the READY-cycle transition;
+- F4 Q-Pistol direct swap remained functional.
+
+A20J is therefore **VALIDATED** and can replace A20I as the canonical cleanup base.
