@@ -15,6 +15,8 @@
 - Gadgets: removed.
 - Overlay/config model: locked.
 - Source of truth: `/PROJECT_STATE.md`.
+- Next candidate: **A20J Clean Core**, cleanup-only from validated A20I.
+- A20J audit is locked in `docs/A20J_CLEAN_CORE_AUDIT.md`; no RID/gameplay/timing changes are allowed.
 
 ## Authoritative default controls
 
