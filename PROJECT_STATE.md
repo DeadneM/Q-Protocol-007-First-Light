@@ -20,7 +20,7 @@
 - Branch: `dev/a20j-clean-core`.
 - Build: `Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip`.
 - GitHub Actions run: **#113 / 37835613207 — PASS**.
-- Status: **compiled cleanup candidate, gameplay validation pending**.
+- Status: **VALIDATED in game**.
 - Two independent cleanup audits agreed on the same dead-code set.
 - Removed obsolete donor/pair-clone restoration state, `SafeWrite()`, dead LTK state parsing and write-only flags.
 - Simplified overlay telemetry and internal Weapons/Debug naming without changing public tabs.
@@ -31,7 +31,8 @@
 - Runtime Discovery, Debug tools, WeaponPreviousRid and current native hooks remain.
 - Main gameplay-hook uninstallation remains out of scope because it would alter lifecycle behavior.
 - Detailed checklist: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
-- Next exact step: validate F1/F2/F3/F4, several F5-F12 slots, AUTO and Loadout/Weapons/Debug/Hotkeys in game.
+- Validation result: F1, F2, F3, F4, tested F5-F12 slots, AUTO, player READY-cycle reset and Debug Spawn Weapon all worked in game.
+- Next exact step: promote A20J as the next public release.
 
 ## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
 
