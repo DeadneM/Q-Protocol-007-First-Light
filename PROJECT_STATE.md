@@ -14,6 +14,20 @@
 - Public defaults remain AUTO disabled with OneHanded/TwoHanded set to None.
 - Debug Spawn Weapon is retained as a diagnostic tool; normal-story activation can still be context-sensitive.
 
+## A20J Clean Core audit / next candidate
+
+- Base: **validated v0.9.3 / Fresh Core A20I**.
+- Two independent cleanup audits agree on the same dead-code set.
+- Goal: remove obsolete donor/pair-clone remnants and unused overlay state only.
+- No RID, gameplay primitive, timing, AUTO behavior or public default may change.
+- Planned core removals include the unreachable donor restore path, `SafeWrite()`, dead LTK state parser and write-only flags.
+- Planned overlay cleanup removes write-only telemetry and stale A19/A5 naming.
+- Catalogue Spawn Weapon will reuse the existing shared overlay spawn queue helper.
+- Runtime Discovery, Debug tools, WeaponPreviousRid and current native hooks stay.
+- Main gameplay-hook uninstallation remains out of scope because it would alter lifecycle behavior.
+- Detailed checklist: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
+- Next exact step: build **A20J Clean Core TEST** and compare binary/import behavior against A20I.
+
 ## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
 
 - Build: `Q-Protocol_v0.9.2.zip`
