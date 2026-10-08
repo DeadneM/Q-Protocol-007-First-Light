@@ -14,19 +14,24 @@
 - Public defaults remain AUTO disabled with OneHanded/TwoHanded set to None.
 - Debug Spawn Weapon is retained as a diagnostic tool; normal-story activation can still be context-sensitive.
 
-## A20J Clean Core audit / next candidate
+## A20J Clean Core test candidate
 
 - Base: **validated v0.9.3 / Fresh Core A20I**.
-- Two independent cleanup audits agree on the same dead-code set.
-- Goal: remove obsolete donor/pair-clone remnants and unused overlay state only.
-- No RID, gameplay primitive, timing, AUTO behavior or public default may change.
-- Planned core removals include the unreachable donor restore path, `SafeWrite()`, dead LTK state parser and write-only flags.
-- Planned overlay cleanup removes write-only telemetry and stale A19/A5 naming.
-- Catalogue Spawn Weapon will reuse the existing shared overlay spawn queue helper.
-- Runtime Discovery, Debug tools, WeaponPreviousRid and current native hooks stay.
+- Branch: `dev/a20j-clean-core`.
+- Build: `Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip`.
+- GitHub Actions run: **#113 / 37835613207 — PASS**.
+- Status: **compiled cleanup candidate, gameplay validation pending**.
+- Two independent cleanup audits agreed on the same dead-code set.
+- Removed obsolete donor/pair-clone restoration state, `SafeWrite()`, dead LTK state parsing and write-only flags.
+- Simplified overlay telemetry and internal Weapons/Debug naming without changing public tabs.
+- Catalogue Spawn Weapon now reuses the shared `QueueOverlaySpawn()` helper.
+- CI catalogue/config audit remains unchanged and passes.
+- PE import audit passes: Q Protocol's own `WriteProcessMemory` import is gone; expected `ReadProcessMemory` and `VirtualProtect` remain.
+- No `QProtocol.ini`, weapon RID, timing, retry, AUTO sequence or gameplay primitive was intentionally changed.
+- Runtime Discovery, Debug tools, WeaponPreviousRid and current native hooks remain.
 - Main gameplay-hook uninstallation remains out of scope because it would alter lifecycle behavior.
 - Detailed checklist: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
-- Next exact step: build **A20J Clean Core TEST** and compare binary/import behavior against A20I.
+- Next exact step: validate F1/F2/F3/F4, several F5-F12 slots, AUTO and Loadout/Weapons/Debug/Hotkeys in game.
 
 ## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
 
