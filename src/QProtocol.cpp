@@ -48,8 +48,6 @@ constexpr std::uint32_t kAmmoNotifyEventId        = 0x1DE;
 constexpr std::uintptr_t kGraphScanBegin = 0x2C000000;
 constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 
-constexpr std::uint64_t kDonorDisplayRid = 0x016886A4B599391CULL;
-
 constexpr BYTE kLtkNaturalFalse[2] = {0x32, 0xD2};
 constexpr BYTE kLtkForceTrue[2]     = {0xB2, 0x01};
 constexpr BYTE kLtkNativeTrue[2]    = {0xB2, 0x01};
@@ -85,16 +83,10 @@ struct WeaponGraph {
 
 struct ActiveWeapon {
     bool active = false;
-    bool seenBusy = false;
-    bool descriptorPatched = false;
-    bool directGraph = false;
     bool packageOwned = false;
     bool observationLogged = false;
     std::uint64_t requestedRid = 0;
-    std::uintptr_t donorItem = 0;
-    std::uintptr_t donorSpawner = 0;
-    std::uint64_t originalDonorRid = 0;
-    std::uint64_t originalDonorTemplate = 0;
+    std::uintptr_t spawner = 0;
     ULONGLONG setupAt = 0;
 };
 
@@ -123,16 +115,9 @@ struct PendingAmmoRequest {
     const char* source = nullptr;
 };
 
-enum class LtkState {
-    Natural,
-    ForceOff,
-    ForceOn,
-    Unknown
-};
-
 enum class BeginWeaponResult {
     Started,
-    DonorBusy,
+    SpawnerBusy,
     Failed
 };
 
@@ -155,7 +140,6 @@ std::uintptr_t g_exeBase = 0;
 std::atomic<bool> g_running{true};
 
 NativeSpawnFn g_nativeSpawn = nullptr;
-bool g_gameplayHookInstalled = false;
 bool g_ltkObserveHookInstalled = false;
 
 std::atomic<std::uintptr_t> g_pendingSpawner{0};
@@ -268,18 +252,6 @@ bool SafeRead(std::uintptr_t address, T& out) {
                GetCurrentProcess(),
                reinterpret_cast<LPCVOID>(address),
                &out,
-               sizeof(T),
-               &bytes) != FALSE &&
-           bytes == sizeof(T);
-}
-
-template <typename T>
-bool SafeWrite(std::uintptr_t address, const T& value) {
-    SIZE_T bytes = 0;
-    return WriteProcessMemory(
-               GetCurrentProcess(),
-               reinterpret_cast<LPVOID>(address),
-               &value,
                sizeof(T),
                &bytes) != FALSE &&
            bytes == sizeof(T);
@@ -500,37 +472,6 @@ bool ReadCode2(std::uintptr_t address, BYTE (&out)[2]) {
                sizeof(out),
                &bytes) &&
            bytes == sizeof(out);
-}
-
-LtkState ReadLicenseToKillState() {
-    BYTE falsePath[2]{};
-    BYTE truePath[2]{};
-
-    if (!ReadCode2(g_exeBase + kLicenseToKillRva, falsePath) ||
-        !ReadCode2(g_exeBase + kLicenseToKillNativeOnRva, truePath)) {
-        return LtkState::Unknown;
-    }
-
-    const bool falseIsNatural =
-        memcmp(falsePath, kLtkNaturalFalse, sizeof(falsePath)) == 0;
-    const bool falseIsForcedOn =
-        memcmp(falsePath, kLtkForceTrue, sizeof(falsePath)) == 0;
-    const bool trueIsNatural =
-        memcmp(truePath, kLtkNativeTrue, sizeof(truePath)) == 0;
-    const bool trueIsForcedOff =
-        memcmp(truePath, kLtkForceFalse, sizeof(truePath)) == 0;
-
-    if (falseIsNatural && trueIsNatural) {
-        return LtkState::Natural;
-    }
-    if (falseIsForcedOn && trueIsNatural) {
-        return LtkState::ForceOn;
-    }
-    if (falseIsNatural && trueIsForcedOff) {
-        return LtkState::ForceOff;
-    }
-
-    return LtkState::Unknown;
 }
 
 bool ApplyLicenseToKillForce(bool enabled) {
@@ -982,28 +923,9 @@ bool IsSpawnerIdle(std::uintptr_t spawner, bool& idle) {
     return true;
 }
 
-void RestoreActiveDonor(const char* reason) {
+void ResetActiveWeaponState() {
     if (!g_activeWeapon.active) {
         return;
-    }
-
-    if (g_activeWeapon.descriptorPatched) {
-        const bool ridOk = SafeWrite(
-            g_activeWeapon.donorItem + 0x120,
-            g_activeWeapon.originalDonorRid);
-        const bool templateOk = SafeWrite(
-            g_activeWeapon.donorItem + 0x128,
-            g_activeWeapon.originalDonorTemplate);
-
-        Log(
-            "GiveWeapon donor restored (%s): RID=%s template=%s",
-            reason,
-            ridOk ? "OK" : "FAILED",
-            templateOk ? "OK" : "FAILED");
-    } else if (g_activeWeapon.directGraph) {
-        Log(
-            "DIRECT graph finished (%s): no donor descriptor restore needed.",
-            reason);
     }
 
     g_activeWeapon = {};
@@ -1034,16 +956,14 @@ BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwn
     }
 
     if (!sourceIdle) {
-        return BeginWeaponResult::DonorBusy;
+        return BeginWeaponResult::SpawnerBusy;
     }
 
     g_activeWeapon = {};
     g_activeWeapon.active = true;
-    g_activeWeapon.directGraph = true;
     g_activeWeapon.packageOwned = packageOwned;
     g_activeWeapon.requestedRid = requestedRid;
-    g_activeWeapon.donorItem = source.itemEntry;
-    g_activeWeapon.donorSpawner = source.spawner;
+    g_activeWeapon.spawner = source.spawner;
     g_activeWeapon.setupAt = GetTickCount64();
 
     g_spawnTriggered.store(false, std::memory_order_release);
@@ -1236,7 +1156,7 @@ void FailActiveWeapon(const char* reason) {
         static_cast<unsigned long long>(RotateRid(rid)),
         reason ? reason : "unknown failure");
 
-    RestoreActiveDonor(reason ? reason : "failed");
+    ResetActiveWeaponState();
 
     if (packageOwned) {
         RetryLoadoutPackage(reason);
@@ -1251,26 +1171,19 @@ void CompleteActiveWeapon() {
     }
 
     const bool packageOwned = g_activeWeapon.packageOwned;
-    const bool directGraph = g_activeWeapon.directGraph;
     const std::uint64_t rid = g_activeWeapon.requestedRid;
     const ULONGLONG now = GetTickCount64();
 
-    if (directGraph) {
-        Log(
-            "DIRECT graph COMPLETE RID=%016llX",
-            static_cast<unsigned long long>(RotateRid(rid)));
-    } else {
-        Log(
-            "GiveWeapon COMPLETE RID=%016llX",
-            static_cast<unsigned long long>(RotateRid(rid)));
-    }
+    Log(
+        "DIRECT graph COMPLETE RID=%016llX",
+        static_cast<unsigned long long>(RotateRid(rid)));
 
     g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
     Log(
         "GiveWeapon queue cooldown = %llu ms",
         static_cast<unsigned long long>(kWeaponInterRequestDelayMs));
 
-    RestoreActiveDonor("complete");
+    ResetActiveWeaponState();
 
     if (packageOwned) {
         Log(
@@ -1344,13 +1257,9 @@ void ProcessWeaponQueue() {
         }
 
         bool idle = false;
-        if (!IsSpawnerIdle(g_activeWeapon.donorSpawner, idle)) {
+        if (!IsSpawnerIdle(g_activeWeapon.spawner, idle)) {
             FailActiveWeapon("spawner became unreadable");
             return;
-        }
-
-        if (!idle) {
-            g_activeWeapon.seenBusy = true;
         }
 
         if (idle) {
@@ -1623,7 +1532,6 @@ bool InstallGameplayHook() {
         return false;
     }
 
-    g_gameplayHookInstalled = true;
     Log("Gameplay hook installed at EXE+0x%llX.", static_cast<unsigned long long>(kGameplayHookRva));
     return true;
 }
@@ -1638,7 +1546,7 @@ bool KeyPressedEdge(int vk, SHORT& previous) {
 
 void ResetWeaponRuntime(const char* reason) {
     if (g_activeWeapon.active) {
-        RestoreActiveDonor(reason);
+        ResetActiveWeaponState();
     }
     g_weaponQueue.clear();
     g_nextWeaponAllowedAt = 0;
@@ -1670,8 +1578,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.3 / Fresh Core A20I Native LTK State Toggle");
-    Log("Scope: validated A20F direct weapon graphs + Weapons/Debug overlay + native-state License To Kill toggle.");
+    Log("Q Protocol v0.9.4 / Fresh Core A20J Clean Core");
+    Log("Scope: validated A20J Clean Core; A20I gameplay/RIDs/timings preserved.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1767,11 +1675,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         }
 
         const bool overlayTogglePressed =
-            OverlayPump(
-                ready,
-                autoDone,
-                g_weaponQueue.size() + (g_activeWeapon.active ? 1u : 0u),
-                g_qpistolNextB);
+            OverlayPump(ready);
 
         const char* overlayStatus = OverlayStatus();
         if (overlayStatus && lastOverlayStatus != overlayStatus) {
@@ -1969,7 +1873,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     if (g_activeWeapon.active) {
-        RestoreActiveDonor("DLL shutdown");
+        ResetActiveWeaponState();
     }
 
     if (!RestoreLicenseToKillNatural()) {

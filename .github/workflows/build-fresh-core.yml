@@ -13,6 +13,7 @@ on:
       - dev/a20g-mod-weapon-slots
       - dev/a20h-weapons-debug-ltk-force-toggle
       - dev/a20i-native-ltk-state-toggle
+      - dev/a20j-clean-core
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -259,12 +260,61 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package Q Protocol v0.9.3
+      - name: Audit A20J PE imports
         shell: pwsh
         run: |
-          Copy-Item packaging\README.txt dist\README.txt
-          Copy-Item config\QProtocol.ini dist\QProtocol.ini
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A20J_IMPORTS.txt
+          $imports = Get-Content dist\A20J_IMPORTS.txt -Raw
 
+          if ($imports -match "WriteProcessMemory") {
+            throw "A20J regression: WriteProcessMemory is still imported."
+          }
+
+          if ($imports -notmatch "ReadProcessMemory") {
+            throw "A20J audit mismatch: expected ReadProcessMemory import not found."
+          }
+
+          if ($imports -notmatch "VirtualProtect") {
+            throw "A20J audit mismatch: expected VirtualProtect import not found."
+          }
+
+          $asi = Get-Item dist\QProtocol.asi
+          Write-Host ("A20J ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A20J ASI SHA-256: {0}" -f (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash)
+          Write-Host "A20J import audit PASS: WriteProcessMemory absent."
+
+      - name: Upload A20J import audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Q-Protocol_FreshCore_A20J_ImportAudit
+          path: dist/A20J_IMPORTS.txt
+          if-no-files-found: error
+
+      - name: Prepare A20J Clean Core release files
+        shell: pwsh
+        run: |
+          Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
+          Copy-Item packaging/README.txt dist/README.txt -Force
+
+          $files = @(
+            "dist/QProtocol.asi",
+            "dist/QProtocol.ini",
+            "dist/README.txt"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing A20J package file: $file"
+            }
+
+            $item = Get-Item $file
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash
+            Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
+          }
+
+      - name: Build Q Protocol v0.9.4 release ZIP
+        shell: pwsh
+        run: |
           @'
           from pathlib import Path
           import hashlib
@@ -272,7 +322,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.3.zip"
+          out = dist / "Q-Protocol_v0.9.4.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -281,36 +331,35 @@ jobs:
           with zipfile.ZipFile(out, "r") as z:
               assert z.namelist() == names
 
-          for name in names:
-              data = (dist / name).read_bytes()
-              print(f"{name}: {len(data)} bytes SHA-256 {hashlib.sha256(data).hexdigest()}")
-
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload Q Protocol v0.9.3 artifact
+      - name: Upload A20J Clean Core artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.3
-          path: dist/Q-Protocol_v0.9.3.zip
+          name: Q-Protocol_FreshCore_A20J
+          path: |
+            dist/QProtocol.asi
+            dist/QProtocol.ini
+            dist/README.txt
           if-no-files-found: error
 
-      - name: Publish GitHub Release v0.9.3
+      - name: Publish GitHub Release v0.9.4
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.3"
-          $asset = "dist/Q-Protocol_v0.9.3.zip"
-          $title = "Q Protocol v0.9.3 - Fresh Core A20I Native LTK State Toggle"
+          $tag = "v0.9.4"
+          $asset = "dist/Q-Protocol_v0.9.4.zip"
+          $title = "Q Protocol v0.9.4 - Fresh Core A20J Clean Core"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           if ($exists) {
             gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
-            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20I.md --repo $env:GITHUB_REPOSITORY
+            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A20I.md --repo $env:GITHUB_REPOSITORY
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
           }

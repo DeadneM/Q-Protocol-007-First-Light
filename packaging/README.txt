@@ -1,43 +1,45 @@
-Q Protocol v0.9.3 - Fresh Core A20I
-========================================
+Q Protocol v0.9.4 - Fresh Core A20J Clean Core
+==================================================
 
-COMPATIBILITY
--------------
-For the October 7, 2026 version of 007 First Light.
-
-MAIN CHANGES
-------------
-- New Weapons tab for configuring Weapon 1-8 / F5-F12.
-- Previous weapon catalogue, Spawn Weapon and Runtime Discovery tools moved to Debug.
-- F1 now reads the native License To Kill state calculated by the game and forces the opposite state:
-  - native OFF -> FORCE ON
-  - native ON  -> FORCE OFF
-- Keeps the validated A20F direct native ItemEntry/Spawner weapon system.
-
-NOTE
+BASE
 ----
-Debug -> Spawn Weapon is kept as a diagnostic tool. Story-mode gameplay state can
-still interfere with equipping a diagnostic spawn; this does not affect the normal
-F5-F12 configurable weapon slots.
+Validated A20J Clean Core, built from the validated v0.9.3 / A20I gameplay base.
 
-DEFAULT CONTROLS
-----------------
-F1  Toggle License To Kill from the current native state
-F2  Add ammunition
-F3  Manual loadout
-F4  Q-Pistol swap
-F5-F12  Configurable weapon slots
-Insert  Overlay
+CHANGES
+-------
+- Removed obsolete donor/pair-clone restoration code.
+- Removed dead core state and dead License To Kill parser state.
+- Removed unused overlay telemetry and stale historical naming.
+- Simplified OverlayPump to the state it actually consumes.
+- Debug catalogue Spawn Weapon now reuses the shared overlay spawn helper.
+- Q Protocol's own WriteProcessMemory import is removed.
+- ReadProcessMemory and VirtualProtect remain because the current native hooks require them.
 
-DEFAULT AUTO PROFILE
---------------------
-AUTO is disabled by default.
-QPistol=QPistolSilenced
-OneHanded=None
-TwoHanded=None
+VALIDATED
+---------
+In-game validation passed for:
+- F1 native-state License To Kill toggle
+- F2 ammo
+- F3 Manual loadout
+- F4 Q-Pistol swap
+- tested F5-F12 weapon slots
+- AUTO
+- PLAYER NOT READY -> READY reset/restart
+- Loadout / Weapons / Debug / Hotkeys overlay
+- repeated Debug Spawn Weapon native calls
 
-FILES
------
-QProtocol.asi
-QProtocol.ini
-README.txt
+UNCHANGED
+---------
+- 31-weapon catalogue and all RIDs
+- native ItemEntry/Spawner weapon architecture
+- weapon timings and retry policy
+- AUTO sequencing
+- public INI defaults
+- Runtime Discovery
+
+PACKAGE
+-------
+The release ZIP contains these files directly at its root:
+- QProtocol.asi
+- QProtocol.ini
+- README.txt
