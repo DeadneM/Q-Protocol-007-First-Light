@@ -290,40 +290,33 @@ jobs:
           path: dist/A20J_IMPORTS.txt
           if-no-files-found: error
 
-      - name: Package A20J Clean Core test
+      - name: Prepare A20J Clean Core test files
         shell: pwsh
         run: |
-          Copy-Item packaging\README.txt dist\README.txt
-          Copy-Item config\QProtocol.ini dist\QProtocol.ini
+          $files = @(
+            "dist/QProtocol.asi",
+            "dist/QProtocol.ini",
+            "dist/README.txt"
+          )
 
-          @'
-          from pathlib import Path
-          import hashlib
-          import zipfile
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing A20J package file: $file"
+            }
 
-          dist = Path("dist")
-          names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip"
-
-          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-              for name in names:
-                  z.write(dist / name, arcname=name)
-
-          with zipfile.ZipFile(out, "r") as z:
-              assert z.namelist() == names
-
-          for name in names:
-              data = (dist / name).read_bytes()
-              print(f"{name}: {len(data)} bytes SHA-256 {hashlib.sha256(data).hexdigest()}")
-
-          print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
-          '@ | python -
+            $item = Get-Item $file
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash
+            Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
+          }
 
       - name: Upload A20J Clean Core test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20J
-          path: dist/Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip
+          name: Q-Protocol_FreshCore_A20J_CleanCore_TEST
+          path: |
+            dist/QProtocol.asi
+            dist/QProtocol.ini
+            dist/README.txt
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.3
