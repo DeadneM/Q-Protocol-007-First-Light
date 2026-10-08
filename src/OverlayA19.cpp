@@ -2157,7 +2157,7 @@ void DrawHotkeysTab() {
     };
 
     const char* actions[] = {
-        "License To Kill",
+        "Rules of Engagement",
         "Manual Ammo",
         "Manual Loadout",
         "Q-Pistol Swap",
