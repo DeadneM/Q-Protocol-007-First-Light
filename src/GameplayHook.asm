@@ -1,7 +1,9 @@
 OPTION CASEMAP:NONE
 
 EXTERN QpGameplayTick:PROC
-EXTERN g_qpLtkObservedPacked:DWORD
+EXTERN g_qpRoeNativeState:DWORD
+EXTERN g_qpRoeEffectiveState:DWORD
+EXTERN g_qpRoeOverrideState:DWORD
 EXTERN g_qpLtkObserveTrueTarget:QWORD
 EXTERN g_qpLtkObserveFalseTarget:QWORD
 
@@ -36,16 +38,76 @@ QpGameplayHook PROC
 QpGameplayHook ENDP
 
 QpLtkObserveHook PROC
-    ; At EXE+0x191A6D8, DL already contains the game's native
-    ; License To Kill decision for this evaluation.
-    ; Store 1 = OFF, 2 = ON without disturbing the surrounding code.
+    ; Native ROE state at EXE+0x191A6D8:
+    ;   DL=0 / R15b=0 -> OFF
+    ;   DL=0 / R15b=1 -> LICENSE TO PUNCH
+    ;   DL=1          -> LICENSE TO KILL
+    ;
+    ; Capture the native state first, then optionally override both result
+    ; channels. This keeps the game's own ROE calculation intact underneath.
+
     push rax
-    movzx eax, dl
-    inc eax
-    mov dword ptr [g_qpLtkObservedPacked], eax
+    push rcx
+
+    ; EAX = native state (1 OFF, 2 PUNCH, 3 LTK).
+    mov eax, 1
+    test dl, dl
+    jnz roe_native_ltk
+    test r15b, r15b
+    jnz roe_native_punch
+    jmp roe_native_ready
+
+roe_native_punch:
+    mov eax, 2
+    jmp roe_native_ready
+
+roe_native_ltk:
+    mov eax, 3
+
+roe_native_ready:
+    mov dword ptr [g_qpRoeNativeState], eax
+
+    ; ECX = requested override. 0 means preserve native state.
+    mov ecx, dword ptr [g_qpRoeOverrideState]
+    test ecx, ecx
+    jz roe_effective_native
+
+    cmp ecx, 1
+    je roe_force_off
+    cmp ecx, 2
+    je roe_force_punch
+    cmp ecx, 3
+    je roe_force_ltk
+
+    ; Invalid override: fail open to native state.
+    mov ecx, eax
+    jmp roe_effective_store
+
+roe_force_off:
+    xor dl, dl
+    mov r15b, 0
+    jmp roe_effective_store
+
+roe_force_punch:
+    xor dl, dl
+    mov r15b, 1
+    jmp roe_effective_store
+
+roe_force_ltk:
+    mov dl, 1
+    mov r15b, 0
+    jmp roe_effective_store
+
+roe_effective_native:
+    mov ecx, eax
+
+roe_effective_store:
+    mov dword ptr [g_qpRoeEffectiveState], ecx
+
+    pop rcx
     pop rax
 
-    ; Replay the exact 13 bytes before the original conditional jump.
+    ; Replay the exact bytes before the original conditional jump.
     mov rdi, qword ptr [r11+06F0h]
     and r8, qword ptr [rdi+rax*8]
     test dl, dl
