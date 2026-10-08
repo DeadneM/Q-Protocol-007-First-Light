@@ -13,6 +13,7 @@ on:
       - dev/a20g-mod-weapon-slots
       - dev/a20h-weapons-debug-ltk-force-toggle
       - dev/a20i-native-ltk-state-toggle
+      - dev/a20j-clean-core
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -259,7 +260,7 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Package Q Protocol v0.9.3
+      - name: Package A20J Clean Core test
         shell: pwsh
         run: |
           Copy-Item packaging\README.txt dist\README.txt
@@ -272,7 +273,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.3.zip"
+          out = dist / "Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -288,11 +289,11 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload Q Protocol v0.9.3 artifact
+      - name: Upload A20J Clean Core test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.3
-          path: dist/Q-Protocol_v0.9.3.zip
+          name: Q-Protocol_FreshCore_A20J
+          path: dist/Q-Protocol_FreshCore_A20J_CleanCore_TEST.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release v0.9.3
