@@ -2,20 +2,20 @@
 
 ## Active state
 
-- Current public release: **Q Protocol v0.9.3 / Fresh Core A20I Native LTK State Toggle**.
-- A20I is the validated post-update base for the October 7, 2026 executable.
+- Current public release: **Q Protocol v0.9.4 / Fresh Core A20J Clean Core**.
+- A20J is the validated post-update base for the October 7, 2026 executable.
 - Player-ready resolution, F1, F2, F3, F4, F5-F12 and AUTO are validated in-game.
 - Weapon spawning uses each RID's native ItemEntry/Spawner graph directly.
 - F1 observes the game's native License To Kill state and forces the opposite state.
 - Overlay tabs: Loadout / Weapons / Debug / Hotkeys.
 
 - Behavioral reference: **U74** on the pre-update executable.
-- Current post-update canonical build: **Fresh Core A20I**.
+- Current post-update canonical build: **Fresh Core A20J**.
 - Rejected compatibility branches: U80, U81, U81B, U82, U82A, U83, U84, U85.
 - Gadgets: removed.
 - Overlay/config model: locked.
 - Source of truth: `/PROJECT_STATE.md`.
-- **A20J Clean Core is validated in game** and is the next canonical cleanup base.
+- **A20J Clean Core is validated in game and publicly released as v0.9.4**.
 - A20J audit and validation are recorded in `docs/A20J_CLEAN_CORE_AUDIT.md`; no RID/gameplay/timing changes were introduced.
 
 ## Authoritative default controls
