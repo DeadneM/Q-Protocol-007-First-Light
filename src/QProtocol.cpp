@@ -27,8 +27,6 @@ constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
 constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
 constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
 constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
-constexpr std::uintptr_t kLicenseToKillRva         = 0x0191A6B4;
-constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191A71B;
 constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191A6D8;
 constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191A6E7;
 constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191A763;
@@ -47,11 +45,6 @@ constexpr std::uint32_t kAmmoNotifyEventId        = 0x1DE;
 
 constexpr std::uintptr_t kGraphScanBegin = 0x2C000000;
 constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
-
-constexpr BYTE kLtkNaturalFalse[2] = {0x32, 0xD2};
-constexpr BYTE kLtkForceTrue[2]     = {0xB2, 0x01};
-constexpr BYTE kLtkNativeTrue[2]    = {0xB2, 0x01};
-constexpr BYTE kLtkForceFalse[2]    = {0x32, 0xD2};
 
 constexpr BYTE kLtkObserveHookPreimage[15] = {
     0x49, 0x8B, 0xBB, 0xF0, 0x06, 0x00, 0x00,
@@ -130,7 +123,9 @@ using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
 extern "C" void QpGameplayHook();
 extern "C" void QpLtkObserveHook();
 
-extern "C" volatile LONG g_qpLtkObservedPacked = 0;
+extern "C" volatile LONG g_qpRoeNativeState = 0;
+extern "C" volatile LONG g_qpRoeEffectiveState = 0;
+extern "C" volatile LONG g_qpRoeOverrideState = 0;
 extern "C" std::uintptr_t g_qpLtkObserveTrueTarget = 0;
 extern "C" std::uintptr_t g_qpLtkObserveFalseTarget = 0;
 
@@ -404,7 +399,13 @@ bool InstallLicenseToKillObserveHook() {
         g_exeBase + kLtkObserveFalseRva;
 
     InterlockedExchange(
-        &g_qpLtkObservedPacked,
+        &g_qpRoeNativeState,
+        0);
+    InterlockedExchange(
+        &g_qpRoeEffectiveState,
+        0);
+    InterlockedExchange(
+        &g_qpRoeOverrideState,
         0);
 
     BYTE patch[15] = {
@@ -456,100 +457,78 @@ bool RemoveLicenseToKillObserveHook() {
     if (restored) {
         g_ltkObserveHookInstalled = false;
         InterlockedExchange(
-            &g_qpLtkObservedPacked,
+            &g_qpRoeNativeState,
+            0);
+        InterlockedExchange(
+            &g_qpRoeEffectiveState,
+            0);
+        InterlockedExchange(
+            &g_qpRoeOverrideState,
             0);
     }
 
     return restored;
 }
 
-bool ReadCode2(std::uintptr_t address, BYTE (&out)[2]) {
-    SIZE_T bytes = 0;
-    return ReadProcessMemory(
-               GetCurrentProcess(),
-               reinterpret_cast<LPCVOID>(address),
-               out,
-               sizeof(out),
-               &bytes) &&
-           bytes == sizeof(out);
+enum class RoeState : LONG {
+    Unknown = 0,
+    Off = 1,
+    LicenseToPunch = 2,
+    LicenseToKill = 3
+};
+
+const char* RoeStateName(RoeState state) {
+    switch (state) {
+    case RoeState::Off:
+        return "OFF";
+    case RoeState::LicenseToPunch:
+        return "LICENSE TO PUNCH";
+    case RoeState::LicenseToKill:
+        return "LICENSE TO KILL";
+    default:
+        return "UNKNOWN";
+    }
 }
 
-bool ApplyLicenseToKillForce(bool enabled) {
-    const auto falseSite = g_exeBase + kLicenseToKillRva;
-    const auto trueSite = g_exeBase + kLicenseToKillNativeOnRva;
+bool CycleRulesOfEngagement() {
+    const RoeState current =
+        static_cast<RoeState>(
+            InterlockedCompareExchange(
+                &g_qpRoeEffectiveState,
+                0,
+                0));
 
-    BYTE oldFalse[2]{};
-    BYTE oldTrue[2]{};
-    if (!ReadCode2(falseSite, oldFalse) ||
-        !ReadCode2(trueSite, oldTrue)) {
-        Log("[ERROR] F1 License To Kill: unable to read native sites.");
+    RoeState next = RoeState::Unknown;
+
+    switch (current) {
+    case RoeState::Off:
+        next = RoeState::LicenseToPunch;
+        break;
+
+    case RoeState::LicenseToPunch:
+        next = RoeState::LicenseToKill;
+        break;
+
+    case RoeState::LicenseToKill:
+        next = RoeState::Off;
+        break;
+
+    default:
+        Log(
+            "[ERROR] F1 Rules Of Engagement: native runtime state not observed yet.");
         return false;
     }
 
-    const BYTE* targetFalse =
-        enabled ? kLtkForceTrue : kLtkNaturalFalse;
-    const BYTE* targetTrue =
-        enabled ? kLtkNativeTrue : kLtkForceFalse;
-
-    // Patch the path that preserves the requested state first, then the other.
-    if (!WriteCodeBytes(trueSite, targetTrue, 2) ||
-        !WriteCodeBytes(falseSite, targetFalse, 2)) {
-
-        WriteCodeBytes(falseSite, oldFalse, 2);
-        WriteCodeBytes(trueSite, oldTrue, 2);
-        Log("[ERROR] F1 License To Kill: force write failed; rolled back.");
-        return false;
-    }
-
-    return true;
-}
-
-bool RestoreLicenseToKillNatural() {
-    const auto falseSite = g_exeBase + kLicenseToKillRva;
-    const auto trueSite = g_exeBase + kLicenseToKillNativeOnRva;
-
-    const bool a = WriteCodeBytes(
-        falseSite,
-        kLtkNaturalFalse,
-        sizeof(kLtkNaturalFalse));
-    const bool b = WriteCodeBytes(
-        trueSite,
-        kLtkNativeTrue,
-        sizeof(kLtkNativeTrue));
-
-    return a && b;
-}
-
-bool ToggleLicenseToKill() {
-    const LONG observed =
-        InterlockedCompareExchange(
-            &g_qpLtkObservedPacked,
-            0,
-            0);
-
-    if (observed == 1) {
-        if (!ApplyLicenseToKillForce(true)) {
-            return false;
-        }
-
-        Log(
-            "F1 License To Kill: native state OFF -> FORCE ON");
-        return true;
-    }
-
-    if (observed == 2) {
-        if (!ApplyLicenseToKillForce(false)) {
-            return false;
-        }
-
-        Log(
-            "F1 License To Kill: native state ON -> FORCE OFF");
-        return true;
-    }
+    InterlockedExchange(
+        &g_qpRoeOverrideState,
+        static_cast<LONG>(next));
 
     Log(
-        "[ERROR] F1 License To Kill: native runtime state not observed yet.");
-    return false;
+        "F1 Rules Of Engagement: %s -> %s",
+        RoeStateName(current),
+        RoeStateName(next));
+
+    return true;
 }
 
 std::uint64_t RotateRid(std::uint64_t value) {
@@ -1578,8 +1557,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.4 / Fresh Core A20J Clean Core");
-    Log("Scope: validated A20J Clean Core; A20I gameplay/RIDs/timings preserved.");
+    Log("Q Protocol Fresh Core A20K Three-State ROE TEST");
+    Log("Scope: A20J base + F1 native OFF / License To Punch / License To Kill cycle.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1605,7 +1584,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         Log("[ERROR] Overlay bootstrap failed. Gameplay core remains active.");
     }
 
-    Log("F1 = License To Kill toggle.");
+    Log("F1 = Rules Of Engagement cycle: OFF -> LICENSE TO PUNCH -> LICENSE TO KILL.");
     Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
@@ -1735,7 +1714,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f1Pressed) {
 
-            ToggleLicenseToKill();
+            CycleRulesOfEngagement();
         }
 
         if (!overlayVisible &&
@@ -1876,9 +1855,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
         ResetActiveWeaponState();
     }
 
-    if (!RestoreLicenseToKillNatural()) {
-        Log("[ERROR] License To Kill natural-state restore failed during DLL shutdown.");
-    }
+    InterlockedExchange(
+        &g_qpRoeOverrideState,
+        0);
 
     if (!RemoveLicenseToKillObserveHook()) {
         Log("[ERROR] LTK observe hook restore failed during DLL shutdown.");
