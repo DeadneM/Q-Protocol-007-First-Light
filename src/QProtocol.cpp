@@ -1578,8 +1578,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20J Clean Core TEST");
-    Log("Scope: cleanup-only pass over validated A20I; gameplay/RIDs/timings unchanged.");
+    Log("Q Protocol v0.9.4 / Fresh Core A20J Clean Core");
+    Log("Scope: validated A20J Clean Core; A20I gameplay/RIDs/timings preserved.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
