@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## Q Protocol v0.9.4 — Fresh Core A20J Clean Core
+
+- Build: `Q-Protocol_v0.9.4.zip`
+- Release tag: `v0.9.4`
+- Status: **validated public release**
+- Canonical post-update base: **Fresh Core A20J**.
+- Preserves the validated A20I gameplay behavior, weapon RIDs, timings, retry policy and AUTO sequencing.
+- Removes obsolete donor/pair-clone restoration code, dead LTK parser state and unused overlay telemetry.
+- Q Protocol's own `WriteProcessMemory` import is removed; required `ReadProcessMemory` and `VirtualProtect` remain.
+- Overlay remains Loadout / Weapons / Debug / Hotkeys.
+- In-game validation passed for F1, F2, F3, F4, multiple F5-F12 slots, AUTO, player READY-cycle transitions and repeated Debug Spawn Weapon calls.
+- Release ZIP contains `QProtocol.asi`, `QProtocol.ini` and `README.txt` directly at its root.
+- Detailed cleanup audit: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
+
 ## Q Protocol v0.9.3 — Fresh Core A20I Native LTK State Toggle
 
 - Build: `Q-Protocol_v0.9.3.zip`
@@ -32,7 +46,7 @@
 - Main gameplay-hook uninstallation remains out of scope because it would alter lifecycle behavior.
 - Detailed checklist: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
 - Validation result: F1, F2, F3, F4, tested F5-F12 slots, AUTO, player READY-cycle reset and Debug Spawn Weapon all worked in game.
-- Next exact step: promote A20J as the next public release.
+- Promotion result: released publicly as **v0.9.4**.
 
 ## Q Protocol v0.9.2 — Fresh Core A20F Direct Native Weapon Graphs
 
