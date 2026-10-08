@@ -1,45 +1,62 @@
-Q Protocol v0.9.4 - Fresh Core A20J Clean Core
-==================================================
+Q Protocol - Fresh Core A20K Three-State ROE TEST
+===================================================
 
 BASE
 ----
-Validated A20J Clean Core, built from the validated v0.9.3 / A20I gameplay base.
+Validated public v0.9.4 / Fresh Core A20J Clean Core.
 
-CHANGES
--------
-- Removed obsolete donor/pair-clone restoration code.
-- Removed dead core state and dead License To Kill parser state.
-- Removed unused overlay telemetry and stale historical naming.
-- Simplified OverlayPump to the state it actually consumes.
-- Debug catalogue Spawn Weapon now reuses the shared overlay spawn helper.
-- Q Protocol's own WriteProcessMemory import is removed.
-- ReadProcessMemory and VirtualProtect remain because the current native hooks require them.
+A20K CHANGE
+-----------
+F1 now cycles the game's native Rules of Engagement states:
 
-VALIDATED
----------
-In-game validation passed for:
-- F1 native-state License To Kill toggle
-- F2 ammo
-- F3 Manual loadout
-- F4 Q-Pistol swap
-- tested F5-F12 weapon slots
-- AUTO
-- PLAYER NOT READY -> READY reset/restart
-- Loadout / Weapons / Debug / Hotkeys overlay
-- repeated Debug Spawn Weapon native calls
+OFF -> LICENSE TO PUNCH -> LICENSE TO KILL -> OFF
+
+The October executable exposes two separate native outputs in the same ROE
+calculation:
+- isLicenseToPunch
+- isLethalForceEnabled
+
+A20K observes and controls both channels together.
+
+EXPECTED BEHAVIOR
+-----------------
+OFF
+- lethal force disabled
+- close-combat / punching permission disabled
+
+LICENSE TO PUNCH
+- lethal force disabled
+- close-combat / punching permission enabled
+
+LICENSE TO KILL
+- lethal force enabled
+
+The original game ROE calculation remains underneath the override. The mod only
+forces the effective output after observing the native state.
 
 UNCHANGED
 ---------
-- 31-weapon catalogue and all RIDs
-- native ItemEntry/Spawner weapon architecture
-- weapon timings and retry policy
-- AUTO sequencing
-- public INI defaults
-- Runtime Discovery
+- A20J Clean Core weapon spawning
+- F2 ammo
+- F3 Manual loadout
+- F4 Q-Pistol swap
+- F5-F12 weapon slots
+- AUTO
+- all RIDs / timings / retries
+- Weapons / Debug overlay behavior
 
-PACKAGE
--------
-The release ZIP contains these files directly at its root:
-- QProtocol.asi
-- QProtocol.ini
-- README.txt
+TEST
+----
+Please test F1 in this order:
+1. Reach OFF: Bond should NOT be able to initiate punching.
+2. F1 -> LICENSE TO PUNCH: punching should work, lethal firearm use should remain blocked.
+3. F1 -> LICENSE TO KILL: lethal firearm use should work.
+4. F1 -> OFF: both punch permission and lethal force should be blocked again.
+
+Send QProtocol.log after the test.
+
+FILES
+-----
+QProtocol.asi
+QProtocol.ini
+README.txt
