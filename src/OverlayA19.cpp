@@ -2454,45 +2454,92 @@ void DrawOverlayWindow() {
     ImGuiIO& io =
         ImGui::GetIO();
 
-    const ImVec2 size(
-        (std::min)(
-            980.0f,
-            io.DisplaySize.x -
-                40.0f),
-        (std::min)(
-            740.0f,
-            io.DisplaySize.y -
-                40.0f));
+    ImGuiViewport* viewport =
+        ImGui::GetMainViewport();
 
-    const ImVec2 pos(
-        (io.DisplaySize.x -
-         size.x) *
-            0.5f,
-        (io.DisplaySize.y -
-         size.y) *
-            0.5f);
+    const ImVec2 workPos =
+        viewport
+            ? viewport->WorkPos
+            : ImVec2(0.0f, 0.0f);
 
+    const ImVec2 workSize =
+        viewport
+            ? viewport->WorkSize
+            : io.DisplaySize;
+
+    const float maxWidth =
+        (std::max)(
+            320.0f,
+            workSize.x - 32.0f);
+
+    const float maxHeight =
+        (std::max)(
+            260.0f,
+            workSize.y - 32.0f);
+
+    const float minWidth =
+        (std::min)(
+            640.0f,
+            maxWidth);
+
+    const float minHeight =
+        (std::min)(
+            460.0f,
+            maxHeight);
+
+    const ImVec2 defaultSize(
+        (std::min)(
+            900.0f,
+            maxWidth),
+        (std::min)(
+            650.0f,
+            maxHeight));
+
+    const ImVec2 defaultPos(
+        workPos.x +
+            workSize.x * 0.5f,
+        workPos.y +
+            workSize.y * 0.5f);
+
+    // A21 compatibility UI:
+    // use a conventional floating ImGui window. Position and size are only
+    // seeded once, then the user can move/resize the panel normally.
     ImGui::SetNextWindowPos(
-        pos,
-        ImGuiCond_Always);
+        defaultPos,
+        ImGuiCond_FirstUseEver,
+        ImVec2(0.5f, 0.5f));
 
     ImGui::SetNextWindowSize(
-        size,
-        ImGuiCond_Always);
+        defaultSize,
+        ImGuiCond_FirstUseEver);
+
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(
+            minWidth,
+            minHeight),
+        ImVec2(
+            maxWidth,
+            maxHeight));
+
+    bool keepOpen = true;
 
     const ImGuiWindowFlags flags =
-        ImGuiWindowFlags_NoTitleBar |
-        ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoSavedSettings;
 
     if (!ImGui::Begin(
             "Q Protocol",
-            nullptr,
+            &keepOpen,
             flags)) {
 
         ImGui::End();
+
+        if (!keepOpen) {
+            g_requestedVisible.store(
+                false,
+                std::memory_order_release);
+        }
+
         return;
     }
 
@@ -2509,9 +2556,17 @@ void DrawOverlayWindow() {
     ImGui::TextDisabled(
         "007 FIRST LIGHT");
 
+    const float readyLabelWidth =
+        155.0f;
+
+    const float readyX =
+        (std::max)(
+            ImGui::GetCursorPosX(),
+            ImGui::GetWindowWidth() -
+                readyLabelWidth);
+
     ImGui::SameLine(
-        ImGui::GetWindowWidth() -
-            235.0f);
+        readyX);
 
     if (g_playerReady.load(
             std::memory_order_acquire)) {
@@ -2574,24 +2629,52 @@ void DrawOverlayWindow() {
     DrawFooter();
 
     ImGui::End();
+
+    if (!keepOpen) {
+        g_requestedVisible.store(
+            false,
+            std::memory_order_release);
+
+        Log(
+            "[OVERLAY] A21 floating window closed from title bar.");
+    }
 }
 
-bool IsInputMessage(UINT msg) {
+bool IsMouseInputMessage(
+    UINT msg) {
+
     switch (msg) {
     case WM_MOUSEMOVE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
+    case WM_LBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
+    case WM_RBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
     case WM_MBUTTONUP:
+    case WM_MBUTTONDBLCLK:
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONUP:
+    case WM_XBUTTONDBLCLK:
     case WM_MOUSEWHEEL:
     case WM_MOUSEHWHEEL:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool IsKeyboardInputMessage(
+    UINT msg) {
+
+    switch (msg) {
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP:
     case WM_CHAR:
+    case WM_SYSCHAR:
         return true;
     default:
         return false;
@@ -3116,51 +3199,76 @@ LRESULT CALLBACK OverlayWndProc(
     HWND hwnd,
     UINT msg,
     WPARAM wParam,
-    LPARAM lParam);
+    LPARAM lParam) {
 
-void RestoreWndProcLocked() {
-    if (!g_gameWindow ||
-        !g_originalWndProc) {
+    const bool visible =
+        g_overlayReady.load(
+            std::memory_order_acquire) &&
+        g_requestedVisible.load(
+            std::memory_order_acquire);
 
-        g_originalWndProc = nullptr;
-        return;
-    }
+    const bool capturingKey =
+        g_captureOverlayToggleKey.load(
+            std::memory_order_acquire);
 
-    const WNDPROC current =
-        reinterpret_cast<WNDPROC>(
-            GetWindowLongPtrW(
-                g_gameWindow,
-                GWLP_WNDPROC));
+    if (visible ||
+        capturingKey) {
 
-    if (current ==
-        &OverlayWndProc) {
+        std::unique_lock<std::recursive_mutex> lock(
+            g_renderMutex,
+            std::try_to_lock);
 
-        SetLastError(0);
+        if (lock.owns_lock() &&
+            g_imguiWin32Initialized) {
 
-        const LONG_PTR restored =
-            SetWindowLongPtrW(
-                g_gameWindow,
-                GWLP_WNDPROC,
-                reinterpret_cast<LONG_PTR>(
-                    g_originalWndProc));
+            ImGui_ImplWin32_WndProcHandler(
+                hwnd,
+                msg,
+                wParam,
+                lParam);
 
-        const DWORD error =
-            GetLastError();
+            if (visible) {
+                ImGuiIO& io =
+                    ImGui::GetIO();
 
-        if (restored == 0 &&
-            error != ERROR_SUCCESS) {
+                const bool captureMouse =
+                    IsMouseInputMessage(msg) &&
+                    io.WantCaptureMouse;
 
-            Log(
-                "[OVERLAY] RestoreWndProc failed: Win32=%lu",
-                static_cast<unsigned long>(
-                    error));
+                const bool captureKeyboard =
+                    IsKeyboardInputMessage(msg) &&
+                    (io.WantCaptureKeyboard ||
+                     io.WantTextInput);
+
+                // Standard ImGui integration: only swallow the category of
+                // input ImGui actually owns. Everything else continues through
+                // the game's original WndProc and other overlays in the chain.
+                if (captureMouse ||
+                    captureKeyboard) {
+
+                    return 1;
+                }
+            }
         }
-    } else {
-        Log(
-            "[OVERLAY] WndProc changed by another component after Q Protocol. Leaving the current chain intact.");
     }
 
-    g_originalWndProc = nullptr;
+    WNDPROC original =
+        g_originalWndProc;
+
+    if (original) {
+        return CallWindowProcW(
+            original,
+            hwnd,
+            msg,
+            wParam,
+            lParam);
+    }
+
+    return DefWindowProcW(
+        hwnd,
+        msg,
+        wParam,
+        lParam);
 }
 
 void ShutdownPlatformBackendLocked() {
@@ -3355,6 +3463,8 @@ bool EnsurePlatformBackendLocked(
         io.IniFilename = nullptr;
         io.LogFilename = nullptr;
         io.MouseDrawCursor = true;
+        io.ConfigFlags |=
+            ImGuiConfigFlags_NavEnableKeyboard;
 
         ApplyStyle();
     }
@@ -4603,7 +4713,7 @@ bool OverlayInitialize(
     LoadOverlayToggleKeyFromIni();
 
     Log(
-        "[OVERLAY] First Debug renderer bootstrap: precompiled ImGui shaders, checked DX12 resources, tracked-swapchain resize handling.");
+        "[OVERLAY] A21 compatibility renderer: First Debug DX12 hardening + floating movable/resizable ImGui window + selective input capture.");
 
     LogKnownOverlayModules();
 
@@ -4720,7 +4830,7 @@ bool OverlayPump(bool playerReady) {
                     std::memory_order_acq_rel)) {
 
                 Log(
-                    "[OVERLAY] FirstOpen requested. Device objects must already be ready before UI submission.");
+                    "[OVERLAY] A21 FirstOpen requested: floating window, selective ImGui input capture.");
             }
         }
     }
@@ -4804,16 +4914,16 @@ const char* OverlayStatus() {
                 std::memory_order_acquire))) {
 
     case OverlayStage::Bootstrap:
-        return "Q Protocol First Debug DX12 bootstrap";
+        return "Q Protocol A21 compatibility DX12 bootstrap";
 
     case OverlayStage::RuntimeHooksReady:
-        return "Q Protocol First Debug hooks ready; waiting for DIRECT queue";
+        return "Q Protocol A21 hooks ready; waiting for DIRECT queue";
 
     case OverlayStage::QueueCaptured:
-        return "Q Protocol First Debug DIRECT queue observed; waiting for tracked game Present";
+        return "Q Protocol A21 DIRECT queue observed; waiting for tracked game Present";
 
     case OverlayStage::ImGuiReady:
-        return "Q Protocol First Debug DX12 ImGui device objects ready";
+        return "Q Protocol A21 floating DX12 ImGui ready";
 
     case OverlayStage::InitFailed:
         return "Q Protocol overlay initialization failed safely; gameplay core remains active";
