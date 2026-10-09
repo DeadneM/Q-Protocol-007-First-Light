@@ -3112,6 +3112,12 @@ bool ShutdownDx12BackendLocked(
     return true;
 }
 
+LRESULT CALLBACK OverlayWndProc(
+    HWND hwnd,
+    UINT msg,
+    WPARAM wParam,
+    LPARAM lParam);
+
 void RestoreWndProcLocked() {
     if (!g_gameWindow ||
         !g_originalWndProc) {
@@ -3798,7 +3804,7 @@ void RenderOverlayFrameLocked(
         DisableOverlayRendering(
             OverlayStage::RenderFailed,
             "FirstOpen.BackBufferIndex",
-            E_BOUNDS);
+            E_INVALIDARG);
 
         return;
     }
@@ -4197,18 +4203,53 @@ void __stdcall HookExecuteCommandLists(
     }
 }
 
+void LogKnownOverlayModules() {
+    struct KnownModule {
+        const wchar_t* module;
+        const char* label;
+    };
+
+    const KnownModule known[] = {
+        {L"GameOverlayRenderer64.dll", "Steam Overlay"},
+        {L"DiscordHook64.dll", "Discord Overlay"},
+        {L"RTSSHooks64.dll", "RivaTuner / MSI Afterburner"},
+        {L"obs-hook64.dll", "OBS Game Capture"},
+        {L"NvCamera64.dll", "NVIDIA Overlay"},
+        {L"nvspcap64.dll", "NVIDIA Share / capture"},
+        {L"amdxc64.dll", "AMD graphics runtime"}
+    };
+
+    bool any = false;
+
+    for (const auto& entry : known) {
+        if (GetModuleHandleW(
+                entry.module)) {
+
+            Log(
+                "[OVERLAY] Compatibility module detected: %s (%ls). Hook chaining is supported on a best-effort basis.",
+                entry.label,
+                entry.module);
+
+            any = true;
+        }
+    }
+
+    if (!any) {
+        Log(
+            "[OVERLAY] Compatibility module scan: no common third-party overlay hook module detected.");
+    }
+}
+
 bool InstallRuntimeHooks() {
-    IDXGIFactory4* factory =
-        nullptr;
+    IDXGIFactory4* factory = nullptr;
+    ID3D12Device* device = nullptr;
+    ID3D12CommandQueue* queue = nullptr;
+    IDXGISwapChain* swapChain = nullptr;
 
-    ID3D12Device* device =
-        nullptr;
-
-    ID3D12CommandQueue* queue =
-        nullptr;
-
-    IDXGISwapChain* swapChain =
-        nullptr;
+    bool presentCreated = false;
+    bool resizeCreated = false;
+    bool executeCreated = false;
+    bool ok = false;
 
     HWND dummyWindow =
         CreateWindowExW(
@@ -4226,27 +4267,44 @@ bool InstallRuntimeHooks() {
             nullptr);
 
     if (!dummyWindow) {
+        Log(
+            "[OVERLAY] HookBootstrap.CreateWindow failed: Win32=%lu",
+            static_cast<unsigned long>(
+                GetLastError()));
+
         return false;
     }
 
-    bool ok = false;
-
     do {
-        if (FAILED(
-                CreateDXGIFactory1(
-                    IID_PPV_ARGS(
-                        &factory))) ||
+        HRESULT hr =
+            CreateDXGIFactory1(
+                IID_PPV_ARGS(
+                    &factory));
+
+        if (FAILED(hr) ||
             !factory) {
+
+            LogOverlayHr(
+                "HookBootstrap.CreateDXGIFactory1",
+                FAILED(hr) ? hr : E_FAIL);
+
             break;
         }
 
-        if (FAILED(
-                D3D12CreateDevice(
-                    nullptr,
-                    D3D_FEATURE_LEVEL_11_0,
-                    IID_PPV_ARGS(
-                        &device))) ||
+        hr =
+            D3D12CreateDevice(
+                nullptr,
+                D3D_FEATURE_LEVEL_11_0,
+                IID_PPV_ARGS(
+                    &device));
+
+        if (FAILED(hr) ||
             !device) {
+
+            LogOverlayHr(
+                "HookBootstrap.D3D12CreateDevice",
+                FAILED(hr) ? hr : E_FAIL);
+
             break;
         }
 
@@ -4254,13 +4312,20 @@ bool InstallRuntimeHooks() {
         queueDesc.Type =
             D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-        if (FAILED(
-                device
-                    ->CreateCommandQueue(
-                        &queueDesc,
-                        IID_PPV_ARGS(
-                            &queue))) ||
+        hr =
+            device
+                ->CreateCommandQueue(
+                    &queueDesc,
+                    IID_PPV_ARGS(
+                        &queue));
+
+        if (FAILED(hr) ||
             !queue) {
+
+            LogOverlayHr(
+                "HookBootstrap.CreateCommandQueue",
+                FAILED(hr) ? hr : E_FAIL);
+
             break;
         }
 
@@ -4279,13 +4344,20 @@ bool InstallRuntimeHooks() {
         desc.SwapEffect =
             DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-        if (FAILED(
-                factory
-                    ->CreateSwapChain(
-                        queue,
-                        &desc,
-                        &swapChain)) ||
+        hr =
+            factory
+                ->CreateSwapChain(
+                    queue,
+                    &desc,
+                    &swapChain);
+
+        if (FAILED(hr) ||
             !swapChain) {
+
+            LogOverlayHr(
+                "HookBootstrap.CreateSwapChain",
+                FAILED(hr) ? hr : E_FAIL);
+
             break;
         }
 
@@ -4297,48 +4369,163 @@ bool InstallRuntimeHooks() {
             *reinterpret_cast<void***>(
                 queue);
 
+        g_presentHookTarget =
+            swapVtable[8];
+
+        g_resizeHookTarget =
+            swapVtable[13];
+
+        g_executeHookTarget =
+            queueVtable[10];
+
         const MH_STATUS presentCreate =
             MH_CreateHook(
-                swapVtable[8],
+                g_presentHookTarget,
                 reinterpret_cast<void*>(
                     &HookPresent),
                 reinterpret_cast<void**>(
                     &g_originalPresent));
 
+        presentCreated =
+            presentCreate == MH_OK;
+
+        if (!presentCreated) {
+            Log(
+                "[OVERLAY] MinHook Present create failed: %s (%d). Another overlay may already own this path.",
+                MH_StatusToString(
+                    presentCreate),
+                static_cast<int>(
+                    presentCreate));
+
+            break;
+        }
+
         const MH_STATUS resizeCreate =
             MH_CreateHook(
-                swapVtable[13],
+                g_resizeHookTarget,
                 reinterpret_cast<void*>(
                     &HookResizeBuffers),
                 reinterpret_cast<void**>(
                     &g_originalResizeBuffers));
 
+        resizeCreated =
+            resizeCreate == MH_OK;
+
+        if (!resizeCreated) {
+            Log(
+                "[OVERLAY] MinHook ResizeBuffers create failed: %s (%d).",
+                MH_StatusToString(
+                    resizeCreate),
+                static_cast<int>(
+                    resizeCreate));
+
+            break;
+        }
+
         const MH_STATUS executeCreate =
             MH_CreateHook(
-                queueVtable[10],
+                g_executeHookTarget,
                 reinterpret_cast<void*>(
                     &HookExecuteCommandLists),
                 reinterpret_cast<void**>(
                     &g_originalExecuteCommandLists));
 
-        if (presentCreate != MH_OK ||
-            resizeCreate != MH_OK ||
-            executeCreate != MH_OK) {
+        executeCreated =
+            executeCreate == MH_OK;
+
+        if (!executeCreated) {
+            Log(
+                "[OVERLAY] MinHook ExecuteCommandLists create failed: %s (%d).",
+                MH_StatusToString(
+                    executeCreate),
+                static_cast<int>(
+                    executeCreate));
+
             break;
         }
 
-        if (MH_EnableHook(
-                swapVtable[8]) != MH_OK ||
-            MH_EnableHook(
-                swapVtable[13]) != MH_OK ||
-            MH_EnableHook(
-                queueVtable[10]) != MH_OK) {
+        const MH_STATUS q1 =
+            MH_QueueEnableHook(
+                g_presentHookTarget);
+
+        const MH_STATUS q2 =
+            MH_QueueEnableHook(
+                g_resizeHookTarget);
+
+        const MH_STATUS q3 =
+            MH_QueueEnableHook(
+                g_executeHookTarget);
+
+        if (q1 != MH_OK ||
+            q2 != MH_OK ||
+            q3 != MH_OK) {
+
+            Log(
+                "[OVERLAY] MinHook queue-enable failed: Present=%s Resize=%s Execute=%s",
+                MH_StatusToString(q1),
+                MH_StatusToString(q2),
+                MH_StatusToString(q3));
+
+            break;
+        }
+
+        const MH_STATUS apply =
+            MH_ApplyQueued();
+
+        if (apply != MH_OK) {
+            Log(
+                "[OVERLAY] MinHook apply failed: %s (%d).",
+                MH_StatusToString(
+                    apply),
+                static_cast<int>(
+                    apply));
+
             break;
         }
 
         ok = true;
 
     } while (false);
+
+    if (!ok) {
+        if (presentCreated &&
+            g_presentHookTarget) {
+
+            MH_DisableHook(
+                g_presentHookTarget);
+
+            MH_RemoveHook(
+                g_presentHookTarget);
+        }
+
+        if (resizeCreated &&
+            g_resizeHookTarget) {
+
+            MH_DisableHook(
+                g_resizeHookTarget);
+
+            MH_RemoveHook(
+                g_resizeHookTarget);
+        }
+
+        if (executeCreated &&
+            g_executeHookTarget) {
+
+            MH_DisableHook(
+                g_executeHookTarget);
+
+            MH_RemoveHook(
+                g_executeHookTarget);
+        }
+
+        g_presentHookTarget = nullptr;
+        g_resizeHookTarget = nullptr;
+        g_executeHookTarget = nullptr;
+
+        g_originalPresent = nullptr;
+        g_originalResizeBuffers = nullptr;
+        g_originalExecuteCommandLists = nullptr;
+    }
 
     if (swapChain) {
         swapChain->Release();
@@ -4363,10 +4550,14 @@ bool InstallRuntimeHooks() {
         return false;
     }
 
-    g_stage.store(
-        static_cast<int>(
-            OverlayStage::RuntimeHooksReady),
-        std::memory_order_release);
+    SetStage(
+        OverlayStage::RuntimeHooksReady);
+
+    Log(
+        "[OVERLAY] Runtime hooks ready: Present=%p ResizeBuffers=%p ExecuteCommandLists=%p",
+        g_presentHookTarget,
+        g_resizeHookTarget,
+        g_executeHookTarget);
 
     return true;
 }
@@ -4377,7 +4568,44 @@ bool OverlayInitialize(
     const std::wstring& iniPath) {
 
     g_iniPath = iniPath;
+
+    g_requestedVisible.store(
+        false,
+        std::memory_order_release);
+
+    g_overlayReady.store(
+        false,
+        std::memory_order_release);
+
+    g_sessionRendererDisabled.store(
+        false,
+        std::memory_order_release);
+
+    g_firstOpenRequested.store(
+        false,
+        std::memory_order_release);
+
+    g_firstOpenSubmitted.store(
+        false,
+        std::memory_order_release);
+
+    g_lastOverlayHr.store(
+        S_OK,
+        std::memory_order_release);
+
+    g_lastOverlaySeh.store(
+        0,
+        std::memory_order_release);
+
+    SetStage(
+        OverlayStage::Bootstrap);
+
     LoadOverlayToggleKeyFromIni();
+
+    Log(
+        "[OVERLAY] First Debug renderer bootstrap: precompiled ImGui shaders, checked DX12 resources, tracked-swapchain resize handling.");
+
+    LogKnownOverlayModules();
 
     const MH_STATUS init =
         MH_Initialize();
@@ -4386,9 +4614,16 @@ bool OverlayInitialize(
         init !=
             MH_ERROR_ALREADY_INITIALIZED) {
 
-        g_stage.store(
-            static_cast<int>(
-                OverlayStage::InitFailed),
+        Log(
+            "[OVERLAY] MinHook initialize failed: %s (%d). Gameplay remains active.",
+            MH_StatusToString(init),
+            static_cast<int>(init));
+
+        SetStage(
+            OverlayStage::InitFailed);
+
+        g_sessionRendererDisabled.store(
+            true,
             std::memory_order_release);
 
         return false;
@@ -4399,19 +4634,20 @@ bool OverlayInitialize(
 
     if (!InstallRuntimeHooks()) {
 
-        // Fail-open means no partially-installed overlay hooks survive.
-        MH_DisableHook(
-            MH_ALL_HOOKS);
-
         MH_Uninitialize();
 
         g_minHookInitialized =
             false;
 
-        g_stage.store(
-            static_cast<int>(
-                OverlayStage::InitFailed),
+        SetStage(
+            OverlayStage::InitFailed);
+
+        g_sessionRendererDisabled.store(
+            true,
             std::memory_order_release);
+
+        Log(
+            "[OVERLAY] Hook bootstrap failed; overlay disabled, gameplay core remains active.");
 
         return false;
     }
@@ -4450,15 +4686,42 @@ bool OverlayPump(bool playerReady) {
             !g_requestedVisible.load(
                 std::memory_order_acquire);
 
+        toggled = true;
+
+        if (next &&
+            g_sessionRendererDisabled.load(
+                std::memory_order_acquire)) {
+
+            g_requestedVisible.store(
+                false,
+                std::memory_order_release);
+
+            if (!g_firstOpenRequested.exchange(
+                    true,
+                    std::memory_order_acq_rel)) {
+
+                Log(
+                    "[OVERLAY] FirstOpen requested after a renderer failure. Overlay remains disabled fail-open; gameplay/hotkeys remain active.");
+            }
+
+            return toggled;
+        }
+
         g_requestedVisible.store(
             next,
             std::memory_order_release);
 
-        toggled = true;
-
         if (next) {
             ClipCursor(nullptr);
             g_uiLoaded = false;
+
+            if (!g_firstOpenRequested.exchange(
+                    true,
+                    std::memory_order_acq_rel)) {
+
+                Log(
+                    "[OVERLAY] FirstOpen requested. Device objects must already be ready before UI submission.");
+            }
         }
     }
 
@@ -4541,22 +4804,31 @@ const char* OverlayStatus() {
                 std::memory_order_acquire))) {
 
     case OverlayStage::Bootstrap:
-        return "Q Protocol DX12 bootstrap";
+        return "Q Protocol First Debug DX12 bootstrap";
 
     case OverlayStage::RuntimeHooksReady:
-        return "Q Protocol runtime hooks ready; waiting for command queue";
+        return "Q Protocol First Debug hooks ready; waiting for DIRECT queue";
 
     case OverlayStage::QueueCaptured:
-        return "Q Protocol command queue captured; waiting for game Present";
+        return "Q Protocol First Debug DIRECT queue observed; waiting for tracked game Present";
 
     case OverlayStage::ImGuiReady:
-        return "Q Protocol DX12 ImGui ready";
+        return "Q Protocol First Debug DX12 ImGui device objects ready";
 
     case OverlayStage::InitFailed:
-        return "Q Protocol overlay initialization failed; gameplay core remains active";
+        return "Q Protocol overlay initialization failed safely; gameplay core remains active";
+
+    case OverlayStage::RenderFailed:
+        return "Q Protocol overlay render failed safely; gameplay core remains active";
+
+    case OverlayStage::ResizeFailed:
+        return "Q Protocol overlay resize failed safely; gameplay core remains active";
 
     case OverlayStage::FenceTimeout:
-        return "Q Protocol overlay fence timeout; gameplay core remains active";
+        return "Q Protocol overlay GPU synchronization timeout; gameplay core remains active";
+
+    case OverlayStage::Disabled:
+        return "Q Protocol overlay disabled for this session; gameplay core remains active";
 
     default:
         return "Q Protocol overlay unknown state";
@@ -4568,7 +4840,45 @@ void OverlayShutdown() {
         false,
         std::memory_order_release);
 
-    ShutdownImGui();
+    g_overlayReady.store(
+        false,
+        std::memory_order_release);
+
+    g_sessionRendererDisabled.store(
+        true,
+        std::memory_order_release);
+
+    if (g_minHookInitialized) {
+        if (g_presentHookTarget) {
+            MH_DisableHook(
+                g_presentHookTarget);
+        }
+
+        if (g_resizeHookTarget) {
+            MH_DisableHook(
+                g_resizeHookTarget);
+        }
+
+        if (g_executeHookTarget) {
+            MH_DisableHook(
+                g_executeHookTarget);
+        }
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(
+            g_renderMutex);
+
+        const bool safe =
+            ShutdownImGuiLocked(
+                "Shutdown.GPUDrain",
+                3000);
+
+        if (!safe) {
+            Log(
+                "[OVERLAY] Shutdown kept DX12 allocations alive because GPU completion was not proven. Process teardown will reclaim them.");
+        }
+    }
 
     ID3D12CommandQueue* queue =
         g_commandQueue.exchange(
@@ -4580,8 +4890,20 @@ void OverlayShutdown() {
     }
 
     if (g_minHookInitialized) {
-        MH_DisableHook(
-            MH_ALL_HOOKS);
+        if (g_presentHookTarget) {
+            MH_RemoveHook(
+                g_presentHookTarget);
+        }
+
+        if (g_resizeHookTarget) {
+            MH_RemoveHook(
+                g_resizeHookTarget);
+        }
+
+        if (g_executeHookTarget) {
+            MH_RemoveHook(
+                g_executeHookTarget);
+        }
 
         MH_Uninitialize();
 
@@ -4589,6 +4911,16 @@ void OverlayShutdown() {
             false;
     }
 
+    g_presentHookTarget = nullptr;
+    g_resizeHookTarget = nullptr;
+    g_executeHookTarget = nullptr;
+
+    g_originalPresent = nullptr;
+    g_originalResizeBuffers = nullptr;
+    g_originalExecuteCommandLists = nullptr;
+
+    SetStage(
+        OverlayStage::Disabled);
 }
 
 } // namespace qp
