@@ -259,3 +259,28 @@ Therefore this is a **TEST compatibility candidate**, not a declared public fix.
 
 The stable public release stays `v0.9.4` until sufficient runtime evidence is
 available.
+
+
+## Final packaged candidate
+
+After documentation/package README finalization, CI run #128 /
+`37975713073` passed the same complete gate set.
+
+Final binary/package:
+
+```text
+QProtocol.asi
+  size:    867328 bytes
+  SHA-256: 16f37caee00128f4d464e6f0a483586018a97b1e27d769e42244f8e9d9725729
+
+QProtocol.ini
+  size:    6717 bytes
+  SHA-256: 8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022
+
+Q-Protocol_First-Debug_TEST.zip
+  size:    449150 bytes
+  SHA-256: 678e5d75c5fc1ad9210774d49888abe91d441c4c51dc8d3e4c771514a36faa91
+```
+
+The final direct release asset contains only the three root files required by the
+project packaging invariant.
