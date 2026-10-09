@@ -346,6 +346,26 @@ jobs:
             dist/README.txt
           if-no-files-found: error
 
+      - name: Publish A20M test pre-release
+        if: github.ref == 'refs/heads/dev/a20m-close-combat-input-override'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "a20m-test"
+          $asset = "dist/Q-Protocol_FreshCore_A20M_CloseCombatInputProbe_TEST.zip"
+          $title = "Q Protocol A20M - Close Combat Input Probe TEST"
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          $exists = ($LASTEXITCODE -eq 0)
+
+          if ($exists) {
+            gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
+            gh release edit $tag --target $env:GITHUB_SHA --title $title --prerelease --notes "Experimental read-only probe for the authoritative close-combat input blocker. Compare normal mission and TacSim logs." --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --prerelease --notes "Experimental read-only probe for the authoritative close-combat input blocker. Compare normal mission and TacSim logs." --repo $env:GITHUB_REPOSITORY
+          }
+
       - name: Publish GitHub Release v0.9.4
         if: github.ref == 'refs/heads/main' && false
         shell: pwsh
