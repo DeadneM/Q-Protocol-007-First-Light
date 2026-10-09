@@ -272,10 +272,11 @@ jobs:
           now = Path("src/QProtocol.cpp").read_text(encoding="utf-8")
 
           anchor = "std::uintptr_t g_graphScanPlayerLoadout = 0; // Worker thread only; runtime discovery anchor"
-          set_anchor = """        g_graphScanPlayerLoadout = ready
-            ? reinterpret_cast<std::uintptr_t>(player.loadout)
-            : 0;
-"""
+          set_anchor = (
+              "        g_graphScanPlayerLoadout = ready\n"
+              "            ? reinterpret_cast<std::uintptr_t>(player.loadout)\n"
+              "            : 0;\n"
+          )
           if now.count(anchor) != 1 or now.count(set_anchor) != 1:
               raise SystemExit("A23 scan anchor missing, duplicated or modified")
 
