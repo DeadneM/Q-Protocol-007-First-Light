@@ -46,6 +46,16 @@ constexpr std::uint32_t kAmmoNotifyEventId        = 0x1DE;
 constexpr std::uintptr_t kGraphScanBegin = 0x2C000000;
 constexpr std::uintptr_t kGraphScanEnd   = 0x30000000;
 
+// A20M close-combat input / gameplay-override diagnostics.
+constexpr std::uintptr_t kInputOverrideManagerVtableRva = 0x02ED0F08;
+constexpr std::uintptr_t kInputConfigHumanoidVtableRva  = 0x02ED3FB0;
+constexpr std::uintptr_t kBlockPlayerInputActionVtableRva = 0x02ECFF78;
+constexpr std::uintptr_t kBlockCloseCombatVtableRva     = 0x02E8D108;
+constexpr std::uintptr_t kUnblockCloseCombatVtableRva   = 0x02E8D050;
+
+constexpr SIZE_T kInputProbeMaxBytes = 0x60000000ULL;
+constexpr std::size_t kInputProbeMaxCandidatesPerType = 32;
+
 constexpr BYTE kLtkObserveHookPreimage[15] = {
     0x49, 0x8B, 0xBB, 0xF0, 0x06, 0x00, 0x00,
     0x4C, 0x23, 0x04, 0xC7,
@@ -136,6 +146,23 @@ std::atomic<bool> g_running{true};
 
 NativeSpawnFn g_nativeSpawn = nullptr;
 bool g_ltkObserveHookInstalled = false;
+
+struct CloseCombatProbeCache {
+    std::vector<std::uintptr_t> managers;
+    std::vector<std::uintptr_t> inputConfigs;
+    std::vector<std::uintptr_t> blockActions;
+    std::vector<std::uintptr_t> blockCloseMarkers;
+    std::vector<std::uintptr_t> unblockCloseMarkers;
+    SIZE_T bytesScanned = 0;
+    bool scanCapped = false;
+    bool discovered = false;
+};
+
+CloseCombatProbeCache g_closeCombatProbe{};
+bool g_closeCombatProbePending = false;
+ULONGLONG g_closeCombatProbeAt = 0;
+const char* g_closeCombatProbeReason = "none";
+unsigned int g_closeCombatProbeSequence = 0;
 
 std::atomic<std::uintptr_t> g_pendingSpawner{0};
 std::atomic<bool> g_spawnTriggered{false};
@@ -697,6 +724,445 @@ bool IsReadableProtection(DWORD protect) {
            base == PAGE_EXECUTE_READ ||
            base == PAGE_EXECUTE_READWRITE ||
            base == PAGE_EXECUTE_WRITECOPY;
+}
+
+
+struct RawEntityRef24 {
+    std::uint64_t q0 = 0;
+    std::uint64_t q1 = 0;
+    std::uint64_t q2 = 0;
+};
+
+void AddProbeCandidate(
+    std::vector<std::uintptr_t>& list,
+    std::uintptr_t candidate) {
+
+    if (list.size() >=
+        kInputProbeMaxCandidatesPerType) {
+        return;
+    }
+
+    list.push_back(candidate);
+}
+
+void ResetCloseCombatProbeCache() {
+    g_closeCombatProbe = {};
+    g_closeCombatProbePending = false;
+    g_closeCombatProbeAt = 0;
+    g_closeCombatProbeReason = "none";
+}
+
+void ScheduleCloseCombatProbe(
+    const char* reason,
+    ULONGLONG delayMs) {
+
+    g_closeCombatProbePending = true;
+    g_closeCombatProbeAt =
+        GetTickCount64() + delayMs;
+    g_closeCombatProbeReason =
+        reason ? reason : "unspecified";
+}
+
+bool DiscoverCloseCombatInputObjects() {
+    g_closeCombatProbe = {};
+
+    if (!g_exeBase) {
+        return false;
+    }
+
+    const std::uintptr_t managerVtable =
+        g_exeBase + kInputOverrideManagerVtableRva;
+    const std::uintptr_t inputConfigVtable =
+        g_exeBase + kInputConfigHumanoidVtableRva;
+    const std::uintptr_t blockActionVtable =
+        g_exeBase + kBlockPlayerInputActionVtableRva;
+    const std::uintptr_t blockCloseVtable =
+        g_exeBase + kBlockCloseCombatVtableRva;
+    const std::uintptr_t unblockCloseVtable =
+        g_exeBase + kUnblockCloseCombatVtableRva;
+
+    SYSTEM_INFO systemInfo{};
+    GetSystemInfo(&systemInfo);
+
+    std::uintptr_t cursor =
+        reinterpret_cast<std::uintptr_t>(
+            systemInfo.lpMinimumApplicationAddress);
+    const std::uintptr_t maximum =
+        reinterpret_cast<std::uintptr_t>(
+            systemInfo.lpMaximumApplicationAddress);
+
+    std::vector<BYTE> buffer(0x10000);
+
+    while (cursor < maximum) {
+        MEMORY_BASIC_INFORMATION mbi{};
+
+        if (VirtualQuery(
+                reinterpret_cast<LPCVOID>(cursor),
+                &mbi,
+                sizeof(mbi)) != sizeof(mbi)) {
+
+            cursor += 0x1000;
+            continue;
+        }
+
+        const std::uintptr_t regionBase =
+            reinterpret_cast<std::uintptr_t>(
+                mbi.BaseAddress);
+        const std::uintptr_t regionEnd =
+            regionBase +
+            static_cast<std::uintptr_t>(
+                mbi.RegionSize);
+
+        if (regionEnd <= cursor) {
+            cursor += 0x1000;
+            continue;
+        }
+
+        if (mbi.State == MEM_COMMIT &&
+            mbi.Type == MEM_PRIVATE &&
+            IsReadableProtection(mbi.Protect)) {
+
+            std::uintptr_t chunk =
+                regionBase;
+
+            while (chunk < regionEnd) {
+                if (g_closeCombatProbe.bytesScanned >=
+                    kInputProbeMaxBytes) {
+
+                    g_closeCombatProbe.scanCapped = true;
+                    break;
+                }
+
+                const SIZE_T wanted =
+                    static_cast<SIZE_T>(
+                        std::min<std::uintptr_t>(
+                            buffer.size(),
+                            regionEnd - chunk));
+
+                SIZE_T got = 0;
+
+                if (ReadProcessMemory(
+                        GetCurrentProcess(),
+                        reinterpret_cast<LPCVOID>(chunk),
+                        buffer.data(),
+                        wanted,
+                        &got) &&
+                    got >= sizeof(std::uintptr_t)) {
+
+                    g_closeCombatProbe.bytesScanned +=
+                        got;
+
+                    for (SIZE_T off = 0;
+                         off + sizeof(std::uintptr_t) <= got;
+                         off += sizeof(std::uintptr_t)) {
+
+                        std::uintptr_t value = 0;
+                        memcpy(
+                            &value,
+                            buffer.data() + off,
+                            sizeof(value));
+
+                        const std::uintptr_t candidate =
+                            chunk + off;
+
+                        if (value == managerVtable) {
+                            AddProbeCandidate(
+                                g_closeCombatProbe.managers,
+                                candidate);
+                        } else if (value == inputConfigVtable) {
+                            AddProbeCandidate(
+                                g_closeCombatProbe.inputConfigs,
+                                candidate);
+                        } else if (value == blockActionVtable) {
+                            AddProbeCandidate(
+                                g_closeCombatProbe.blockActions,
+                                candidate);
+                        } else if (value == blockCloseVtable) {
+                            AddProbeCandidate(
+                                g_closeCombatProbe.blockCloseMarkers,
+                                candidate);
+                        } else if (value == unblockCloseVtable) {
+                            AddProbeCandidate(
+                                g_closeCombatProbe.unblockCloseMarkers,
+                                candidate);
+                        }
+                    }
+                }
+
+                chunk +=
+                    wanted ? wanted : 0x1000;
+            }
+        }
+
+        if (g_closeCombatProbe.scanCapped) {
+            break;
+        }
+
+        cursor = regionEnd;
+    }
+
+    g_closeCombatProbe.discovered = true;
+
+    Log(
+        "A20M INPUT DISCOVERY: scanned=%llu bytes capped=%s manager=%zu inputConfig=%zu blockAction=%zu blockCloseMarker=%zu unblockCloseMarker=%zu",
+        static_cast<unsigned long long>(
+            g_closeCombatProbe.bytesScanned),
+        g_closeCombatProbe.scanCapped ? "YES" : "NO",
+        g_closeCombatProbe.managers.size(),
+        g_closeCombatProbe.inputConfigs.size(),
+        g_closeCombatProbe.blockActions.size(),
+        g_closeCombatProbe.blockCloseMarkers.size(),
+        g_closeCombatProbe.unblockCloseMarkers.size());
+
+    return
+        !g_closeCombatProbe.managers.empty() ||
+        !g_closeCombatProbe.inputConfigs.empty() ||
+        !g_closeCombatProbe.blockActions.empty() ||
+        !g_closeCombatProbe.blockCloseMarkers.empty() ||
+        !g_closeCombatProbe.unblockCloseMarkers.empty();
+}
+
+void LogRawEntityRef(
+    const char* label,
+    std::uintptr_t address) {
+
+    RawEntityRef24 ref{};
+
+    if (!SafeRead(
+            address,
+            ref)) {
+
+        Log(
+            "A20M REF %s @0x%p = unreadable",
+            label,
+            reinterpret_cast<void*>(address));
+        return;
+    }
+
+    Log(
+        "A20M REF %s @0x%p q0=%016llX q1=%016llX q2=%016llX",
+        label,
+        reinterpret_cast<void*>(address),
+        static_cast<unsigned long long>(ref.q0),
+        static_cast<unsigned long long>(ref.q1),
+        static_cast<unsigned long long>(ref.q2));
+}
+
+void LogManagerCandidate(
+    std::uintptr_t object,
+    std::size_t index) {
+
+    std::uint64_t q20 = 0;
+    std::uint64_t q28 = 0;
+    std::uint64_t q30 = 0;
+    std::uint64_t q38 = 0;
+    std::uint64_t q40 = 0;
+    std::uint64_t q48 = 0;
+    std::uint64_t q50 = 0;
+    std::uint64_t q58 = 0;
+    std::uint64_t q60 = 0;
+    std::uint64_t q68 = 0;
+
+    const bool ok =
+        SafeRead(object + 0x20, q20) &&
+        SafeRead(object + 0x28, q28) &&
+        SafeRead(object + 0x30, q30) &&
+        SafeRead(object + 0x38, q38) &&
+        SafeRead(object + 0x40, q40) &&
+        SafeRead(object + 0x48, q48) &&
+        SafeRead(object + 0x50, q50) &&
+        SafeRead(object + 0x58, q58) &&
+        SafeRead(object + 0x60, q60) &&
+        SafeRead(object + 0x68, q68);
+
+    Log(
+        "A20M MANAGER[%zu] obj=0x%p readable=%s +20=%016llX +28=%016llX +30=%016llX +38=%016llX +40=%016llX +48=%016llX +50=%016llX +58=%016llX +60=%016llX +68=%016llX",
+        index,
+        reinterpret_cast<void*>(object),
+        ok ? "YES" : "NO",
+        static_cast<unsigned long long>(q20),
+        static_cast<unsigned long long>(q28),
+        static_cast<unsigned long long>(q30),
+        static_cast<unsigned long long>(q38),
+        static_cast<unsigned long long>(q40),
+        static_cast<unsigned long long>(q48),
+        static_cast<unsigned long long>(q50),
+        static_cast<unsigned long long>(q58),
+        static_cast<unsigned long long>(q60),
+        static_cast<unsigned long long>(q68));
+}
+
+void LogInputConfigCandidate(
+    std::uintptr_t object,
+    std::size_t index) {
+
+    Log(
+        "A20M INPUTCONFIG[%zu] obj=0x%p",
+        index,
+        reinterpret_cast<void*>(object));
+
+    LogRawEntityRef(
+        "QuickMeleeAttack",
+        object + 0x1B0);
+    LogRawEntityRef(
+        "ChargedMeleeAttack",
+        object + 0x1C8);
+    LogRawEntityRef(
+        "CloseCombatSidestep",
+        object + 0x1E0);
+    LogRawEntityRef(
+        "Grab",
+        object + 0x1F8);
+    LogRawEntityRef(
+        "Parry",
+        object + 0x210);
+    LogRawEntityRef(
+        "Shoot",
+        object + 0x228);
+}
+
+void LogBlockActionCandidate(
+    std::uintptr_t object,
+    std::size_t index) {
+
+    BYTE state60 = 0xFF;
+    BYTE state61 = 0xFF;
+    BYTE state62 = 0xFF;
+
+    const bool stateOk =
+        SafeRead(object + 0x60, state60) &&
+        SafeRead(object + 0x61, state61) &&
+        SafeRead(object + 0x62, state62);
+
+    Log(
+        "A20M BLOCKACTION[%zu] obj=0x%p state60=%u state61=%u state62=%u readable=%s",
+        index,
+        reinterpret_cast<void*>(object),
+        static_cast<unsigned int>(state60),
+        static_cast<unsigned int>(state61),
+        static_cast<unsigned int>(state62),
+        stateOk ? "YES" : "NO");
+
+    LogRawEntityRef(
+        "BlockAction.Input",
+        object + 0x20);
+    LogRawEntityRef(
+        "BlockAction.Target",
+        object + 0x38);
+    LogRawEntityRef(
+        "BlockAction.Runtime",
+        object + 0x68);
+}
+
+void RunCloseCombatInputProbe(
+    const char* reason) {
+
+    if (!g_closeCombatProbe.discovered) {
+        DiscoverCloseCombatInputObjects();
+    }
+
+    ++g_closeCombatProbeSequence;
+
+    const LONG nativeState =
+        InterlockedCompareExchange(
+            &g_qpRoeNativeState,
+            0,
+            0);
+    const LONG effectiveState =
+        InterlockedCompareExchange(
+            &g_qpRoeEffectiveState,
+            0,
+            0);
+    const LONG overrideState =
+        InterlockedCompareExchange(
+            &g_qpRoeOverrideState,
+            0,
+            0);
+
+    Log(
+        "===== A20M CLOSE COMBAT INPUT PROBE #%u reason=%s nativeROE=%ld effectiveROE=%ld overrideROE=%ld =====",
+        g_closeCombatProbeSequence,
+        reason ? reason : "unspecified",
+        nativeState,
+        effectiveState,
+        overrideState);
+
+    Log(
+        "A20M CANDIDATES manager=%zu inputConfig=%zu blockAction=%zu blockCloseMarker=%zu unblockCloseMarker=%zu",
+        g_closeCombatProbe.managers.size(),
+        g_closeCombatProbe.inputConfigs.size(),
+        g_closeCombatProbe.blockActions.size(),
+        g_closeCombatProbe.blockCloseMarkers.size(),
+        g_closeCombatProbe.unblockCloseMarkers.size());
+
+    for (std::size_t i = 0;
+         i < g_closeCombatProbe.managers.size();
+         ++i) {
+
+        LogManagerCandidate(
+            g_closeCombatProbe.managers[i],
+            i);
+    }
+
+    for (std::size_t i = 0;
+         i < g_closeCombatProbe.inputConfigs.size();
+         ++i) {
+
+        LogInputConfigCandidate(
+            g_closeCombatProbe.inputConfigs[i],
+            i);
+    }
+
+    for (std::size_t i = 0;
+         i < g_closeCombatProbe.blockActions.size();
+         ++i) {
+
+        LogBlockActionCandidate(
+            g_closeCombatProbe.blockActions[i],
+            i);
+    }
+
+    for (std::size_t i = 0;
+         i < g_closeCombatProbe.blockCloseMarkers.size();
+         ++i) {
+
+        Log(
+            "A20M BLOCK_CLOSE_MARKER[%zu] obj=0x%p",
+            i,
+            reinterpret_cast<void*>(
+                g_closeCombatProbe.blockCloseMarkers[i]));
+    }
+
+    for (std::size_t i = 0;
+         i < g_closeCombatProbe.unblockCloseMarkers.size();
+         ++i) {
+
+        Log(
+            "A20M UNBLOCK_CLOSE_MARKER[%zu] obj=0x%p",
+            i,
+            reinterpret_cast<void*>(
+                g_closeCombatProbe.unblockCloseMarkers[i]));
+    }
+
+    Log(
+        "===== A20M CLOSE COMBAT INPUT PROBE END #%u =====",
+        g_closeCombatProbeSequence);
+}
+
+void ProcessCloseCombatInputProbe() {
+    if (!g_closeCombatProbePending) {
+        return;
+    }
+
+    if (GetTickCount64() <
+        g_closeCombatProbeAt) {
+        return;
+    }
+
+    g_closeCombatProbePending = false;
+
+    RunCloseCombatInputProbe(
+        g_closeCombatProbeReason);
 }
 
 bool BuildGraphIndex() {
@@ -1557,8 +2023,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20K Three-State ROE TEST");
-    Log("Scope: A20J base + F1 native OFF / License To Punch / License To Kill cycle.");
+    Log("Q Protocol Fresh Core A20M Close Combat Input Probe TEST");
+    Log("Scope: A20K three-state ROE + read-only close-combat input/gameplay-override diagnostics.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1585,6 +2051,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     Log("F1 = Rules Of Engagement cycle: OFF -> LICENSE TO PUNCH -> LICENSE TO KILL.");
+    Log("A20M = read-only close-combat input override probe; previous humanoid-bit experiment is not used.");
     Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
@@ -1625,6 +2092,14 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
             ResetWeaponRuntime(
                 ready ? "player identity changed/ready" : "player not ready");
+
+            ResetCloseCombatProbeCache();
+
+            if (ready) {
+                ScheduleCloseCombatProbe(
+                    "PLAYER READY",
+                    1200);
+            }
 
             autoStarted = false;
             autoDone = false;
@@ -1685,6 +2160,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
             }
         }
 
+        ProcessCloseCombatInputProbe();
+
         const bool overlayVisible =
             OverlayIsVisible();
 
@@ -1714,7 +2191,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
             !overlayTogglePressed &&
             f1Pressed) {
 
-            CycleRulesOfEngagement();
+            if (CycleRulesOfEngagement()) {
+                ScheduleCloseCombatProbe(
+                    "F1 transition",
+                    300);
+            }
         }
 
         if (!overlayVisible &&
