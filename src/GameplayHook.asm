@@ -1,14 +1,17 @@
 OPTION CASEMAP:NONE
 
 EXTERN QpGameplayTick:PROC
+EXTERN QpOnInputBlockTransition:PROC
 EXTERN g_qpRoeNativeState:DWORD
 EXTERN g_qpRoeEffectiveState:DWORD
 EXTERN g_qpRoeOverrideState:DWORD
 EXTERN g_qpLtkObserveTrueTarget:QWORD
 EXTERN g_qpLtkObserveFalseTarget:QWORD
+EXTERN g_qpInputBlockTraceResume:QWORD
 
 PUBLIC QpGameplayHook
 PUBLIC QpLtkObserveHook
+PUBLIC QpInputBlockTraceHook
 
 .code
 
@@ -119,5 +122,42 @@ roe_effective_store:
 ltk_false_path:
     jmp qword ptr [g_qpLtkObserveFalseTarget]
 QpLtkObserveHook ENDP
+
+QpInputBlockTraceHook PROC
+    ; A20N diagnostic hook at EXE+0x16D0830.
+    ; Original ABI:
+    ;   RCX = ZCLBlockPlayerInputAction*
+    ;   DL  = requested block state (0=UNBLOCK, nonzero=BLOCK)
+    ;   [RSP] = caller return address
+    ;
+    ; Preserve the two original arguments around the C++ trace callback.
+    ; The callback is read-only and queues a compact event for the worker
+    ; thread, so this hook does not alter the requested gameplay state.
+
+    mov r10, qword ptr [rsp]
+
+    push rcx
+    push rdx
+    sub rsp, 28h
+
+    mov r8, r10
+    movzx edx, byte ptr [rsp+28h]
+    mov rcx, qword ptr [rsp+30h]
+
+    call QpOnInputBlockTransition
+
+    add rsp, 28h
+    pop rdx
+    pop rcx
+
+    ; Replay the exact 16 bytes replaced at EXE+0x16D0830.
+    mov qword ptr [rsp+20h], rbx
+    push rdi
+    sub rsp, 30h
+    movzx edi, dl
+    mov rbx, rcx
+
+    jmp qword ptr [g_qpInputBlockTraceResume]
+QpInputBlockTraceHook ENDP
 
 END
