@@ -14,6 +14,23 @@
 - Release ZIP contains `QProtocol.asi`, `QProtocol.ini` and `README.txt` directly at its root.
 - Detailed cleanup audit: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
 
+## A20L Native Melee Policy result
+
+- Base: A20K three-state Rules of Engagement test.
+- Result: **REJECTED as the authoritative License To Punch gate**.
+- The native local humanoid `DisableMeleeAttack` property was resolved correctly and could be read/written/verified.
+- Runtime test captured `DisableMeleeAttack=OFF` while punching was still unavailable.
+- Therefore `DisableMeleeAttack` is only a secondary/local restriction and does not define the game's actual close-combat permission.
+- TacSim is an important control case: punching is unavailable there even when the humanoid property is not sufficient to explain the restriction.
+- New primary target: the game's player-input/gameplay-override layer.
+- Strong executable leads:
+  - `ZCLBlockHumanoidPlayerCloseCombatInput`
+  - `ZCLUnblockHumanoidPlayerCloseCombatInput`
+  - `ZCLBlockPlayerInputAction`
+  - `ZGameplayInputOverrideManager`
+  - `ZInputConfigHumanoid` actions including `m_QuickMeleeAttack`, `m_ChargedMeleeAttack`, `m_Grab`, and `m_CloseCombatSidestep`
+- Next candidate: **A20M**, targeting the actual close-combat input permission instead of `DisableMeleeAttack`.
+
 ## Q Protocol v0.9.3 — Fresh Core A20I Native LTK State Toggle
 
 - Build: `Q-Protocol_v0.9.3.zip`
