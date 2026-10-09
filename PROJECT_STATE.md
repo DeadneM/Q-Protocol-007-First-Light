@@ -1,5 +1,20 @@
 # Q Protocol — Project State
 
+## A23 — Dynamic Weapon Graph Recovery TEST (2026-10-09)
+
+- User reports A22 overlay improved but weapons/gameplay stopped functioning. Their `QProtocol(3).log` shows **0 linked ItemEntry/Spawner weapon graphs, 1 spawner candidate** on repeated attempts across player READY cycles. AUTO, F3, F4, F5-F12 and Debug Spawn all fail at graph discovery.
+- Comparison: a prior working `QProtocol(2).log` found **41 graphs / 43 spawners** with an ItemEntry near `0x2CE59DC8`. The failing session reports player loadout at `0x2BDA8038`. A20J graph indexing searches the fixed address range `0x2C000000`–`0x30000000`, which may miss shifted objects.
+- **Hypothesis, not yet runtime-proven:** the A22 renderer changes memory layout enough to move weapon graph objects below the fixed range; the A23 source patch makes discovery adaptive relative to the live player loadout (±32 MiB) and keeps the old range. It avoids duplicate overlap scanning.
+- Branch: `dev/a23-dynamic-weapon-graph`. A21 floating overlay, A22 mouse changes and First Debug renderer protections retained.
+- Gameplay source isolation audit: only `BuildGraphIndex()` and its worker-thread live player anchor change relative to stable A20J. All other gameplay core code and all public `QProtocol.ini` configuration unchanged.
+- CI **#137 / `37989415687` PASS**: compile, graph-offset synthetic test, isolated source audit, config catalogue audit, PE dependency test, flat ZIP release.
+- Test release: [a23-test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a23-test), file `Q-Protocol_FreshCore_A23_DynamicWeaponGraph_TEST.zip` (451137 bytes).
+- ZIP SHA-256: `daf91b4fca1bbdc07de15fbd67f7f06fa0d87757c4a75303e8a794d9b0f79e3d`
+- ASI SHA-256: `a58454d6f6a365c47e4c191152536c97a37d3e6735583a6d6d5ba4a3706a511f` (869888 bytes).
+- INI SHA-256 unchanged: `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- **TEST ONLY**: verify nonzero linked graph count and actual weapon spawns in game, plus mouse/Insert behavior. Do not publish as stable until validated. Public `v0.9.4` untouched. F1/close-combat experiments A20K-A20N remain paused.
+- Detailed audit: [docs/A23_DYNAMIC_GRAPH.md](docs/A23_DYNAMIC_GRAPH.md).
+
 ## A22 — Reliable Mouse Input TEST (2026-10-09)
 
 - Active development branch: `dev/a22-mouse-input`, based strictly on A21 and its validated A20J gameplay/config baseline.
