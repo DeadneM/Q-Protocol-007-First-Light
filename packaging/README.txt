@@ -1,19 +1,40 @@
-Q Protocol - Fresh Core A22 Reliable Mouse Input TEST
+Q Protocol - Fresh Core A23 Dynamic Weapon Graph Recovery TEST
 =====================================================
 
 STATUS
 ------
-TEST candidate. Mouse-click reliability is not declared validated in-game yet.
+TEST candidate. Weapon graph recovery has not yet been validated in-game.
 Public stable remains v0.9.4 / A20J.
 
 BASE
 ----
-A22 builds on the A21 floating ImGui menu, First Debug DX12 hardening, and the
-validated v0.9.4 / Fresh Core A20J gameplay core. Experimental F1 branches
+A23 builds on the A22 reliable-input / A21 floating ImGui menu, First Debug DX12 hardening, and the validated v0.9.4 / Fresh Core A20J gameplay core. Experimental F1 branches
 A20K-A20N are excluded; close-combat / F1 research is paused.
 
-A22 MOUSE INPUT CORRECTIONS
----------------------------
+A23 WEAPON GRAPH DISCOVERY REPAIR
+--------------------------------
+Observed broken A22 session:
+- graph index = 0 ItemEntry/Spawner graphs, 1 candidate;
+- AUTO, F3, F4, F5-F12 and Spawn Weapon all fail on graph-not-found;
+- F1 native-state toggle and F2 ammo publication appear in the log.
+
+Known working session located the ItemEntry graph at 0x2CE59DC8 while the
+player loadout was at 0x2D210E50. In this failing session the player loadout
+was at 0x2BDA8038. Q Protocol previously scanned only 0x2C000000-0x30000000.
+Changes in allocation layout can put ItemEntry objects below that lower bound.
+
+A23 retains the old scan range and additionally searches around the live
+player loadout, 32 MiB in each direction, with no overlapping double scan.
+It combines the candidates from both scans and validates the native graph
+pointers and weapon RID just as A20J did.
+
+QProtocol.log now reports "A23 graph index:" followed by linked graph count,
+ItemEntry RID count, spawner count and scan anchor.
+
+THIS IS AN EVIDENCE-BASED RECOVERY CANDIDATE, NOT A GUARANTEED RUNTIME FIX.
+
+A22 MOUSE INPUT CORRECTIONS (RETAINED)
+--------------------------------------
 - The Win32 WndProc no longer skips UI mouse events when the renderer mutex
   is temporarily occupied. A21 used try_to_lock, which could lose clicks.
 - While the menu is visible, Win32 mouse events are delivered to ImGui and
@@ -23,7 +44,7 @@ A22 MOUSE INPUT CORRECTIONS
   but not to the game's original WndProc while the menu is open.
 - Win32 cursor messages handled by ImGui retain the backend's return value.
 - First three left-button-down deliveries are logged as
-  "A22 ImGui mouse-down received" for local diagnosis.
+  "A23 ImGui mouse-down received" for local diagnosis.
 - When the menu is closed, normal game mouse/raw input handling is restored.
 - ImGui keyboard capture remains conditional on WantCaptureKeyboard /
   WantTextInput to preserve A21 keyboard behavior.
@@ -71,6 +92,6 @@ VALIDATION
 Build/CI checks source invariants, PE imports, and package layout. These checks
 do not prove a particular GPU/driver/overlay combination works in-game.
 
-Do not promote A22 to stable until runtime clicking, dragging, sliders,
-checkboxes, dropdowns, save/reload, repeated Insert opens/closes, and Alt-Tab
-are validated. Public v0.9.4 remains untouched.
+Do not promote A23 to stable until the in-game graph index recovers, F3,
+F4, F5-F12, AUTO and Debug Spawn Weapon work again, and A22 clicks, drag,
+Insert, resize and Alt-Tab remain stable. Public v0.9.4 remains untouched.
