@@ -14,6 +14,7 @@ on:
       - dev/a20h-weapons-debug-ltk-force-toggle
       - dev/a20i-native-ltk-state-toggle
       - dev/a20j-clean-core
+      - dev/first-debug
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -30,6 +31,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -235,23 +238,73 @@ jobs:
           )
           '@ | python -
 
+      - name: Verify A20J gameplay invariants
+        shell: pwsh
+        run: |
+          $protected = @(
+            "src/QProtocol.cpp",
+            "src/GameplayHook.asm",
+            "src/Overlay.h",
+            "config/QProtocol.ini"
+          )
+
+          git diff --exit-code v0.9.4 -- $protected
+          if ($LASTEXITCODE -ne 0) {
+            throw "First Debug must not change validated A20J gameplay/config files."
+          }
+
+          Write-Host "A20J gameplay/config invariant PASS."
+
+      - name: Compile First Debug ImGui shaders
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
+
+          $fxc = Get-Command fxc.exe -ErrorAction SilentlyContinue
+          if (-not $fxc) {
+            $candidates = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\fxc.exe" -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending
+            $fxc = $candidates | Select-Object -First 1
+          }
+
+          if (-not $fxc) {
+            throw "fxc.exe not found in Windows SDK."
+          }
+
+          $fxcPath = if ($fxc.Source) { $fxc.Source } else { $fxc.FullName }
+          Write-Host "Using FXC: $fxcPath"
+
+          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiVS.h /Vn g_FirstDebugImGuiVS src/first_debug/imgui_vs.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Vertex shader compilation failed." }
+
+          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiPS.h /Vn g_FirstDebugImGuiPS src/first_debug/imgui_ps.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Pixel shader compilation failed." }
+
+          if (-not (Test-Path dist/shaders/FirstDebugImGuiVS.h) -or
+              -not (Test-Path dist/shaders/FirstDebugImGuiPS.h)) {
+            throw "Embedded shader headers were not generated."
+          }
+
+          Write-Host "Build-time shader compilation PASS."
+
       - name: Build QProtocol.asi
         shell: cmd
         run: |
           if not exist dist mkdir dist
           ml64 /nologo /c /Fo dist\GameplayHook.obj src\GameplayHook.asm
-          cl /nologo /std:c++20 /O2 /EHsc /W4 /LD /DUNICODE /D_UNICODE ^
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE ^
             /I _deps\imgui ^
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
+            /I dist\shaders ^
             src\QProtocol.cpp src\OverlayA19.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
             _deps\imgui\imgui_widgets.cpp ^
             _deps\imgui\backends\imgui_impl_win32.cpp ^
-            _deps\imgui\backends\imgui_impl_dx12.cpp ^
+            src\first_debug\imgui_impl_dx12_first_debug.cpp ^
             _deps\minhook\src\buffer.c ^
             _deps\minhook\src\hook.c ^
             _deps\minhook\src\trampoline.c ^
@@ -260,37 +313,64 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Audit A20J PE imports
+      - name: Audit First Debug PE dependencies
         shell: pwsh
         run: |
-          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A20J_IMPORTS.txt
-          $imports = Get-Content dist\A20J_IMPORTS.txt -Raw
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\FIRST_DEBUG_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\FIRST_DEBUG_DEPENDENTS.txt
+
+          $imports = Get-Content dist\FIRST_DEBUG_IMPORTS.txt -Raw
+          $deps = Get-Content dist\FIRST_DEBUG_DEPENDENTS.txt -Raw
 
           if ($imports -match "WriteProcessMemory") {
-            throw "A20J regression: WriteProcessMemory is still imported."
+            throw "First Debug regression: WriteProcessMemory is imported."
           }
 
           if ($imports -notmatch "ReadProcessMemory") {
-            throw "A20J audit mismatch: expected ReadProcessMemory import not found."
+            throw "First Debug audit mismatch: expected ReadProcessMemory import not found."
           }
 
           if ($imports -notmatch "VirtualProtect") {
-            throw "A20J audit mismatch: expected VirtualProtect import not found."
+            throw "First Debug audit mismatch: expected VirtualProtect import not found."
+          }
+
+          if ($deps -match "D3DCompiler_47\.dll") {
+            throw "First Debug regression: runtime D3DCompiler_47 dependency still present."
+          }
+
+          if ($deps -match "VCRUNTIME\d*\.dll" -or
+              $deps -match "MSVCP\d*\.dll" -or
+              $deps -match "ucrtbase\.dll") {
+            throw "First Debug regression: dynamic MSVC/UCRT runtime dependency detected."
+          }
+
+          foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
+            if ($deps -notmatch [regex]::Escape($required)) {
+              throw "Expected Windows system dependency missing from PE audit: $required"
+            }
+          }
+
+          if (Select-String -Path src\first_debug\imgui_impl_dx12_first_debug.cpp -Pattern "^[^/\r\n]*\bD3DCompile\s*\(" -Quiet) {
+            throw "Runtime D3DCompile call found in hardened backend source."
           }
 
           $asi = Get-Item dist\QProtocol.asi
-          Write-Host ("A20J ASI size: {0} bytes" -f $asi.Length)
-          Write-Host ("A20J ASI SHA-256: {0}" -f (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash)
-          Write-Host "A20J import audit PASS: WriteProcessMemory absent."
+          $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
+          Write-Host ("First Debug ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("First Debug ASI SHA-256: {0}" -f $sha)
+          Write-Host "First Debug dependency audit PASS."
+          Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
 
-      - name: Upload A20J import audit
+      - name: Upload First Debug dependency audit
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20J_ImportAudit
-          path: dist/A20J_IMPORTS.txt
+          name: Q-Protocol_FirstDebug_DependencyAudit
+          path: |
+            dist/FIRST_DEBUG_IMPORTS.txt
+            dist/FIRST_DEBUG_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare A20J Clean Core release files
+      - name: Prepare First Debug test files
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
@@ -304,7 +384,7 @@ jobs:
 
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
-              throw "Missing A20J package file: $file"
+              throw "Missing First Debug package file: $file"
             }
 
             $item = Get-Item $file
@@ -312,7 +392,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build Q Protocol v0.9.4 release ZIP
+      - name: Build First Debug TEST ZIP
         shell: pwsh
         run: |
           @'
@@ -322,44 +402,61 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.4.zip"
+          out = dist / "Q-Protocol_First-Debug_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
                   z.write(dist / name, arcname=name)
 
           with zipfile.ZipFile(out, "r") as z:
-              assert z.namelist() == names
+              actual = z.namelist()
+              if actual != names:
+                  raise SystemExit(f"Flat package invariant failed: {actual}")
+              if any("/" in name or "\\" in name for name in actual):
+                  raise SystemExit(f"Nested ZIP path detected: {actual}")
 
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A20J Clean Core artifact
+      - name: Upload First Debug test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20J
+          name: Q-Protocol_FirstDebug_TEST
           path: |
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish GitHub Release v0.9.4
-        if: github.ref == 'refs/heads/main'
+      - name: Publish First Debug test pre-release
+        if: github.ref == 'refs/heads/dev/first-debug'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.4"
-          $asset = "dist/Q-Protocol_v0.9.4.zip"
-          $title = "Q Protocol v0.9.4 - Fresh Core A20J Clean Core"
+          $tag = "first-debug-test"
+          $asset = "dist/Q-Protocol_First-Debug_TEST.zip"
+          $title = "Q Protocol First Debug - Overlay Compatibility TEST"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
+          $notes = @"
+          First Debug compatibility candidate built strictly from v0.9.4 / A20J.
+          Gameplay and QProtocol.ini are unchanged.
+          This build hardens the DX12/ImGui first-open, swapchain, resize, fence and failure paths.
+          Status: TEST candidate, not yet declared fixed.
+          "@
+
           if ($exists) {
             gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
-            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
+            gh release edit $tag --target $env:GITHUB_SHA --title $title --prerelease --notes $notes --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --prerelease --notes $notes --repo $env:GITHUB_REPOSITORY
           }
+
+      - name: Guard public v0.9.4 release
+        if: github.ref == 'refs/heads/dev/first-debug'
+        shell: pwsh
+        run: |
+          Write-Host "Public v0.9.4 release is intentionally untouched by First Debug."
