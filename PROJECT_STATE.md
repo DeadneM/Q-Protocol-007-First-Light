@@ -1,5 +1,45 @@
 # Q Protocol — Project State
 
+## First Debug TEST — DX12 / ImGui robustness candidate
+
+- Branch: `dev/first-debug`.
+- Base: **exact public v0.9.4 / A20J tag**, target `9439de5f72d1f106362c0fa6033b952b0bb8a07e`.
+- A20K-A20N experimental gameplay code is **not** part of this branch.
+- Status: **built / CI-audited / runtime validation pending**. Do not call the Insert crash fixed yet.
+- Gameplay/config invariant is enforced by CI against v0.9.4 for:
+  - `src/QProtocol.cpp`
+  - `src/GameplayHook.asm`
+  - `src/Overlay.h`
+  - `config/QProtocol.ini`
+- Renderer changes are isolated to `src/OverlayA19.cpp` plus
+  `src/first_debug/` and build/package infrastructure.
+- First-open device objects are created and verified before overlay readiness.
+- ImGui shaders are compiled at build time and embedded in the ASI; runtime
+  `D3DCompile()` and `D3DCompiler_47.dll` dependency are removed.
+- Resource creation, frame upload buffers, map operations, command list reset/
+  close, queue signal and fence waits now have explicit error handling.
+- Present renders only to the tracked game swapchain.
+- ResizeBuffers only tears down the tracked game swapchain.
+- Present/resize/shutdown resource lifetime is serialized.
+- GPU resources are not freed when in-flight completion cannot be proven.
+- Overlay renderer failures disable only the overlay for the current session;
+  validated gameplay/hotkeys remain active.
+- Logs include stage, HRESULT, device-removal reason and first-open progress.
+- Common third-party overlay modules are detected diagnostically; hook chaining
+  remains best-effort instead of forcing another overlay off.
+- Explicit `/MT` build. Current PE dependencies are Windows/system components:
+  `USER32.dll`, `KERNEL32.dll`, `d3d12.dll`, `dxgi.dll`,
+  `SHELL32.dll`, `IMM32.dll`.
+- No dynamic VC++ runtime, D3DCompiler, ImGui or MinHook install is required.
+- Initial CI run #127 / `37975179444`: **PASS**.
+- Initial ASI SHA-256:
+  `12cb3fd60a3f372145c256772969509f7da182172aa3992342cf7033e747ab85`.
+- Initial TEST ZIP SHA-256:
+  `9da5ebb6e82d34c745c3e0743e94d59f3d5eb63a53612f3597a1779951e08b46`.
+- Packaging stays flat: `QProtocol.asi`, `QProtocol.ini`, `README.txt`.
+- Public v0.9.4 remains untouched.
+- Permanent incident notebook: `docs/FIRST_DEBUG.md`.
+
 ## Q Protocol v0.9.3 — Fresh Core A20I Native LTK State Toggle
 
 - Build: `Q-Protocol_v0.9.3.zip`
