@@ -156,6 +156,7 @@ std::atomic<bool> g_ammoPending{false};
 
 std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
 bool g_graphIndexBuilt = false;
+std::uintptr_t g_graphScanPlayerLoadout = 0; // Worker thread only; runtime discovery anchor
 std::vector<std::uint64_t> g_seenRuntimeGraphRids;
 std::deque<std::uint64_t> g_weaponQueue;
 ActiveWeapon g_activeWeapon{};
@@ -730,64 +731,93 @@ bool BuildGraphIndex() {
     std::vector<std::uintptr_t> spawners;
     std::vector<BYTE> buffer(0x10000);
 
-    std::uintptr_t cursor = kGraphScanBegin;
-    while (cursor < kGraphScanEnd) {
-        MEMORY_BASIC_INFORMATION mbi{};
-        if (VirtualQuery(reinterpret_cast<LPCVOID>(cursor), &mbi, sizeof(mbi)) != sizeof(mbi)) {
-            cursor += 0x1000;
-            continue;
-        }
+    // A23: no fixed heap address can be trusted across different game
+    // sessions, graphics initialization patterns, or Windows heap layouts.
+    // Scan the original known-good range, and extend it around the live
+    // player loadout (within 32 MiB in either direction).
+    auto scanRange = [&](std::uintptr_t scanBegin, std::uintptr_t scanEnd) {
+            std::uintptr_t cursor = scanBegin;
+        while (cursor < scanEnd) {
+            MEMORY_BASIC_INFORMATION mbi{};
+            if (VirtualQuery(reinterpret_cast<LPCVOID>(cursor), &mbi, sizeof(mbi)) != sizeof(mbi)) {
+                cursor += 0x1000;
+                continue;
+            }
 
-        const std::uintptr_t regionBase =
-            reinterpret_cast<std::uintptr_t>(mbi.BaseAddress);
-        const std::uintptr_t regionEnd =
-            regionBase + static_cast<std::uintptr_t>(mbi.RegionSize);
+            const std::uintptr_t regionBase =
+                reinterpret_cast<std::uintptr_t>(mbi.BaseAddress);
+            const std::uintptr_t regionEnd =
+                regionBase + static_cast<std::uintptr_t>(mbi.RegionSize);
 
-        if (mbi.State == MEM_COMMIT && IsReadableProtection(mbi.Protect)) {
-            std::uintptr_t chunk = regionBase;
-            while (chunk < regionEnd && chunk < kGraphScanEnd) {
-                const SIZE_T wanted = static_cast<SIZE_T>(
-                    std::min<std::uintptr_t>(
-                        buffer.size(),
-                        std::min<std::uintptr_t>(regionEnd, kGraphScanEnd) - chunk));
+            if (mbi.State == MEM_COMMIT && IsReadableProtection(mbi.Protect)) {
+                std::uintptr_t chunk = (std::max)(regionBase, scanBegin);
+                while (chunk < regionEnd && chunk < scanEnd) {
+                    const SIZE_T wanted = static_cast<SIZE_T>(
+                        std::min<std::uintptr_t>(
+                            buffer.size(),
+                            std::min<std::uintptr_t>(regionEnd, scanEnd) - chunk));
 
-                SIZE_T got = 0;
-                if (ReadProcessMemory(
-                        GetCurrentProcess(),
-                        reinterpret_cast<LPCVOID>(chunk),
-                        buffer.data(),
-                        wanted,
-                        &got) &&
-                    got >= sizeof(std::uintptr_t)) {
+                    SIZE_T got = 0;
+                    if (ReadProcessMemory(
+                            GetCurrentProcess(),
+                            reinterpret_cast<LPCVOID>(chunk),
+                            buffer.data(),
+                            wanted,
+                            &got) &&
+                        got >= sizeof(std::uintptr_t)) {
 
-                    for (SIZE_T off = 0; off + sizeof(std::uintptr_t) <= got; off += 8) {
-                        std::uintptr_t value = 0;
-                        memcpy(&value, buffer.data() + off, sizeof(value));
+                        for (SIZE_T off = 0; off + sizeof(std::uintptr_t) <= got; off += 8) {
+                            std::uintptr_t value = 0;
+                            memcpy(&value, buffer.data() + off, sizeof(value));
 
-                        const std::uintptr_t candidate = chunk + off;
+                            const std::uintptr_t candidate = chunk + off;
 
-                        if (value == itemVtable) {
-                            std::uint64_t rid = 0;
-                            if (SafeRead(candidate + 0x120, rid) && rid != 0) {
-                                itemToRid.emplace(candidate, rid);
-                                auto& graph = g_graphs[rid];
-                                if (!graph.itemEntry) {
-                                    graph.itemEntry = candidate;
+                            if (value == itemVtable) {
+                                std::uint64_t rid = 0;
+                                if (SafeRead(candidate + 0x120, rid) && rid != 0) {
+                                    itemToRid.emplace(candidate, rid);
+                                    auto& graph = g_graphs[rid];
+                                    if (!graph.itemEntry) {
+                                        graph.itemEntry = candidate;
+                                    }
                                 }
+                            } else if (value == spawnerVtable) {
+                                spawners.push_back(candidate);
                             }
-                        } else if (value == spawnerVtable) {
-                            spawners.push_back(candidate);
                         }
                     }
-                }
 
-                chunk += wanted ? wanted : 0x1000;
+                    chunk += wanted ? wanted : 0x1000;
+                }
             }
+
+            const std::uintptr_t next = regionEnd > cursor ? regionEnd : cursor + 0x1000;
+            cursor = next;
         }
 
-        const std::uintptr_t next = regionEnd > cursor ? regionEnd : cursor + 0x1000;
-        cursor = next;
+    };
+
+    scanRange(kGraphScanBegin, kGraphScanEnd);
+
+    const std::uintptr_t anchor = g_graphScanPlayerLoadout;
+    if (anchor >= 0x10000000 && anchor < 0x80000000) {
+        constexpr std::uintptr_t kAnchorRadius = 0x02000000;
+        constexpr std::uintptr_t kPageMask = ~std::uintptr_t{0xFFFF};
+        const std::uintptr_t localBegin = (anchor - kAnchorRadius) & kPageMask;
+        const std::uintptr_t localEnd = (anchor + kAnchorRadius + 0xFFFF) & kPageMask;
+
+        // Avoid rescanning overlapping memory. Both scans populate the
+        // same item/spawner maps and can associate cross-region pairs.
+        if (localBegin < kGraphScanBegin) {
+            scanRange(localBegin, (std::min)(localEnd, kGraphScanBegin));
+        }
+        if (localEnd > kGraphScanEnd) {
+            scanRange((std::max)(localBegin, kGraphScanEnd), localEnd);
+        }
     }
+
+    std::sort(spawners.begin(), spawners.end());
+    spawners.erase(std::unique(spawners.begin(), spawners.end()), spawners.end());
 
     for (const std::uintptr_t spawner : spawners) {
         std::uintptr_t begin = 0;
@@ -848,9 +878,11 @@ bool BuildGraphIndex() {
         displayRids.size());
 
     Log(
-        "Weapon graph index built: %zu ItemEntry/Spawner RID graph(s), %zu spawner candidate(s).",
+        "A23 graph index: %zu linked graph(s), %zu item RID entry(s), %zu spawner(s), player loadout anchor=0x%p.",
         g_graphs.size(),
-        spawners.size());
+        itemToRid.size(),
+        spawners.size(),
+        reinterpret_cast<void*>(anchor));
 
     for (const std::uint64_t displayRid : displayRids) {
         if (std::find(
@@ -1624,6 +1656,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
     while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
         const bool ready = static_cast<bool>(player);
+        g_graphScanPlayerLoadout = ready
+            ? reinterpret_cast<std::uintptr_t>(player.loadout)
+            : 0;
 
         const bool playerIdentityChanged =
             ready && previousReady &&
