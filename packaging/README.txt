@@ -1,93 +1,66 @@
-Q Protocol - Fresh Core A21 Overlay Compatibility TEST
-=========================================================
+Q Protocol - Fresh Core A22 Reliable Mouse Input TEST
+=====================================================
 
 STATUS
 ------
-TEST candidate.
-
-A21 pauses the experimental F1 / close-combat research and focuses only on
-making the Q Protocol overlay more robust and conventional.
+TEST candidate. Mouse-click reliability is not declared validated in-game yet.
+Public stable remains v0.9.4 / A20J.
 
 BASE
 ----
-A21 keeps the validated v0.9.4 / Fresh Core A20J gameplay core and includes
-the DX12 / ImGui robustness work from First Debug.
+A22 builds on the A21 floating ImGui menu, First Debug DX12 hardening, and the
+validated v0.9.4 / Fresh Core A20J gameplay core. Experimental F1 branches
+A20K-A20N are excluded; close-combat / F1 research is paused.
 
-A20K-A20N experimental gameplay changes are NOT included.
+A22 MOUSE INPUT CORRECTIONS
+---------------------------
+- The Win32 WndProc no longer skips UI mouse events when the renderer mutex
+  is temporarily occupied. A21 used try_to_lock, which could lose clicks.
+- While the menu is visible, Win32 mouse events are delivered to ImGui and
+  swallowed before they reach the game. A21's WantCaptureMouse gate could be
+  stale at the instant of a click.
+- WM_INPUT is passed to DefWindowProc for required Windows raw-input cleanup,
+  but not to the game's original WndProc while the menu is open.
+- Win32 cursor messages handled by ImGui retain the backend's return value.
+- First three left-button-down deliveries are logged as
+  "A22 ImGui mouse-down received" for local diagnosis.
+- When the menu is closed, normal game mouse/raw input handling is restored.
+- ImGui keyboard capture remains conditional on WantCaptureKeyboard /
+  WantTextInput to preserve A21 keyboard behavior.
+
+A21 FLOATING OVERLAY PRESERVED
+------------------------------
+- draggable title bar, resize handle and close button;
+- one ImGui window, no added native windows or multi-viewports;
+- initial size/position only on first use, no frame-by-frame recentering;
+- ClipCursor temporarily released while open and restored on close/failure;
+- existing Loadout, Weapons, Debug and Hotkeys tabs unchanged.
 
 GAMEPLAY / CONFIG
 -----------------
 Unchanged from v0.9.4:
-
-- F1 License To Kill behavior from stable A20J
-- F2 ammo
+- F1 native-state License To Kill toggle
+- F2 ammunition
 - F3 Manual Loadout
 - F4 Q-Pistol swap
-- F5-F12 weapon slots
-- AUTO
-- weapon catalogue / RIDs
-- timings / retries
-- QProtocol.ini format and defaults
+- F5-F12 configurable weapon slots
+- Automatic loadout / ammo
+- native weapon graphs, RIDs, timings and retry behavior
+- QProtocol.ini sections, defaults, and saved profile format
 
-A21 development does not continue the three-state F1 experiment.
-
-A21 OVERLAY COMPATIBILITY
--------------------------
-The old menu was forced to the center every frame and could not be moved or
-resized. It also swallowed every mouse and keyboard message while visible.
-
-A21 changes that model to a conventional single ImGui floating window:
-
-- movable by the title bar
-- resizable
-- close button in the title bar
-- default position/size only on first use
-- sensible minimum/maximum size constraints
-- no multi-viewport / extra native windows
-- no docking dependency
-
-Input handling now follows the standard ImGui model:
-
-- mouse messages are consumed only when ImGui WantCaptureMouse is true
-- keyboard messages are consumed only when ImGui WantCaptureKeyboard or
-  WantTextInput is true
-- other input continues to the game's original WndProc / other hook chain
-- hidden overlay does not feed normal game input through ImGui unnecessarily
-
-CURSOR
-------
-When A21 opens, it releases an active game ClipCursor restriction so the
-floating menu can be used normally.
-
-When A21 closes, fails open, or shuts down, it restores the previous cursor
-clip state instead of leaving the game cursor globally unclipped.
-
-FIRST DEBUG HARDENING RETAINED
-------------------------------
-A21 keeps:
-
-- build-time embedded ImGui shaders
-- no runtime D3DCompile / D3DCompiler_47.dll dependency
-- checked root signature / PSO / font / upload resources
-- tracked game swapchain
-- scoped ResizeBuffers handling
-- checked fences / allocator reuse
-- synchronized renderer lifetime
-- fail-open renderer behavior
-- HRESULT / device-removal diagnostics
-- chain-aware WndProc restoration
-- static MSVC runtime build
+First Debug guards remain: precompiled ImGui shaders, checked DX12 resources,
+correct tracked swapchain, synchronized Present/ResizeBuffers/fences, fail-open
+rendering, diagnostic HRESULT logging and static MSVC runtime.
 
 DEPENDENCIES
 ------------
-Dear ImGui v1.91.5 and MinHook v1.3.4 are compiled into QProtocol.asi.
-
+ImGui v1.91.5 and MinHook v1.3.4 are compiled into QProtocol.asi.
 No separate ImGui, MinHook, D3DCompiler or Visual C++ runtime installation is
-required by this test build.
+required by this build. Windows / DirectX system DLLs are used.
 
 PACKAGE
 -------
-The ZIP contains directly at its root:
+The ZIP contains exactly these files at root:
 
 QProtocol.asi
 QProtocol.ini
@@ -95,7 +68,9 @@ README.txt
 
 VALIDATION
 ----------
-A21 is not a public stable release yet. CI validates the build, protected A20J
-gameplay/config files, renderer architecture, dependencies and flat ZIP.
+Build/CI checks source invariants, PE imports, and package layout. These checks
+do not prove a particular GPU/driver/overlay combination works in-game.
 
-Runtime compatibility still needs in-game validation before promotion.
+Do not promote A22 to stable until runtime clicking, dragging, sliders,
+checkboxes, dropdowns, save/reload, repeated Insert opens/closes, and Alt-Tab
+are validated. Public v0.9.4 remains untouched.
