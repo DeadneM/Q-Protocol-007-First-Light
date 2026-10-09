@@ -1,5 +1,13 @@
 # Technical status
 
+## First Debug — open public overlay crash investigation (2026-10-09)
+
+- Report: users encounter a game crash on **Insert** (first display of the DX12 overlay); initial log is from A20I v0.9.3.
+- Root cause unproven. Potential renderer first-frame initialization failure, swapchain mismatch, and unsafe DX12 resize/resource lifetime identified in source audit.
+- Pinned ImGui and MinHook are built into the ASI; do not treat a missing end-user dependency as established.
+- Fix on the development side, with safe fail-open overlay behavior. Preserve A20J gameplay functions, packaging and INI. **Do not require public users to run complicated tests.**
+- Project notebook and developer acceptance criteria: **[First Debug](FIRST_DEBUG.md)**. Status: **OPEN**.
+
 ## Active state
 
 - Current public release: **Q Protocol v0.9.4 / Fresh Core A20J Clean Core**.
