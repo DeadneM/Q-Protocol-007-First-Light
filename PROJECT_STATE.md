@@ -1,5 +1,17 @@
 # Q Protocol — Project State
 
+## A22 — Reliable Mouse Input TEST (2026-10-09)
+
+- Active development branch: `dev/a22-mouse-input`, based strictly on A21 and its validated A20J gameplay/config baseline.
+- Maintainer reports A21 is visually better but responds unreliably to clicks.
+- A21 source audit found `std::try_to_lock` could drop WndProc input, while `WantCaptureMouse` could misroute a click to the game using last-frame state.
+- A22 forwards Win32 mouse messages consistently to ImGui and consumes them while the menu is visible; `WM_INPUT` is handled by DefWindowProc, not sent to the game when visible.
+- A22 retains the A21 floating/drag-resize window, conditional keyboard capture, cursor clipping lifecycle and all First Debug DX12 protections.
+- The existing A20J gameplay and QProtocol.ini are unchanged. CI enforces byte-level invariants.
+- Read `docs/A22_MOUSE_INPUT.md` for source audit, changes and acceptance criteria.
+- Status: **TEST; mouse/game compatibility not yet validated in-game**. Do not promote to stable on CI success alone.
+- Prior public v0.9.4 and A21 test remain untouched. F1 close-combat research remains paused.
+
 ## Q Protocol v0.9.3 — Fresh Core A20I Native LTK State Toggle
 
 - Build: `Q-Protocol_v0.9.3.zip`
