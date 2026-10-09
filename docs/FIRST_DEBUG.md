@@ -91,3 +91,24 @@ In v0.9.3 `src/OverlayA19.cpp`:
 - `.github/workflows/build-fresh-core.yml` at tag `v0.9.3`
 - ImGui DX12 backend pinned to `ocornut/imgui v1.91.5`
 - `PROJECT_STATE.md`, `docs/STATUS.md`
+
+
+## A21 continuation
+
+First Debug established the DX12/ImGui hardening base, but overlay usability and
+compatibility work continues in **A21**.
+
+A21 keeps First Debug's renderer fixes and changes the UI/input model:
+
+- floating movable/resizable single ImGui window;
+- title bar and close button;
+- no forced center/size every frame;
+- selective `WantCaptureMouse` / `WantCaptureKeyboard` input swallowing;
+- cursor clip state restored on close/failure/shutdown.
+
+F1 / close-combat experiments are paused and are not part of A21.
+
+A21 CI run #131 passed. Runtime validation is still required before declaring
+the public Insert crash resolved.
+
+See `docs/A21_OVERLAY_COMPAT.md`.
