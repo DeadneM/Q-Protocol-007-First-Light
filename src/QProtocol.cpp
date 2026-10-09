@@ -31,6 +31,12 @@ constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191A6D8;
 constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191A6E7;
 constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191A763;
 
+// Native local-humanoid / melee policy mappings (October 2026 executable).
+constexpr std::uintptr_t kGetLocalHumanoidRefRva      = 0x015D4210;
+constexpr std::uintptr_t kHumanoidRegistryGlobalRva   = 0x06784048;
+constexpr std::uintptr_t kDisableMeleeSetterRva       = 0x016DD1E0;
+constexpr std::uintptr_t kDisableMeleeGetterRva       = 0x016DD210;
+
 constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
 constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
 constexpr std::uintptr_t kNativeSpawnRva          = 0x016B4E80;
@@ -116,6 +122,8 @@ enum class BeginWeaponResult {
 
 using ResolveLocalPlayerFn = void(__fastcall*)(std::uint32_t, std::uint64_t*);
 using LookupPlayerFn = void*(__fastcall*)(std::uint64_t*, void*);
+using GetLocalHumanoidRefFn = void*(__fastcall*)(void*, std::uint64_t*);
+using BoolPropertyAccessorFn = void(__fastcall*)(void*, BYTE*);
 using NativeSpawnFn = void(__fastcall*)(void*);
 using NativeAmmoInsertFn = void(__fastcall*)(void*, const AddFirearmAmmunitionInput*);
 using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
@@ -128,6 +136,11 @@ extern "C" volatile LONG g_qpRoeEffectiveState = 0;
 extern "C" volatile LONG g_qpRoeOverrideState = 0;
 extern "C" std::uintptr_t g_qpLtkObserveTrueTarget = 0;
 extern "C" std::uintptr_t g_qpLtkObserveFalseTarget = 0;
+
+void* g_meleePolicyHumanoid = nullptr;
+bool g_originalMeleeCaptured = false;
+bool g_originalMeleeDisabled = false;
+ULONGLONG g_nextMeleePolicyCheckAt = 0;
 
 HMODULE g_module = nullptr;
 HANDLE g_log = INVALID_HANDLE_VALUE;
@@ -470,6 +483,130 @@ bool RemoveLicenseToKillObserveHook() {
     return restored;
 }
 
+void* ResolveLocalHumanoid() {
+    if (!g_exeBase) {
+        return nullptr;
+    }
+
+    std::uint64_t ref[2]{};
+
+    const auto getRef =
+        reinterpret_cast<GetLocalHumanoidRefFn>(
+            g_exeBase + kGetLocalHumanoidRefRva);
+
+    const auto lookup =
+        reinterpret_cast<LookupPlayerFn>(
+            g_exeBase + kPlayerRegistryHelperRva);
+
+    void* humanoid = nullptr;
+
+    __try {
+        getRef(nullptr, ref);
+
+        if (ref[0] == 0 &&
+            ref[1] == 0) {
+            return nullptr;
+        }
+
+        humanoid =
+            lookup(
+                ref,
+                reinterpret_cast<void*>(
+                    g_exeBase +
+                    kHumanoidRegistryGlobalRva));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        humanoid = nullptr;
+    }
+
+    return humanoid;
+}
+
+bool ReadDisableMeleeAttack(
+    void* humanoid,
+    bool& disabled) {
+
+    if (!humanoid ||
+        !g_exeBase) {
+        return false;
+    }
+
+    BYTE value = 0;
+
+    const auto getter =
+        reinterpret_cast<BoolPropertyAccessorFn>(
+            g_exeBase +
+            kDisableMeleeGetterRva);
+
+    bool ok = false;
+
+    __try {
+        getter(
+            humanoid,
+            &value);
+
+        ok = true;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        ok = false;
+    }
+
+    if (!ok) {
+        return false;
+    }
+
+    disabled =
+        value != 0;
+
+    return true;
+}
+
+bool WriteDisableMeleeAttack(
+    void* humanoid,
+    bool disabled) {
+
+    if (!humanoid ||
+        !g_exeBase) {
+        return false;
+    }
+
+    BYTE value =
+        disabled ? 1 : 0;
+
+    const auto setter =
+        reinterpret_cast<BoolPropertyAccessorFn>(
+            g_exeBase +
+            kDisableMeleeSetterRva);
+
+    bool ok = false;
+
+    __try {
+        setter(
+            humanoid,
+            &value);
+
+        ok = true;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        ok = false;
+    }
+
+    if (!ok) {
+        return false;
+    }
+
+    bool verify = false;
+
+    if (!ReadDisableMeleeAttack(
+            humanoid,
+            verify)) {
+        return false;
+    }
+
+    return
+        verify == disabled;
+}
+
 enum class RoeState : LONG {
     Unknown = 0,
     Off = 1,
@@ -488,6 +625,195 @@ const char* RoeStateName(RoeState state) {
     default:
         return "UNKNOWN";
     }
+}
+
+bool RoeStateDisablesMelee(
+    RoeState state) {
+
+    return
+        state == RoeState::Off;
+}
+
+void ResetMeleePolicyCapture() {
+    g_meleePolicyHumanoid = nullptr;
+    g_originalMeleeCaptured = false;
+    g_originalMeleeDisabled = false;
+    g_nextMeleePolicyCheckAt = 0;
+}
+
+bool ApplyMeleePolicy(
+    RoeState state,
+    const char* reason,
+    bool logSuccess) {
+
+    if (state == RoeState::Unknown) {
+        return false;
+    }
+
+    void* humanoid =
+        ResolveLocalHumanoid();
+
+    if (!humanoid) {
+        if (logSuccess) {
+            Log(
+                "ROE melee policy pending (%s): local humanoid unavailable.",
+                reason);
+        }
+
+        return false;
+    }
+
+    if (humanoid !=
+        g_meleePolicyHumanoid) {
+
+        g_meleePolicyHumanoid =
+            humanoid;
+
+        g_originalMeleeCaptured =
+            false;
+
+        bool original = false;
+
+        if (ReadDisableMeleeAttack(
+                humanoid,
+                original)) {
+
+            g_originalMeleeCaptured =
+                true;
+
+            g_originalMeleeDisabled =
+                original;
+
+            Log(
+                "ROE melee policy captured humanoid=0x%p original DisableMeleeAttack=%s",
+                humanoid,
+                original ? "ON" : "OFF");
+        } else {
+            Log(
+                "[ERROR] ROE melee policy: unable to read DisableMeleeAttack for humanoid=0x%p.",
+                humanoid);
+        }
+    }
+
+    const bool desiredDisabled =
+        RoeStateDisablesMelee(state);
+
+    bool currentDisabled = false;
+
+    if (!ReadDisableMeleeAttack(
+            humanoid,
+            currentDisabled)) {
+
+        Log(
+            "[ERROR] ROE melee policy (%s): getter failed.",
+            reason);
+
+        return false;
+    }
+
+    if (currentDisabled ==
+        desiredDisabled) {
+
+        if (logSuccess) {
+            Log(
+                "ROE melee policy (%s): %s -> DisableMeleeAttack=%s (already correct)",
+                reason,
+                RoeStateName(state),
+                desiredDisabled ? "ON" : "OFF");
+        }
+
+        return true;
+    }
+
+    if (!WriteDisableMeleeAttack(
+            humanoid,
+            desiredDisabled)) {
+
+        Log(
+            "[ERROR] ROE melee policy (%s): failed to set DisableMeleeAttack=%s.",
+            reason,
+            desiredDisabled ? "ON" : "OFF");
+
+        return false;
+    }
+
+    Log(
+        "ROE melee policy (%s): %s -> DisableMeleeAttack=%s",
+        reason,
+        RoeStateName(state),
+        desiredDisabled ? "ON" : "OFF");
+
+    return true;
+}
+
+void EnforceMeleePolicyIfNeeded() {
+    const RoeState overrideState =
+        static_cast<RoeState>(
+            InterlockedCompareExchange(
+                &g_qpRoeOverrideState,
+                0,
+                0));
+
+    if (overrideState ==
+        RoeState::Unknown) {
+        return;
+    }
+
+    const ULONGLONG now =
+        GetTickCount64();
+
+    if (now <
+        g_nextMeleePolicyCheckAt) {
+        return;
+    }
+
+    g_nextMeleePolicyCheckAt =
+        now + 100;
+
+    ApplyMeleePolicy(
+        overrideState,
+        "enforce",
+        false);
+}
+
+bool RestoreOriginalMeleePolicy(
+    const char* reason) {
+
+    if (!g_originalMeleeCaptured ||
+        !g_meleePolicyHumanoid) {
+
+        ResetMeleePolicyCapture();
+        return true;
+    }
+
+    void* current =
+        ResolveLocalHumanoid();
+
+    if (!current ||
+        current != g_meleePolicyHumanoid) {
+
+        ResetMeleePolicyCapture();
+        return true;
+    }
+
+    const bool restored =
+        WriteDisableMeleeAttack(
+            current,
+            g_originalMeleeDisabled);
+
+    if (restored) {
+        Log(
+            "ROE melee policy restored (%s): DisableMeleeAttack=%s",
+            reason,
+            g_originalMeleeDisabled ? "ON" : "OFF");
+    } else {
+        Log(
+            "[ERROR] ROE melee policy restore failed (%s).",
+            reason);
+    }
+
+    ResetMeleePolicyCapture();
+    return restored;
 }
 
 bool CycleRulesOfEngagement() {
@@ -523,10 +849,21 @@ bool CycleRulesOfEngagement() {
         &g_qpRoeOverrideState,
         static_cast<LONG>(next));
 
+    InterlockedExchange(
+        &g_qpRoeEffectiveState,
+        static_cast<LONG>(next));
+
+    const bool meleeApplied =
+        ApplyMeleePolicy(
+            next,
+            "F1",
+            true);
+
     Log(
-        "F1 Rules Of Engagement: %s -> %s",
+        "F1 Rules Of Engagement: %s -> %s (melee policy=%s)",
         RoeStateName(current),
-        RoeStateName(next));
+        RoeStateName(next),
+        meleeApplied ? "OK" : "PENDING");
 
     return true;
 }
@@ -1557,8 +1894,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20K Three-State ROE TEST");
-    Log("Scope: A20J base + F1 native OFF / License To Punch / License To Kill cycle.");
+    Log("Q Protocol Fresh Core A20L Native Melee Policy TEST");
+    Log("Scope: A20K three-state ROE + native local-humanoid DisableMeleeAttack policy.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1585,6 +1922,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     Log("F1 = Rules Of Engagement cycle: OFF -> LICENSE TO PUNCH -> LICENSE TO KILL.");
+    Log(
+        "A20L melee mapping: GetLocalHumanoidRef=EXE+0x%llX registry=EXE+0x%llX setter/getter=EXE+0x%llX/0x%llX.",
+        static_cast<unsigned long long>(kGetLocalHumanoidRefRva),
+        static_cast<unsigned long long>(kHumanoidRegistryGlobalRva),
+        static_cast<unsigned long long>(kDisableMeleeSetterRva),
+        static_cast<unsigned long long>(kDisableMeleeGetterRva));
     Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
@@ -1614,6 +1957,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
             player.loadout != previousPlayer.loadout;
 
         if (ready != previousReady || playerIdentityChanged) {
+            if (previousReady) {
+                RestoreOriginalMeleePolicy(
+                    "player transition");
+            }
+
             if (ready) {
                 Log(
                     "PLAYER READY loadout=0x%p playerId=%u",
@@ -1630,6 +1978,24 @@ DWORD WINAPI WorkerThread(LPVOID) {
             autoDone = false;
             previousPlayer = player;
             previousReady = ready;
+
+            if (ready) {
+                const RoeState overrideState =
+                    static_cast<RoeState>(
+                        InterlockedCompareExchange(
+                            &g_qpRoeOverrideState,
+                            0,
+                            0));
+
+                if (overrideState !=
+                    RoeState::Unknown) {
+
+                    ApplyMeleePolicy(
+                        overrideState,
+                        "player READY",
+                        true);
+                }
+            }
         } else if (loadoutPointerChanged) {
             Log(
                 "PLAYER LOADOUT REFRESH loadout=0x%p playerId=%u - preserving weapon queue.",
@@ -1687,6 +2053,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         const bool overlayVisible =
             OverlayIsVisible();
+
+        if (ready) {
+            EnforceMeleePolicyIfNeeded();
+        }
 
         // Always advance edge state, even while the overlay is open.
         // This prevents held keys from leaking into gameplay when the menu closes.
@@ -1854,6 +2224,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
     if (g_activeWeapon.active) {
         ResetActiveWeaponState();
     }
+
+    RestoreOriginalMeleePolicy(
+        "DLL shutdown");
 
     InterlockedExchange(
         &g_qpRoeOverrideState,
