@@ -125,3 +125,12 @@ A22 (`dev/a22-mouse-input`) corrects event delivery, gives the visible menu moda
 CI #133 / `37984376129` passed. A22 ZIP SHA-256 `41ac99b5186c507f1566e730d57489edf7ce60195705d415b42071e38e8966c7`. Candidate release: `a22-test`.
 
 **Incident status remains OPEN** pending runtime tests of Insert, mouse clicking, dragging, toggling, Alt-Tab, and mixed third-party overlays. Do not label fixed based only on CI. Full details: `docs/A22_MOUSE_INPUT.md`.
+
+
+## A23 follow-up: gameplay regression in A22
+
+The A22 mouse fix improved overlay input, but the maintainer reported all weapon-based gameplay functions nonfunctional. The user-provided A22 log documents **zero linked ItemEntry/Spawner graphs** versus **41** in a prior working log. Player loadout in A22 was below the original fixed weapon-graph scanner lower bound (0x2C000000). This does not conclusively locate the current weapon graph objects, but demonstrates a plausible memory-allocation placement dependency.
+
+The A23 branch `dev/a23-dynamic-weapon-graph` preserves A22 input and First Debug hardening while extending weapon graph discovery around the actual current player loadout. All non-scanner gameplay functions are protected by a source isolation audit. GitHub Actions run #137 PASS, test release `a23-test` (ZIP SHA-256 `daf91b4fca1bbdc07de15fbd67f7f06fa0d87757c4a75303e8a794d9b0f79e3d`). Runtime validation remains pending; the First Debug compatibility incident stays open.
+
+See `docs/A23_DYNAMIC_GRAPH.md` and `PROJECT_STATE.md`.
