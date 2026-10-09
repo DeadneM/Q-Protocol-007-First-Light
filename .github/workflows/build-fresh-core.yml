@@ -16,7 +16,7 @@ on:
       - dev/a20j-clean-core
       - dev/first-debug
       - dev/a21-overlay-compat
-      - dev/a23-dynamic-weapon-graph
+      - dev/a22-mouse-input
       - dev/a23-dynamic-weapon-graph
     paths:
       - "src/**"
@@ -280,11 +280,11 @@ jobs:
               raise SystemExit("A23 scan anchor missing, duplicated or modified")
 
           def normalized(s):
-              s = s.replace(anchor+"\\n", "")
+              s = s.replace(anchor+"\n", "")
               s = s.replace(set_anchor, "")
               begin = s.index("bool BuildGraphIndex() {")
               end = s.index("bool ValidateGraph(", begin)
-              return s[:begin] + "[A23 SCANNER ONLY]\\n" + s[end:]
+              return s[:begin] + "[A23 SCANNER ONLY]\n" + s[end:]
 
           if normalized(base) != normalized(now):
               raise SystemExit("A23 regression: gameplay source changed outside scanner and runtime player anchor")
