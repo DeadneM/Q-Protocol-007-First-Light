@@ -1,5 +1,22 @@
 # Technical status
 
+## First Debug TEST — candidate built
+
+- Dedicated branch: `dev/first-debug`, created directly from tag `v0.9.4`.
+- Scope is renderer compatibility only. A20J gameplay and QProtocol.ini are
+  byte-for-byte guarded by CI.
+- First-open ImGui DX12 device objects are now pre-created and checked.
+- Runtime shader compilation was removed; shaders are embedded at build time.
+- Present/ResizeBuffers are tied to the tracked swapchain and renderer resource
+  lifetime is synchronized.
+- Failure paths are fail-open: overlay rendering can stop without disabling the
+  gameplay core.
+- PE dependency audit passes without D3DCompiler or dynamic MSVC/UCRT runtime.
+- Initial CI run #127 passed all First Debug safety gates.
+- Status remains **TEST / validation pending**. The public Insert crash is not
+  declared fixed yet.
+- Public v0.9.4 remains the validated stable release.
+
 ## Active state
 
 - Current public release: **Q Protocol v0.9.3 / Fresh Core A20I Native LTK State Toggle**.
