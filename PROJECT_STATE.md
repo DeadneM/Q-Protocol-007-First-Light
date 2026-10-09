@@ -14,6 +14,29 @@
 - Release ZIP contains `QProtocol.asi`, `QProtocol.ini` and `README.txt` directly at its root.
 - Detailed cleanup audit: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
 
+## A20M Close Combat Input Probe
+
+- Branch: `dev/a20m-close-combat-input-override`
+- Base: **A20K three-state ROE**, deliberately excluding the rejected A20L humanoid-bit policy.
+- Status: **built / diagnostic test pending**.
+- GitHub Actions run: **#125 / 37948615675 — PASS**.
+- Test pre-release: `a20m-test`.
+- Build: `Q-Protocol_FreshCore_A20M_CloseCombatInputProbe_TEST.zip`
+- SHA-256: `0f87ccdd08c54869448b2ba959aa758717b5186808a9ab590e3222a228b27447`
+- Close-combat input diagnostics are read-only in this build.
+- Runtime discovery targets:
+  - `ZGameplayInputOverrideManager` vtable RVA `0x02ED0F08`
+  - `ZInputConfigHumanoid` vtable RVA `0x02ED3FB0`
+  - `ZCLBlockPlayerInputAction` vtable RVA `0x02ECFF78`
+  - `ZCLBlockHumanoidPlayerCloseCombatInput` vtable RVA `0x02E8D108`
+  - `ZCLUnblockHumanoidPlayerCloseCombatInput` vtable RVA `0x02E8D050`
+- For `ZInputConfigHumanoid`, logs TEntityRef fields for QuickMeleeAttack, ChargedMeleeAttack, CloseCombatSidestep, Grab, Parry and Shoot.
+- For `ZCLBlockPlayerInputAction`, logs state bytes `+0x60/+0x61/+0x62` and Input/Target/Runtime entity refs.
+- Probe runs after PLAYER READY and 300 ms after each successful F1 transition.
+- Primary comparison requested: a normal mission where punching works vs TacSim where punching is blocked.
+- Goal: identify the authoritative close-combat blocker before an active A20N control build.
+- Public v0.9.4 / A20J remains untouched.
+
 ## A20L Native Melee Policy result
 
 - Base: A20K three-state Rules of Engagement test.
