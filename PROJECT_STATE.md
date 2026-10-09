@@ -26,6 +26,10 @@
 
 ## A20N Live Input Transition Trace
 
+- Runtime test log received 2026-10-09: the A20N hook installed successfully at `EXE+0x016D0830`, the overlay/gameplay core remained operational across two READY cycles, F1 cycles, F3 Manual Loadout and F4 Q-Pistol.
+- **No `A20N INPUT TRANSITION` event was emitted anywhere in the complete 156-line test log.**
+- Conclusion: during this tested session, the hooked `EXE+0x016D0830` function was not observed executing. A20N therefore does **not** validate that function as the active close-combat blocker path.
+- A20N remains diagnostic/inconclusive and must not be promoted into the First Debug compatibility branch or the stable gameplay base.
 - Branch: `dev/a20n-live-input-transition-trace`
 - Base: A20K three-state ROE, deliberately excluding A20L and the A20M broad scanner.
 - Status: **built / runtime trace pending**.
