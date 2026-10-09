@@ -3199,76 +3199,51 @@ LRESULT CALLBACK OverlayWndProc(
     HWND hwnd,
     UINT msg,
     WPARAM wParam,
-    LPARAM lParam) {
+    LPARAM lParam);
 
-    const bool visible =
-        g_overlayReady.load(
-            std::memory_order_acquire) &&
-        g_requestedVisible.load(
-            std::memory_order_acquire);
+void RestoreWndProcLocked() {
+    if (!g_gameWindow ||
+        !g_originalWndProc) {
 
-    const bool capturingKey =
-        g_captureOverlayToggleKey.load(
-            std::memory_order_acquire);
+        g_originalWndProc = nullptr;
+        return;
+    }
 
-    if (visible ||
-        capturingKey) {
+    const WNDPROC current =
+        reinterpret_cast<WNDPROC>(
+            GetWindowLongPtrW(
+                g_gameWindow,
+                GWLP_WNDPROC));
 
-        std::unique_lock<std::recursive_mutex> lock(
-            g_renderMutex,
-            std::try_to_lock);
+    if (current ==
+        &OverlayWndProc) {
 
-        if (lock.owns_lock() &&
-            g_imguiWin32Initialized) {
+        SetLastError(0);
 
-            ImGui_ImplWin32_WndProcHandler(
-                hwnd,
-                msg,
-                wParam,
-                lParam);
+        const LONG_PTR restored =
+            SetWindowLongPtrW(
+                g_gameWindow,
+                GWLP_WNDPROC,
+                reinterpret_cast<LONG_PTR>(
+                    g_originalWndProc));
 
-            if (visible) {
-                ImGuiIO& io =
-                    ImGui::GetIO();
+        const DWORD error =
+            GetLastError();
 
-                const bool captureMouse =
-                    IsMouseInputMessage(msg) &&
-                    io.WantCaptureMouse;
+        if (restored == 0 &&
+            error != ERROR_SUCCESS) {
 
-                const bool captureKeyboard =
-                    IsKeyboardInputMessage(msg) &&
-                    (io.WantCaptureKeyboard ||
-                     io.WantTextInput);
-
-                // Standard ImGui integration: only swallow the category of
-                // input ImGui actually owns. Everything else continues through
-                // the game's original WndProc and other overlays in the chain.
-                if (captureMouse ||
-                    captureKeyboard) {
-
-                    return 1;
-                }
-            }
+            Log(
+                "[OVERLAY] RestoreWndProc failed: Win32=%lu",
+                static_cast<unsigned long>(
+                    error));
         }
+    } else {
+        Log(
+            "[OVERLAY] WndProc changed by another component after Q Protocol. Leaving the current chain intact.");
     }
 
-    WNDPROC original =
-        g_originalWndProc;
-
-    if (original) {
-        return CallWindowProcW(
-            original,
-            hwnd,
-            msg,
-            wParam,
-            lParam);
-    }
-
-    return DefWindowProcW(
-        hwnd,
-        msg,
-        wParam,
-        lParam);
+    g_originalWndProc = nullptr;
 }
 
 void ShutdownPlatformBackendLocked() {
@@ -3389,26 +3364,54 @@ LRESULT CALLBACK OverlayWndProc(
     WPARAM wParam,
     LPARAM lParam) {
 
-    std::unique_lock<std::recursive_mutex> lock(
-        g_renderMutex,
-        std::try_to_lock);
+    const bool visible =
+        g_overlayReady.load(
+            std::memory_order_acquire) &&
+        g_requestedVisible.load(
+            std::memory_order_acquire);
 
-    if (lock.owns_lock() &&
-        g_imguiWin32Initialized) {
+    const bool capturingKey =
+        g_captureOverlayToggleKey.load(
+            std::memory_order_acquire);
 
-        ImGui_ImplWin32_WndProcHandler(
-            hwnd,
-            msg,
-            wParam,
-            lParam);
+    if (visible ||
+        capturingKey) {
 
-        if (g_overlayReady.load(
-                std::memory_order_acquire) &&
-            g_requestedVisible.load(
-                std::memory_order_acquire) &&
-            IsInputMessage(msg)) {
+        std::unique_lock<std::recursive_mutex> lock(
+            g_renderMutex,
+            std::try_to_lock);
 
-            return 1;
+        if (lock.owns_lock() &&
+            g_imguiWin32Initialized) {
+
+            ImGui_ImplWin32_WndProcHandler(
+                hwnd,
+                msg,
+                wParam,
+                lParam);
+
+            if (visible) {
+                ImGuiIO& io =
+                    ImGui::GetIO();
+
+                const bool captureMouse =
+                    IsMouseInputMessage(msg) &&
+                    io.WantCaptureMouse;
+
+                const bool captureKeyboard =
+                    IsKeyboardInputMessage(msg) &&
+                    (io.WantCaptureKeyboard ||
+                     io.WantTextInput);
+
+                // Standard ImGui integration: only swallow the category of
+                // input ImGui actually owns. Everything else continues through
+                // the game's original WndProc and other overlays in the chain.
+                if (captureMouse ||
+                    captureKeyboard) {
+
+                    return 1;
+                }
+            }
         }
     }
 
