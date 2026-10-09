@@ -316,14 +316,14 @@ jobs:
           $fxcPath = if ($fxc.Source) { $fxc.Source } else { $fxc.FullName }
           Write-Host "Using FXC: $fxcPath"
 
-          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/A21ImGuiVS.h /Vn g_A21ImGuiVS src/first_debug/imgui_vs.hlsl
+          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiVS.h /Vn g_FirstDebugImGuiVS src/first_debug/imgui_vs.hlsl
           if ($LASTEXITCODE -ne 0) { throw "Vertex shader compilation failed." }
 
-          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/A21ImGuiPS.h /Vn g_A21ImGuiPS src/first_debug/imgui_ps.hlsl
+          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiPS.h /Vn g_FirstDebugImGuiPS src/first_debug/imgui_ps.hlsl
           if ($LASTEXITCODE -ne 0) { throw "Pixel shader compilation failed." }
 
-          if (-not (Test-Path dist/shaders/A21ImGuiVS.h) -or
-              -not (Test-Path dist/shaders/A21ImGuiPS.h)) {
+          if (-not (Test-Path dist/shaders/FirstDebugImGuiVS.h) -or
+              -not (Test-Path dist/shaders/FirstDebugImGuiPS.h)) {
             throw "Embedded shader headers were not generated."
           }
 
@@ -498,7 +498,7 @@ jobs:
           }
 
       - name: Guard public v0.9.4 release
-        if: github.ref == 'refs/heads/dev/first-debug'
+        if: github.ref == 'refs/heads/dev/a21-overlay-compat'
         shell: pwsh
         run: |
           Write-Host "Public v0.9.4 release is intentionally untouched by A21 development."
