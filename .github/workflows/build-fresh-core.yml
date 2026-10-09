@@ -16,6 +16,7 @@ on:
       - dev/a20j-clean-core
       - dev/first-debug
       - dev/a21-overlay-compat
+      - dev/a22-mouse-input
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -251,12 +252,12 @@ jobs:
 
           git diff --exit-code v0.9.4 -- $protected
           if ($LASTEXITCODE -ne 0) {
-            throw "A21 must not change validated A20J gameplay/config files."
+            throw "A22 must not change validated A20J gameplay/config files."
           }
 
           Write-Host "A20J gameplay/config invariant PASS."
 
-      - name: Audit A21 overlay compatibility architecture
+      - name: Audit A22 overlay compatibility architecture
         shell: pwsh
         run: |
           @'
@@ -273,12 +274,13 @@ jobs:
 
           for token in forbidden:
               if token in src:
-                  raise SystemExit(f"A21 fixed-window regression: {token}")
+                  raise SystemExit(f"A22 fixed-window regression: {token}")
 
           required = [
               "ImGuiCond_FirstUseEver",
               "ImGui::SetNextWindowSizeConstraints",
-              "io.WantCaptureMouse",
+              "A22 ImGui mouse-down received",
+              "msg == WM_INPUT",
               "io.WantCaptureKeyboard",
               "IsMouseInputMessage",
               "IsKeyboardInputMessage",
@@ -289,15 +291,20 @@ jobs:
 
           for token in required:
               if token not in src:
-                  raise SystemExit(f"A21 compatibility invariant missing: {token}")
+                  raise SystemExit(f"A22 compatibility invariant missing: {token}")
 
           if "IsInputMessage(msg)" in src:
-              raise SystemExit("A21 regression: blanket input swallowing returned.")
+              raise SystemExit("A22 regression: blanket input swallowing returned.")
 
-          print("A21 overlay compatibility audit PASS: floating/movable/resizable UI, selective ImGui capture, cursor lease.")
+          if "std::try_to_lock" in src:
+              raise SystemExit("A22 regression: input can be dropped on render-lock contention.")
+          if "IsMouseInputMessage(msg) &&" in src:
+              raise SystemExit("A22 regression: frame-stale mouse capture gate returned.")
+
+          print("A22 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
           '@ | python -
 
-      - name: Compile A21 ImGui shaders
+      - name: Compile A22 ImGui shaders
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
@@ -355,35 +362,35 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Audit A21 PE dependencies
+      - name: Audit A22 PE dependencies
         shell: pwsh
         run: |
-          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A21_IMPORTS.txt
-          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A21_DEPENDENTS.txt
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A22_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A22_DEPENDENTS.txt
 
-          $imports = Get-Content dist\A21_IMPORTS.txt -Raw
-          $deps = Get-Content dist\A21_DEPENDENTS.txt -Raw
+          $imports = Get-Content dist\A22_IMPORTS.txt -Raw
+          $deps = Get-Content dist\A22_DEPENDENTS.txt -Raw
 
           if ($imports -match "WriteProcessMemory") {
-            throw "A21 regression: WriteProcessMemory is imported."
+            throw "A22 regression: WriteProcessMemory is imported."
           }
 
           if ($imports -notmatch "ReadProcessMemory") {
-            throw "A21 audit mismatch: expected ReadProcessMemory import not found."
+            throw "A22 audit mismatch: expected ReadProcessMemory import not found."
           }
 
           if ($imports -notmatch "VirtualProtect") {
-            throw "A21 audit mismatch: expected VirtualProtect import not found."
+            throw "A22 audit mismatch: expected VirtualProtect import not found."
           }
 
           if ($deps -match "D3DCompiler_47\.dll") {
-            throw "A21 regression: runtime D3DCompiler_47 dependency still present."
+            throw "A22 regression: runtime D3DCompiler_47 dependency still present."
           }
 
           if ($deps -match "VCRUNTIME\d*\.dll" -or
               $deps -match "MSVCP\d*\.dll" -or
               $deps -match "ucrtbase\.dll") {
-            throw "A21 regression: dynamic MSVC/UCRT runtime dependency detected."
+            throw "A22 regression: dynamic MSVC/UCRT runtime dependency detected."
           }
 
           foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
@@ -398,21 +405,21 @@ jobs:
 
           $asi = Get-Item dist\QProtocol.asi
           $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
-          Write-Host ("A21 ASI size: {0} bytes" -f $asi.Length)
-          Write-Host ("A21 ASI SHA-256: {0}" -f $sha)
-          Write-Host "A21 dependency audit PASS."
+          Write-Host ("A22 ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A22 ASI SHA-256: {0}" -f $sha)
+          Write-Host "A22 dependency audit PASS."
           Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
 
-      - name: Upload A21 dependency audit
+      - name: Upload A22 dependency audit
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_A21_DependencyAudit
+          name: Q-Protocol_A22_DependencyAudit
           path: |
-            dist/A21_IMPORTS.txt
-            dist/A21_DEPENDENTS.txt
+            dist/A22_IMPORTS.txt
+            dist/A22_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare A21 test files
+      - name: Prepare A22 test files
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
@@ -426,7 +433,7 @@ jobs:
 
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
-              throw "Missing A21 package file: $file"
+              throw "Missing A22 package file: $file"
             }
 
             $item = Get-Item $file
@@ -434,7 +441,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build A21 TEST ZIP
+      - name: Build A22 TEST ZIP
         shell: pwsh
         run: |
           @'
@@ -444,7 +451,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A22_MouseInputReliability_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -460,33 +467,33 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A21 test artifact
+      - name: Upload A22 test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST
+          name: Q-Protocol_FreshCore_A22_MouseInputReliability_TEST
           path: |
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish A21 test pre-release
-        if: github.ref == 'refs/heads/dev/a21-overlay-compat'
+      - name: Publish A22 test pre-release
+        if: github.ref == 'refs/heads/dev/a22-mouse-input'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "a21-test"
-          $asset = "dist/Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST.zip"
-          $title = "Q Protocol A21 - Floating Overlay Compatibility TEST"
+          $tag = "a22-test"
+          $asset = "dist/Q-Protocol_FreshCore_A22_MouseInputReliability_TEST.zip"
+          $title = "Q Protocol A22 - Reliable Mouse Input TEST"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           $notes = @"
-          A21 is built from the A20J gameplay base plus the First Debug DX12 hardening.
+          A22 is built from the A20J gameplay base plus the First Debug DX12 hardening.
           Gameplay and QProtocol.ini are unchanged from v0.9.4.
-          Overlay UI is now a conventional floating/movable/resizable ImGui window with selective WantCaptureMouse/WantCaptureKeyboard input handling and cursor-clip restoration.
+          A22 preserves the A21 floating ImGui window, adds lossless synchronized Win32 mouse dispatch and modal mouse ownership, and prevents WM_INPUT raw gameplay actions while the menu is visible.
           Status: TEST candidate. F1 research is paused and no A20K-A20N gameplay experiment is included.
           "@
 
@@ -498,7 +505,7 @@ jobs:
           }
 
       - name: Guard public v0.9.4 release
-        if: github.ref == 'refs/heads/dev/a21-overlay-compat'
+        if: github.ref == 'refs/heads/dev/a22-mouse-input'
         shell: pwsh
         run: |
-          Write-Host "Public v0.9.4 release is intentionally untouched by A21 development."
+          Write-Host "Public v0.9.4 release is intentionally untouched by A22 development."
