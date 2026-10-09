@@ -14,6 +14,35 @@
 - Release ZIP contains `QProtocol.asi`, `QProtocol.ini` and `README.txt` directly at its root.
 - Detailed cleanup audit: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
 
+## A20N Live Input Transition Trace
+
+- Branch: `dev/a20n-live-input-transition-trace`
+- Base: A20K three-state ROE, deliberately excluding A20L and the A20M broad scanner.
+- Status: **built / runtime trace pending**.
+- GitHub Actions: **run #126 / 37958421056 — PASS**.
+- Test pre-release: `a20n-test`.
+- Target commit: `82269a245c99edccdd61a25a866bc8cfb0ba9a67`.
+- Asset: `Q-Protocol_FreshCore_A20N_LiveInputTransitionTrace_TEST.zip`.
+- ZIP SHA-256: `432aec1cc1f483af434406f748cdaf4452eb7e9285432e90f23fd241fe0fafdf`.
+- QProtocol.asi SHA-256: `4b9a0c9481a7bd06e729d025353a8684063caed71acb2a246e4303b4a6a61319`.
+- Live trace hook:
+  - function entry `EXE+0x016D0830`
+  - resume `EXE+0x016D0840`
+  - exact replaced preimage: `48 89 5C 24 20 57 48 83 EC 30 0F B6 FA 48 8B D9`
+  - `RCX = ZCLBlockPlayerInputAction*`
+  - `DL = requested state` (0 UNBLOCK, nonzero BLOCK)
+- Hook is read-only: it records the transition, replays the original 16-byte prologue, then resumes the original function.
+- Captured per transition:
+  - caller address / caller RVA when inside the EXE
+  - action object pointer
+  - requested BLOCK/UNBLOCK
+  - pre-transition bytes `+0x60/+0x61/+0x62`
+  - first qword of Input/Target/Runtime refs
+- Trace uses a fixed event buffer and drains logs from the worker thread; logging is not performed in the hooked gameplay path.
+- PE audit PASS; `WriteProcessMemory` remains absent.
+- Public v0.9.4 / A20J remains untouched.
+- Next test: normal mission with punching available, then TacSim, with full F1 cycle in both. Compare `A20N INPUT TRANSITION` caller RVAs.
+
 ## A20M Runtime result
 
 - A20M produced 11 close-combat probes across two distinct PLAYER READY cycles.
