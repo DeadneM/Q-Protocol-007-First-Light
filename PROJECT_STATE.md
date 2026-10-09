@@ -9,6 +9,11 @@
 - A22 retains the A21 floating/drag-resize window, conditional keyboard capture, cursor clipping lifecycle and all First Debug DX12 protections.
 - The existing A20J gameplay and QProtocol.ini are unchanged. CI enforces byte-level invariants.
 - Read `docs/A22_MOUSE_INPUT.md` for source audit, changes and acceptance criteria.
+- Build: GitHub Actions #133 / run `37984376129` — **PASS** (mouse audit, A20J invariants, compiler, PE imports, flat ZIP, pre-release).
+- Test pre-release: `a22-test`, asset `Q-Protocol_FreshCore_A22_MouseInputReliability_TEST.zip`.
+- ZIP SHA-256: `41ac99b5186c507f1566e730d57489edf7ce60195705d415b42071e38e8966c7` (450186 bytes).
+- ASI SHA-256: `8d0f1913b0c6ba84675e9d7ac823a5b052d534e5061142f0fef7c7c56322dd8d` (868864 bytes).
+- INI SHA-256 (unchanged): `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
 - Status: **TEST; mouse/game compatibility not yet validated in-game**. Do not promote to stable on CI success alone.
 - Prior public v0.9.4 and A21 test remain untouched. F1 close-combat research remains paused.
 
