@@ -1,5 +1,23 @@
 # Technical status
 
+## A21 — active overlay compatibility candidate
+
+- F1 / close-combat research is paused.
+- Active branch: `dev/a21-overlay-compat`.
+- Gameplay/config base remains validated `v0.9.4 / A20J`.
+- First Debug DX12 hardening is retained.
+- Overlay is now a normal floating/movable/resizable ImGui window instead of a
+  forced fixed-center panel.
+- Input swallowing follows ImGui `WantCaptureMouse` /
+  `WantCaptureKeyboard` / `WantTextInput` instead of consuming every input
+  message while visible.
+- Game cursor clipping is restored when the overlay closes/fails/shuts down.
+- Run #131 / `37979873788`: **PASS**.
+- Pre-release: `a21-test`.
+- Status: **TEST / runtime validation pending**, not yet a public fix.
+- Public `v0.9.4` remains untouched.
+- Details: `A21_OVERLAY_COMPAT.md`.
+
 ## First Debug — open public overlay crash investigation (2026-10-09)
 
 - Report: users encounter a game crash on **Insert** (first display of the DX12 overlay); initial log is from A20I v0.9.3.
