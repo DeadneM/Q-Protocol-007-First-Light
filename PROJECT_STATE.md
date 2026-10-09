@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## First Debug — public Insert overlay crash (OPEN, 2026-10-09)
+
+- Multiple users reportedly encounter a game crash when pressing **Insert** to show the Q Protocol overlay; first supplied log identifies **v0.9.3 / A20I**.
+- The log reaches EXE validation, gameplay and LTK hook installation, DX12 ImGuiReady and PLAYER READY; it does **not** capture an exception or prove the cause.
+- Source audit identifies plausible DX12 renderer lifecycle weaknesses: first-visible-frame shader/pipeline creation not checked before rendering; swapchain selection and ResizeBuffers scope; fence/resource-release concurrency.
+- ImGui v1.91.5 and MinHook v1.3.4 are compiled into the ASI. There is no established missing-dependency diagnosis; do **not** ask end users to install arbitrary DLLs or perform complex compatibility tests.
+- **Owner-side responsibility:** investigate, fix and validate internally; fail-open so gameplay keeps running if the overlay fails, and preserve validated A20J gameplay/INI behavior.
+- Detailed permanent issue record and acceptance criteria: **[docs/FIRST_DEBUG.md](docs/FIRST_DEBUG.md)**.
+- **First Debug is an open compatibility investigation, not a released/validated fix.**
+
 ## Q Protocol v0.9.4 — Fresh Core A20J Clean Core
 
 - Build: `Q-Protocol_v0.9.4.zip`
