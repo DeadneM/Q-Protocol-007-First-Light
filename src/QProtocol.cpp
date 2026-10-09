@@ -37,6 +37,8 @@ constexpr std::uintptr_t kNativeSpawnRva          = 0x016B4E80;
 constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00115820;
 constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A7330;
 constexpr std::uintptr_t kGameplayHookRva         = 0x0194BC01;
+constexpr std::uintptr_t kInputBlockTraceHookRva   = 0x016D0830;
+constexpr std::uintptr_t kInputBlockTraceResumeRva = 0x016D0840;
 
 constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
 constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
@@ -58,6 +60,14 @@ constexpr BYTE kGameplayHookPreimage[13] = {
     0x41, 0x5F,
     0x41, 0x5E,
     0x41, 0x5D
+};
+
+constexpr BYTE kInputBlockTracePreimage[16] = {
+    0x48, 0x89, 0x5C, 0x24, 0x20,
+    0x57,
+    0x48, 0x83, 0xEC, 0x30,
+    0x0F, 0xB6, 0xFA,
+    0x48, 0x8B, 0xD9
 };
 
 struct PlayerContext {
@@ -122,12 +132,18 @@ using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
 
 extern "C" void QpGameplayHook();
 extern "C" void QpLtkObserveHook();
+extern "C" void QpInputBlockTraceHook();
+extern "C" void QpOnInputBlockTransition(
+    void* object,
+    unsigned int desired,
+    std::uintptr_t caller);
 
 extern "C" volatile LONG g_qpRoeNativeState = 0;
 extern "C" volatile LONG g_qpRoeEffectiveState = 0;
 extern "C" volatile LONG g_qpRoeOverrideState = 0;
 extern "C" std::uintptr_t g_qpLtkObserveTrueTarget = 0;
 extern "C" std::uintptr_t g_qpLtkObserveFalseTarget = 0;
+extern "C" std::uintptr_t g_qpInputBlockTraceResume = 0;
 
 HMODULE g_module = nullptr;
 HANDLE g_log = INVALID_HANDLE_VALUE;
@@ -136,6 +152,28 @@ std::atomic<bool> g_running{true};
 
 NativeSpawnFn g_nativeSpawn = nullptr;
 bool g_ltkObserveHookInstalled = false;
+bool g_inputBlockTraceHookInstalled = false;
+
+struct InputBlockTraceEvent {
+    volatile LONG ready = 0;
+    std::uintptr_t object = 0;
+    std::uintptr_t caller = 0;
+    BYTE desired = 0;
+    BYTE readable = 0;
+    BYTE state60 = 0xFF;
+    BYTE state61 = 0xFF;
+    BYTE state62 = 0xFF;
+    BYTE reserved[3]{};
+    std::uintptr_t inputRef0 = 0;
+    std::uintptr_t targetRef0 = 0;
+    std::uintptr_t runtimeRef0 = 0;
+};
+
+constexpr LONG kInputTraceCapacity = 4096;
+InputBlockTraceEvent g_inputTraceEvents[kInputTraceCapacity]{};
+volatile LONG g_inputTraceReserved = 0;
+volatile LONG g_inputTraceDropped = 0;
+LONG g_inputTraceDrainIndex = 0;
 
 std::atomic<std::uintptr_t> g_pendingSpawner{0};
 std::atomic<bool> g_spawnTriggered{false};
@@ -468,6 +506,206 @@ bool RemoveLicenseToKillObserveHook() {
     }
 
     return restored;
+}
+
+
+bool InstallInputBlockTraceHook() {
+    const std::uintptr_t site =
+        g_exeBase + kInputBlockTraceHookRva;
+
+    BYTE current[sizeof(kInputBlockTracePreimage)]{};
+    SIZE_T bytes = 0;
+
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            reinterpret_cast<LPCVOID>(site),
+            current,
+            sizeof(current),
+            &bytes) ||
+        bytes != sizeof(current) ||
+        memcmp(
+            current,
+            kInputBlockTracePreimage,
+            sizeof(current)) != 0) {
+
+        Log("[ERROR] A20N input-transition hook preimage mismatch.");
+        return false;
+    }
+
+    g_qpInputBlockTraceResume =
+        g_exeBase + kInputBlockTraceResumeRva;
+
+    InterlockedExchange(
+        &g_inputTraceReserved,
+        0);
+    InterlockedExchange(
+        &g_inputTraceDropped,
+        0);
+    g_inputTraceDrainIndex = 0;
+
+    for (LONG i = 0;
+         i < kInputTraceCapacity;
+         ++i) {
+
+        InterlockedExchange(
+            &g_inputTraceEvents[i].ready,
+            0);
+    }
+
+    BYTE patch[16] = {
+        0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0x90, 0x90
+    };
+
+    const std::uint64_t target =
+        reinterpret_cast<std::uint64_t>(
+            &QpInputBlockTraceHook);
+
+    memcpy(
+        &patch[6],
+        &target,
+        sizeof(target));
+
+    if (!WriteCodeBytes(
+            site,
+            patch,
+            sizeof(patch))) {
+
+        Log("[ERROR] A20N input-transition hook install write failed.");
+        return false;
+    }
+
+    g_inputBlockTraceHookInstalled = true;
+
+    Log(
+        "A20N live input-transition hook installed at EXE+0x%llX; resume=EXE+0x%llX.",
+        static_cast<unsigned long long>(
+            kInputBlockTraceHookRva),
+        static_cast<unsigned long long>(
+            kInputBlockTraceResumeRva));
+
+    return true;
+}
+
+bool RemoveInputBlockTraceHook() {
+    if (!g_inputBlockTraceHookInstalled) {
+        return true;
+    }
+
+    const std::uintptr_t site =
+        g_exeBase + kInputBlockTraceHookRva;
+
+    const bool restored =
+        WriteCodeBytes(
+            site,
+            kInputBlockTracePreimage,
+            sizeof(kInputBlockTracePreimage));
+
+    if (restored) {
+        g_inputBlockTraceHookInstalled = false;
+        g_qpInputBlockTraceResume = 0;
+    }
+
+    return restored;
+}
+
+void DrainInputBlockTraceEvents() {
+    const LONG reserved =
+        InterlockedCompareExchange(
+            &g_inputTraceReserved,
+            0,
+            0);
+
+    const LONG available =
+        std::min<LONG>(
+            reserved,
+            kInputTraceCapacity);
+
+    while (g_inputTraceDrainIndex <
+           available) {
+
+        auto& event =
+            g_inputTraceEvents[
+                g_inputTraceDrainIndex];
+
+        if (InterlockedCompareExchange(
+                &event.ready,
+                0,
+                0) == 0) {
+
+            break;
+        }
+
+        const bool callerInExe =
+            event.caller >= g_exeBase &&
+            event.caller <
+                g_exeBase +
+                kExpectedSizeOfImage;
+
+        if (callerInExe) {
+            Log(
+                "A20N INPUT TRANSITION #%ld caller=EXE+0x%llX obj=0x%p desired=%s readable=%s pre60=%u pre61=%u pre62=%u input0=0x%p target0=0x%p runtime0=0x%p",
+                g_inputTraceDrainIndex + 1,
+                static_cast<unsigned long long>(
+                    event.caller - g_exeBase),
+                reinterpret_cast<void*>(
+                    event.object),
+                event.desired ? "BLOCK" : "UNBLOCK",
+                event.readable ? "YES" : "NO",
+                static_cast<unsigned int>(
+                    event.state60),
+                static_cast<unsigned int>(
+                    event.state61),
+                static_cast<unsigned int>(
+                    event.state62),
+                reinterpret_cast<void*>(
+                    event.inputRef0),
+                reinterpret_cast<void*>(
+                    event.targetRef0),
+                reinterpret_cast<void*>(
+                    event.runtimeRef0));
+        } else {
+            Log(
+                "A20N INPUT TRANSITION #%ld caller=0x%p obj=0x%p desired=%s readable=%s pre60=%u pre61=%u pre62=%u input0=0x%p target0=0x%p runtime0=0x%p",
+                g_inputTraceDrainIndex + 1,
+                reinterpret_cast<void*>(
+                    event.caller),
+                reinterpret_cast<void*>(
+                    event.object),
+                event.desired ? "BLOCK" : "UNBLOCK",
+                event.readable ? "YES" : "NO",
+                static_cast<unsigned int>(
+                    event.state60),
+                static_cast<unsigned int>(
+                    event.state61),
+                static_cast<unsigned int>(
+                    event.state62),
+                reinterpret_cast<void*>(
+                    event.inputRef0),
+                reinterpret_cast<void*>(
+                    event.targetRef0),
+                reinterpret_cast<void*>(
+                    event.runtimeRef0));
+        }
+
+        ++g_inputTraceDrainIndex;
+    }
+
+    static LONG lastDropped = 0;
+
+    const LONG dropped =
+        InterlockedCompareExchange(
+            &g_inputTraceDropped,
+            0,
+            0);
+
+    if (dropped != lastDropped) {
+        Log(
+            "[WARN] A20N input-transition trace capacity reached; dropped=%ld.",
+            dropped);
+        lastDropped = dropped;
+    }
 }
 
 enum class RoeState : LONG {
@@ -1557,8 +1795,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol Fresh Core A20K Three-State ROE TEST");
-    Log("Scope: A20J base + F1 native OFF / License To Punch / License To Kill cycle.");
+    Log("Q Protocol Fresh Core A20N Live Input Transition Trace TEST");
+    Log("Scope: A20K three-state ROE + live read-only ZCLBlockPlayerInputAction transition tracing.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1577,6 +1815,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
         Log("[ERROR] F1 native-state toggle disabled: observe hook unavailable.");
     }
 
+    if (!InstallInputBlockTraceHook()) {
+        Log("[ERROR] A20N input-transition trace disabled; gameplay core remains active.");
+    }
+
     if (OverlayInitialize(iniPath)) {
         Log("Overlay bootstrap started in fail-open mode. Toggle key loaded from [Overlay] ToggleKey.");
         Log("Overlay status: %s", OverlayStatus());
@@ -1585,6 +1827,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     Log("F1 = Rules Of Engagement cycle: OFF -> LICENSE TO PUNCH -> LICENSE TO KILL.");
+    Log("A20N = live read-only trace of actual BlockPlayerInputAction transitions; no close-combat state is forced.");
     Log("F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.");
     Log("F3 = ManualLoadout through shared GiveWeapon.");
     Log("F4 = Q-Pistol swap through shared GiveWeapon.");
@@ -1848,8 +2091,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
             ResetWeaponRuntime("player unavailable");
         }
 
+        DrainInputBlockTraceEvents();
+
         Sleep(16);
     }
+
+    DrainInputBlockTraceEvents();
 
     if (g_activeWeapon.active) {
         ResetActiveWeaponState();
@@ -1858,6 +2105,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
     InterlockedExchange(
         &g_qpRoeOverrideState,
         0);
+
+    if (!RemoveInputBlockTraceHook()) {
+        Log("[ERROR] A20N input-transition hook restore failed during DLL shutdown.");
+    }
 
     if (!RemoveLicenseToKillObserveHook()) {
         Log("[ERROR] LTK observe hook restore failed during DLL shutdown.");
@@ -1922,6 +2173,79 @@ extern "C" void QpGameplayTick() {
     __except (EXCEPTION_EXECUTE_HANDLER) {
         qp::g_spawnException.store(true, std::memory_order_release);
     }
+}
+
+
+extern "C" void QpOnInputBlockTransition(
+    void* object,
+    unsigned int desired,
+    std::uintptr_t caller) {
+
+    const LONG index =
+        InterlockedIncrement(
+            &qp::g_inputTraceReserved) - 1;
+
+    if (index < 0 ||
+        index >= qp::kInputTraceCapacity) {
+
+        InterlockedIncrement(
+            &qp::g_inputTraceDropped);
+        return;
+    }
+
+    auto& event =
+        qp::g_inputTraceEvents[index];
+
+    event.object =
+        reinterpret_cast<std::uintptr_t>(
+            object);
+    event.caller = caller;
+    event.desired =
+        desired ? 1 : 0;
+    event.readable = 0;
+    event.state60 = 0xFF;
+    event.state61 = 0xFF;
+    event.state62 = 0xFF;
+    event.inputRef0 = 0;
+    event.targetRef0 = 0;
+    event.runtimeRef0 = 0;
+
+    __try {
+        const auto base =
+            reinterpret_cast<std::uintptr_t>(
+                object);
+
+        event.state60 =
+            *reinterpret_cast<const BYTE*>(
+                base + 0x60);
+        event.state61 =
+            *reinterpret_cast<const BYTE*>(
+                base + 0x61);
+        event.state62 =
+            *reinterpret_cast<const BYTE*>(
+                base + 0x62);
+
+        event.inputRef0 =
+            *reinterpret_cast<const std::uintptr_t*>(
+                base + 0x20);
+        event.targetRef0 =
+            *reinterpret_cast<const std::uintptr_t*>(
+                base + 0x38);
+        event.runtimeRef0 =
+            *reinterpret_cast<const std::uintptr_t*>(
+                base + 0x68);
+
+        event.readable = 1;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        event.readable = 0;
+    }
+
+    MemoryBarrier();
+
+    InterlockedExchange(
+        &event.ready,
+        1);
 }
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
