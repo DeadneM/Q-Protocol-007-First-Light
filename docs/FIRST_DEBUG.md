@@ -208,3 +208,33 @@ and therefore cannot prove the Insert crash is eliminated.
 
 Current status is **TEST candidate / runtime validation pending**. The public
 `v0.9.4` release remains untouched until sufficient validation exists.
+
+
+## Final First Debug TEST build record
+
+The documented candidate was rebuilt after the package README was finalized.
+
+- GitHub Actions: run #128 / `37975713073` — **PASS**
+- build commit: `a796879b436d9c35e9fa5fdc8441716bfa750fd4`
+- pre-release tag: `first-debug-test`
+- asset: `Q-Protocol_First-Debug_TEST.zip`
+- QProtocol.asi: 867328 bytes
+- QProtocol.asi SHA-256:
+  `16f37caee00128f4d464e6f0a483586018a97b1e27d769e42244f8e9d9725729`
+- QProtocol.ini SHA-256:
+  `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`
+- ZIP: 449150 bytes
+- ZIP SHA-256:
+  `678e5d75c5fc1ad9210774d49888abe91d441c4c51dc8d3e4c771514a36faa91`
+
+Final comparison against tag `v0.9.4` confirms the protected gameplay/config
+files are absent from the branch diff. The branch changes only renderer/build/
+documentation surfaces plus the dedicated `src/first_debug/` backend.
+
+The public `v0.9.4` release remains at
+`9439de5f72d1f106362c0fa6033b952b0bb8a07e` with the original
+`Q-Protocol_v0.9.4.zip` SHA-256
+`944f84d4966bb930de31edd976183533f1adb44aeebc10d34401190636132426`.
+
+This record does not change the incident verdict: **runtime validation pending;
+not yet declared fixed**.
