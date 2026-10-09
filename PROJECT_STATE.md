@@ -31,11 +31,19 @@
   `USER32.dll`, `KERNEL32.dll`, `d3d12.dll`, `dxgi.dll`,
   `SHELL32.dll`, `IMM32.dll`.
 - No dynamic VC++ runtime, D3DCompiler, ImGui or MinHook install is required.
-- Initial CI run #127 / `37975179444`: **PASS**.
-- Initial ASI SHA-256:
-  `12cb3fd60a3f372145c256772969509f7da182172aa3992342cf7033e747ab85`.
-- Initial TEST ZIP SHA-256:
-  `9da5ebb6e82d34c745c3e0743e94d59f3d5eb63a53612f3597a1779951e08b46`.
+- Initial implementation CI run #127 / `37975179444`: **PASS**.
+- Final documented TEST build CI run #128 / `37975713073`: **PASS**.
+- Final build commit/tag target: `a796879b436d9c35e9fa5fdc8441716bfa750fd4`.
+- Final QProtocol.asi size: `867328` bytes.
+- Final QProtocol.asi SHA-256:
+  `16f37caee00128f4d464e6f0a483586018a97b1e27d769e42244f8e9d9725729`.
+- Final QProtocol.ini SHA-256:
+  `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`
+  (same as stable v0.9.4 config).
+- Final TEST ZIP size: `449150` bytes.
+- Final TEST ZIP SHA-256:
+  `678e5d75c5fc1ad9210774d49888abe91d441c4c51dc8d3e4c771514a36faa91`.
+- Test pre-release: `first-debug-test`.
 - Packaging stays flat: `QProtocol.asi`, `QProtocol.ini`, `README.txt`.
 - Public v0.9.4 remains untouched.
 - Permanent incident notebook: `docs/FIRST_DEBUG.md`.
