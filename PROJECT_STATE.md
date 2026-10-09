@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## A22 — Reliable Mouse Input TEST (2026-10-09)
+
+- Active source branch: `dev/a22-mouse-input`, directly based on A21.
+- A21 was reported as visually better, but mouse clicks were unreliable.
+- Confirmed code risks: `std::try_to_lock` dropped Win32 input events during render lock contention; `io.WantCaptureMouse` could be stale and route clicks back into gameplay.
+- A22 uses synchronized event delivery, captures mouse events while ImGui is visible, and prevents gameplay `WM_INPUT` processing during menu use while calling `DefWindowProcW` for cleanup. Normal routing is restored on close.
+- Preserves A21 floating window/drag-resize and First Debug DX12 renderer hardening.
+- Gameplay, native weapon graphs, F1-F12, AUTO, ASI core and QProtocol.ini from validated v0.9.4 remain protected by CI and unchanged.
+- CI #133 / run `37984376129`: **PASS**. ZIP: `Q-Protocol_FreshCore_A22_MouseInputReliability_TEST.zip` (450186 bytes), SHA-256 `41ac99b5186c507f1566e730d57489edf7ce60195705d415b42071e38e8966c7`.
+- Test pre-release: [a22-test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a22-test).
+- **TEST only:** improved clicks must be validated in game; First Debug public Insert crash remains open until confirmed fixed. Stable v0.9.4 and earlier A21 test not modified.
+- Detailed notebook: [docs/A22_MOUSE_INPUT.md](docs/A22_MOUSE_INPUT.md).
+- F1 / close-combat experiments A20K-A20N remain paused.
+
 ## A21 — Floating Overlay Compatibility TEST
 
 - F1 / close-combat research is **paused**. Do not continue A20K-A20N until explicitly resumed.
