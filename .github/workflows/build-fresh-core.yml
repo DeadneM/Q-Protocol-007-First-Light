@@ -15,6 +15,7 @@ on:
       - dev/a20i-native-ltk-state-toggle
       - dev/a20j-clean-core
       - dev/first-debug
+      - dev/a21-overlay-compat
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -250,12 +251,53 @@ jobs:
 
           git diff --exit-code v0.9.4 -- $protected
           if ($LASTEXITCODE -ne 0) {
-            throw "First Debug must not change validated A20J gameplay/config files."
+            throw "A21 must not change validated A20J gameplay/config files."
           }
 
           Write-Host "A20J gameplay/config invariant PASS."
 
-      - name: Compile First Debug ImGui shaders
+      - name: Audit A21 overlay compatibility architecture
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          src = Path("src/OverlayA19.cpp").read_text(encoding="utf-8")
+
+          forbidden = [
+              "ImGuiWindowFlags_NoTitleBar",
+              "ImGuiWindowFlags_NoResize",
+              "ImGuiWindowFlags_NoMove",
+              "ImGuiCond_Always"
+          ]
+
+          for token in forbidden:
+              if token in src:
+                  raise SystemExit(f"A21 fixed-window regression: {token}")
+
+          required = [
+              "ImGuiCond_FirstUseEver",
+              "ImGui::SetNextWindowSizeConstraints",
+              "io.WantCaptureMouse",
+              "io.WantCaptureKeyboard",
+              "IsMouseInputMessage",
+              "IsKeyboardInputMessage",
+              "AcquireOverlayCursorClip",
+              "ReleaseOverlayCursorClip",
+              "A21 compatibility renderer"
+          ]
+
+          for token in required:
+              if token not in src:
+                  raise SystemExit(f"A21 compatibility invariant missing: {token}")
+
+          if "IsInputMessage(msg)" in src:
+              raise SystemExit("A21 regression: blanket input swallowing returned.")
+
+          print("A21 overlay compatibility audit PASS: floating/movable/resizable UI, selective ImGui capture, cursor lease.")
+          '@ | python -
+
+      - name: Compile A21 ImGui shaders
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
@@ -274,14 +316,14 @@ jobs:
           $fxcPath = if ($fxc.Source) { $fxc.Source } else { $fxc.FullName }
           Write-Host "Using FXC: $fxcPath"
 
-          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiVS.h /Vn g_FirstDebugImGuiVS src/first_debug/imgui_vs.hlsl
+          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/A21ImGuiVS.h /Vn g_A21ImGuiVS src/first_debug/imgui_vs.hlsl
           if ($LASTEXITCODE -ne 0) { throw "Vertex shader compilation failed." }
 
-          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiPS.h /Vn g_FirstDebugImGuiPS src/first_debug/imgui_ps.hlsl
+          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/A21ImGuiPS.h /Vn g_A21ImGuiPS src/first_debug/imgui_ps.hlsl
           if ($LASTEXITCODE -ne 0) { throw "Pixel shader compilation failed." }
 
-          if (-not (Test-Path dist/shaders/FirstDebugImGuiVS.h) -or
-              -not (Test-Path dist/shaders/FirstDebugImGuiPS.h)) {
+          if (-not (Test-Path dist/shaders/A21ImGuiVS.h) -or
+              -not (Test-Path dist/shaders/A21ImGuiPS.h)) {
             throw "Embedded shader headers were not generated."
           }
 
@@ -313,35 +355,35 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Audit First Debug PE dependencies
+      - name: Audit A21 PE dependencies
         shell: pwsh
         run: |
-          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\FIRST_DEBUG_IMPORTS.txt
-          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\FIRST_DEBUG_DEPENDENTS.txt
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A21_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A21_DEPENDENTS.txt
 
-          $imports = Get-Content dist\FIRST_DEBUG_IMPORTS.txt -Raw
-          $deps = Get-Content dist\FIRST_DEBUG_DEPENDENTS.txt -Raw
+          $imports = Get-Content dist\A21_IMPORTS.txt -Raw
+          $deps = Get-Content dist\A21_DEPENDENTS.txt -Raw
 
           if ($imports -match "WriteProcessMemory") {
-            throw "First Debug regression: WriteProcessMemory is imported."
+            throw "A21 regression: WriteProcessMemory is imported."
           }
 
           if ($imports -notmatch "ReadProcessMemory") {
-            throw "First Debug audit mismatch: expected ReadProcessMemory import not found."
+            throw "A21 audit mismatch: expected ReadProcessMemory import not found."
           }
 
           if ($imports -notmatch "VirtualProtect") {
-            throw "First Debug audit mismatch: expected VirtualProtect import not found."
+            throw "A21 audit mismatch: expected VirtualProtect import not found."
           }
 
           if ($deps -match "D3DCompiler_47\.dll") {
-            throw "First Debug regression: runtime D3DCompiler_47 dependency still present."
+            throw "A21 regression: runtime D3DCompiler_47 dependency still present."
           }
 
           if ($deps -match "VCRUNTIME\d*\.dll" -or
               $deps -match "MSVCP\d*\.dll" -or
               $deps -match "ucrtbase\.dll") {
-            throw "First Debug regression: dynamic MSVC/UCRT runtime dependency detected."
+            throw "A21 regression: dynamic MSVC/UCRT runtime dependency detected."
           }
 
           foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
@@ -356,21 +398,21 @@ jobs:
 
           $asi = Get-Item dist\QProtocol.asi
           $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
-          Write-Host ("First Debug ASI size: {0} bytes" -f $asi.Length)
-          Write-Host ("First Debug ASI SHA-256: {0}" -f $sha)
-          Write-Host "First Debug dependency audit PASS."
+          Write-Host ("A21 ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A21 ASI SHA-256: {0}" -f $sha)
+          Write-Host "A21 dependency audit PASS."
           Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
 
-      - name: Upload First Debug dependency audit
+      - name: Upload A21 dependency audit
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FirstDebug_DependencyAudit
+          name: Q-Protocol_A21_DependencyAudit
           path: |
-            dist/FIRST_DEBUG_IMPORTS.txt
-            dist/FIRST_DEBUG_DEPENDENTS.txt
+            dist/A21_IMPORTS.txt
+            dist/A21_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare First Debug test files
+      - name: Prepare A21 test files
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
@@ -384,7 +426,7 @@ jobs:
 
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
-              throw "Missing First Debug package file: $file"
+              throw "Missing A21 package file: $file"
             }
 
             $item = Get-Item $file
@@ -392,7 +434,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build First Debug TEST ZIP
+      - name: Build A21 TEST ZIP
         shell: pwsh
         run: |
           @'
@@ -402,7 +444,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_First-Debug_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -418,34 +460,34 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload First Debug test artifact
+      - name: Upload A21 test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FirstDebug_TEST
+          name: Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST
           path: |
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish First Debug test pre-release
-        if: github.ref == 'refs/heads/dev/first-debug'
+      - name: Publish A21 test pre-release
+        if: github.ref == 'refs/heads/dev/a21-overlay-compat'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "first-debug-test"
-          $asset = "dist/Q-Protocol_First-Debug_TEST.zip"
-          $title = "Q Protocol First Debug - Overlay Compatibility TEST"
+          $tag = "a21-test"
+          $asset = "dist/Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST.zip"
+          $title = "Q Protocol A21 - Floating Overlay Compatibility TEST"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           $notes = @"
-          First Debug compatibility candidate built strictly from v0.9.4 / A20J.
-          Gameplay and QProtocol.ini are unchanged.
-          This build hardens the DX12/ImGui first-open, swapchain, resize, fence and failure paths.
-          Status: TEST candidate, not yet declared fixed.
+          A21 is built from the A20J gameplay base plus the First Debug DX12 hardening.
+          Gameplay and QProtocol.ini are unchanged from v0.9.4.
+          Overlay UI is now a conventional floating/movable/resizable ImGui window with selective WantCaptureMouse/WantCaptureKeyboard input handling and cursor-clip restoration.
+          Status: TEST candidate. F1 research is paused and no A20K-A20N gameplay experiment is included.
           "@
 
           if ($exists) {
@@ -459,4 +501,4 @@ jobs:
         if: github.ref == 'refs/heads/dev/first-debug'
         shell: pwsh
         run: |
-          Write-Host "Public v0.9.4 release is intentionally untouched by First Debug."
+          Write-Host "Public v0.9.4 release is intentionally untouched by A21 development."
