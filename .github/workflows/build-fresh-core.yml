@@ -324,7 +324,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A20M_ThreeStateROE_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A20M_CloseCombatInputProbe_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -373,7 +373,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "v0.9.4"
-          $asset = "dist/Q-Protocol_FreshCore_A20M_ThreeStateROE_TEST.zip"
+          $asset = "dist/Q-Protocol_FreshCore_A20M_CloseCombatInputProbe_TEST.zip"
           $title = "Q Protocol v0.9.4 - Fresh Core A20M Clean Core"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
