@@ -112,3 +112,16 @@ A21 CI run #131 passed. Runtime validation is still required before declaring
 the public Insert crash resolved.
 
 See `docs/A21_OVERLAY_COMPAT.md`.
+
+
+## A22 follow-up: mouse-click reliability (2026-10-09)
+
+A21 substantially improves window presentation, but the maintainer reports that mouse clicks are still unreliable. This does **not** prove First Debug's original Insert crash has been fixed.
+
+The A21 source revealed two mouse-path problems: `OverlayWndProc` used `std::try_to_lock` (dropping messages on renderer-lock contention), and used frame-stale `WantCaptureMouse` for game/ImGui click arbitration. Gameplay raw input via `WM_INPUT` also remained able to bypass those normal mouse messages.
+
+A22 (`dev/a22-mouse-input`) corrects event delivery, gives the visible menu modal ownership of Win32 mouse input, and routes `WM_INPUT` through `DefWindowProcW` for Windows cleanup rather than to the gameplay WndProc while open. A20J gameplay, the stable INI and First Debug graphics hardening remain protected.
+
+CI #133 / `37984376129` passed. A22 ZIP SHA-256 `41ac99b5186c507f1566e730d57489edf7ce60195705d415b42071e38e8966c7`. Candidate release: `a22-test`.
+
+**Incident status remains OPEN** pending runtime tests of Insert, mouse clicking, dragging, toggling, Alt-Tab, and mixed third-party overlays. Do not label fixed based only on CI. Full details: `docs/A22_MOUSE_INPUT.md`.
