@@ -14,6 +14,23 @@
 - Release ZIP contains `QProtocol.asi`, `QProtocol.ini` and `README.txt` directly at its root.
 - Detailed cleanup audit: [`docs/A20J_CLEAN_CORE_AUDIT.md`](docs/A20J_CLEAN_CORE_AUDIT.md).
 
+## A20M Runtime result
+
+- A20M produced 11 close-combat probes across two distinct PLAYER READY cycles.
+- The player identity/loadout changed between the two cycles, and native ROE changed from 3 to 1.
+- Despite that transition, every scanned close-combat candidate remained byte-for-byte stable across probes:
+  - both ZGameplayInputOverrideManager candidates
+  - all ZInputConfigHumanoid snapshots
+  - all 32 ZCLBlockPlayerInputAction state snapshots
+  - all BlockAction Input/Target/Runtime refs
+  - both Block/Unblock close-combat marker addresses
+- All 32 BlockPlayerInputAction candidates stayed at state60=0, state61=0, state62=1 and Runtime ref = 0.
+- The Block and Unblock close-combat marker objects co-existed at fixed addresses in every probe.
+- Conclusion: A20M's vtable scanner is finding persistent definitions/prototypes, not the authoritative live blocker state.
+- Next direction: stop broad memory scanning and trace the actual runtime transition calls.
+- Static audit identified ZCLBlockPlayerInputAction state-transition function at EXE+0x016D0830. It receives the action object in RCX and requested block state in DL.
+- A20N will hook that function read-only and journal live block/unblock calls, caller address and state bytes. No active input override yet.
+
 ## A20M Close Combat Input Probe
 
 - Branch: `dev/a20m-close-combat-input-override`
