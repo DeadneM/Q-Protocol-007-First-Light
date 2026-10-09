@@ -122,6 +122,7 @@ bool g_cursorClipWasRestricted = false;
 std::atomic<bool> g_sessionRendererDisabled{false};
 std::atomic<bool> g_firstOpenRequested{false};
 std::atomic<bool> g_firstOpenSubmitted{false};
+std::atomic<unsigned int> g_a22MouseClickCount{0};
 std::atomic<LONG> g_lastOverlayHr{S_OK};
 std::atomic<DWORD> g_lastOverlaySeh{0};
 
@@ -2750,6 +2751,9 @@ bool IsMouseInputMessage(
 
     switch (msg) {
     case WM_MOUSEMOVE:
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSEMOVE:
+    case WM_NCMOUSELEAVE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
     case WM_LBUTTONDBLCLK:
@@ -3481,41 +3485,69 @@ LRESULT CALLBACK OverlayWndProc(
         g_captureOverlayToggleKey.load(
             std::memory_order_acquire);
 
+    // A22: a visible menu owns the game's raw mouse/keyboard input.
+    // WM_INPUT must go to DefWindowProc for required raw-input cleanup,
+    // but not to the game's original procedure: otherwise raw mouse
+    // buttons can continue activating gameplay under the menu.
+    if (visible &&
+        msg == WM_INPUT) {
+
+        return DefWindowProcW(
+            hwnd, msg, wParam, lParam);
+    }
+
     if (visible ||
         capturingKey) {
 
-        std::unique_lock<std::recursive_mutex> lock(
-            g_renderMutex,
-            std::try_to_lock);
+        // A21 used try_to_lock and silently lost clicks whenever DX12
+        // held g_renderMutex. Never skip a Win32 mouse-down/up event.
+        // The mutex is recursive for a WndProc reached within Present.
+        std::lock_guard<std::recursive_mutex> lock(
+            g_renderMutex);
 
-        if (lock.owns_lock() &&
-            g_imguiWin32Initialized) {
-
-            ImGui_ImplWin32_WndProcHandler(
-                hwnd,
-                msg,
-                wParam,
-                lParam);
+        if (g_imguiWin32Initialized) {
+            const LRESULT handled =
+                ImGui_ImplWin32_WndProcHandler(
+                    hwnd,
+                    msg,
+                    wParam,
+                    lParam);
 
             if (visible) {
                 ImGuiIO& io =
                     ImGui::GetIO();
 
+                // A22: mouse capture is modal while the menu is open.
+                // WantCaptureMouse is updated per ImGui frame and may be
+                // stale at the exact instant a mouse-down occurs.
+                // Do not send UI clicks through to the game.
                 const bool captureMouse =
-                    IsMouseInputMessage(msg) &&
-                    io.WantCaptureMouse;
+                    IsMouseInputMessage(msg);
 
                 const bool captureKeyboard =
                     IsKeyboardInputMessage(msg) &&
                     (io.WantCaptureKeyboard ||
                      io.WantTextInput);
 
-                // Standard ImGui integration: only swallow the category of
-                // input ImGui actually owns. Everything else continues through
-                // the game's original WndProc and other overlays in the chain.
+                if (msg == WM_LBUTTONDOWN) {
+                    const unsigned int count =
+                        g_a22MouseClickCount.fetch_add(
+                            1, std::memory_order_relaxed) + 1;
+                    if (count <= 3) {
+                        Log(
+                            "[OVERLAY] A22 ImGui mouse-down received #%u",
+                            count);
+                    }
+                }
+
+                // Respect the platform backend's cursor handling.
+                if (msg == WM_SETCURSOR &&
+                    handled != 0) {
+                    return handled;
+                }
+
                 if (captureMouse ||
                     captureKeyboard) {
-
                     return 1;
                 }
             }
