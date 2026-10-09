@@ -1,5 +1,50 @@
 # Q Protocol — Project State
 
+## A21 — Floating Overlay Compatibility TEST
+
+- F1 / close-combat research is **paused**. Do not continue A20K-A20N until explicitly resumed.
+- Active development focus: **overlay compatibility**.
+- Branch: `dev/a21-overlay-compat`.
+- Base: stable `v0.9.4 / A20J` gameplay + First Debug DX12/ImGui hardening.
+- A20K-A20N experimental gameplay changes are **not** included.
+- Status: **built / CI-audited / runtime validation pending**.
+- GitHub Actions: run #131 / `37979873788` — **PASS**.
+- Test pre-release: `a21-test`.
+- Build commit: `f5ce9377fe891f12f57648f68ddccea2aa5b1bd5`.
+- Asset: `Q-Protocol_FreshCore_A21_OverlayCompatibility_TEST.zip`.
+- ZIP SHA-256: `266df5e4abb3d6ed00480fdc6b3898b2f155bd4c70a354259bdc68d1531d7ae8`.
+- QProtocol.asi SHA-256: `c98e11df2b7f5a7a15a6a3839343b364844e7d9d99f03b76b04ded29afa45a66`.
+- `QProtocol.ini` SHA-256 remains the stable A20J value:
+  `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- A21 removes the forced fixed-center UI model:
+  - no `NoTitleBar`
+  - no `NoResize`
+  - no `NoMove`
+  - no per-frame `ImGuiCond_Always`
+- New UI is a conventional single floating ImGui window:
+  - movable
+  - resizable
+  - title bar + close button
+  - default position/size only on first use
+  - viewport-aware constraints
+  - no ImGui multi-viewport / extra native windows
+- Input handling is now selective:
+  - mouse swallowed only for `io.WantCaptureMouse`
+  - keyboard swallowed only for `io.WantCaptureKeyboard` / `WantTextInput`
+  - uncaptured input continues to the original game/overlay WndProc chain
+  - hidden overlay does not process ordinary game input through ImGui
+- Cursor clipping is leased and restored:
+  - active game clip released on overlay open
+  - previous clip restored on close, fail-open or shutdown
+- First Debug renderer protections remain: precompiled shaders, checked DX12 resources,
+  tracked swapchain, scoped ResizeBuffers, fences, fail-open behavior, diagnostics,
+  static runtime and chain-aware WndProc restore.
+- PE dependencies remain only Windows/DX12 system DLLs; no separate ImGui,
+  MinHook, D3DCompiler or VC++ runtime install is required.
+- Public `v0.9.4` remains untouched.
+- Detailed record: `docs/A21_OVERLAY_COMPAT.md`.
+- **Do not call A21 fixed until runtime validation is sufficient.**
+
 ## First Debug — public Insert overlay crash (OPEN, 2026-10-09)
 
 - Multiple users reportedly encounter a game crash when pressing **Insert** to show the Q Protocol overlay; first supplied log identifies **v0.9.3 / A20I**.
@@ -30,6 +75,7 @@
 - **No `A20N INPUT TRANSITION` event was emitted anywhere in the complete 156-line test log.**
 - Conclusion: during this tested session, the hooked `EXE+0x016D0830` function was not observed executing. A20N therefore does **not** validate that function as the active close-combat blocker path.
 - A20N remains diagnostic/inconclusive and must not be promoted into the First Debug compatibility branch or the stable gameplay base.
+- **Paused:** F1 / close-combat research is parked while A21 focuses on overlay compatibility.
 - Branch: `dev/a20n-live-input-transition-trace`
 - Base: A20K three-state ROE, deliberately excluding A20L and the A20M broad scanner.
 - Status: **built / runtime trace pending**.
