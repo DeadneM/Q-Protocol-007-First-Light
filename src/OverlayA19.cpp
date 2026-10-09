@@ -114,6 +114,11 @@ std::atomic<ID3D12CommandQueue*> g_commandQueue{nullptr};
 thread_local ID3D12CommandQueue* g_tlsLastDirectQueue = nullptr;
 
 std::recursive_mutex g_renderMutex;
+std::mutex g_cursorMutex;
+RECT g_savedCursorClip{};
+bool g_cursorClipLease = false;
+bool g_cursorClipWasRestricted = false;
+
 std::atomic<bool> g_sessionRendererDisabled{false};
 std::atomic<bool> g_firstOpenRequested{false};
 std::atomic<bool> g_firstOpenSubmitted{false};
@@ -2446,6 +2451,102 @@ void ApplyStyle() {
             1.00f);
 }
 
+RECT GetVirtualScreenRect() {
+    RECT rc{};
+    rc.left =
+        GetSystemMetrics(
+            SM_XVIRTUALSCREEN);
+
+    rc.top =
+        GetSystemMetrics(
+            SM_YVIRTUALSCREEN);
+
+    rc.right =
+        rc.left +
+        GetSystemMetrics(
+            SM_CXVIRTUALSCREEN);
+
+    rc.bottom =
+        rc.top +
+        GetSystemMetrics(
+            SM_CYVIRTUALSCREEN);
+
+    return rc;
+}
+
+void AcquireOverlayCursorClip() {
+    std::lock_guard<std::mutex> lock(
+        g_cursorMutex);
+
+    if (g_cursorClipLease) {
+        return;
+    }
+
+    RECT current{};
+    const BOOL gotClip =
+        GetClipCursor(
+            &current);
+
+    if (gotClip) {
+        g_savedCursorClip =
+            current;
+
+        const RECT virtualScreen =
+            GetVirtualScreenRect();
+
+        g_cursorClipWasRestricted =
+            !EqualRect(
+                &current,
+                &virtualScreen);
+    } else {
+        g_cursorClipWasRestricted =
+            false;
+    }
+
+    if (ClipCursor(nullptr)) {
+        g_cursorClipLease = true;
+
+        Log(
+            "[OVERLAY] A21 cursor clip released while the floating window is open.");
+    } else {
+        Log(
+            "[OVERLAY] A21 ClipCursor release failed: Win32=%lu",
+            static_cast<unsigned long>(
+                GetLastError()));
+    }
+}
+
+void ReleaseOverlayCursorClip() {
+    std::lock_guard<std::mutex> lock(
+        g_cursorMutex);
+
+    if (!g_cursorClipLease) {
+        return;
+    }
+
+    BOOL ok = FALSE;
+
+    if (g_cursorClipWasRestricted) {
+        ok =
+            ClipCursor(
+                &g_savedCursorClip);
+    } else {
+        ok =
+            ClipCursor(nullptr);
+    }
+
+    if (!ok) {
+        Log(
+            "[OVERLAY] A21 cursor clip restore failed: Win32=%lu",
+            static_cast<unsigned long>(
+                GetLastError()));
+    }
+
+    g_cursorClipLease = false;
+    g_cursorClipWasRestricted = false;
+    g_savedCursorClip = {};
+}
+
 void DrawOverlayWindow() {
     if (!g_uiLoaded) {
         LoadUiFromIni();
@@ -2538,6 +2639,8 @@ void DrawOverlayWindow() {
             g_requestedVisible.store(
                 false,
                 std::memory_order_release);
+
+            ReleaseOverlayCursorClip();
         }
 
         return;
@@ -2635,6 +2738,8 @@ void DrawOverlayWindow() {
             false,
             std::memory_order_release);
 
+        ReleaseOverlayCursorClip();
+
         Log(
             "[OVERLAY] A21 floating window closed from title bar.");
     }
@@ -2725,6 +2830,8 @@ void DisableOverlayRendering(
     OverlayStage stage,
     const char* reason,
     HRESULT hr) {
+
+    ReleaseOverlayCursorClip();
 
     g_requestedVisible.store(
         false,
@@ -4825,7 +4932,7 @@ bool OverlayPump(bool playerReady) {
             std::memory_order_release);
 
         if (next) {
-            ClipCursor(nullptr);
+            AcquireOverlayCursorClip();
             g_uiLoaded = false;
 
             if (!g_firstOpenRequested.exchange(
@@ -4835,6 +4942,11 @@ bool OverlayPump(bool playerReady) {
                 Log(
                     "[OVERLAY] A21 FirstOpen requested: floating window, selective ImGui input capture.");
             }
+        } else {
+            ReleaseOverlayCursorClip();
+
+            Log(
+                "[OVERLAY] A21 floating window closed with overlay toggle.");
         }
     }
 
@@ -4949,6 +5061,8 @@ const char* OverlayStatus() {
 }
 
 void OverlayShutdown() {
+    ReleaseOverlayCursorClip();
+
     g_requestedVisible.store(
         false,
         std::memory_order_release);
