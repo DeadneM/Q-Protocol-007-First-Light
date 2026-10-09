@@ -31,7 +31,14 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
     WPARAM wParam,
     LPARAM lParam);
 
+extern "C" HRESULT ImGui_ImplDX12_QP_GetLastHRESULT();
+extern "C" const char* ImGui_ImplDX12_QP_GetLastStage();
+extern "C" void ImGui_ImplDX12_QP_ClearLastError();
+
 namespace qp {
+
+void Log(const char* fmt, ...);
+
 namespace {
 
 using PresentFn = HRESULT(__stdcall*)(
@@ -87,7 +94,10 @@ enum class OverlayStage : int {
     QueueCaptured,
     ImGuiReady,
     InitFailed,
-    FenceTimeout
+    RenderFailed,
+    ResizeFailed,
+    FenceTimeout,
+    Disabled
 };
 
 std::wstring g_iniPath;
@@ -101,6 +111,18 @@ std::atomic<bool> g_playerReady{false};
 std::atomic<int> g_stage{static_cast<int>(OverlayStage::Bootstrap)};
 
 std::atomic<ID3D12CommandQueue*> g_commandQueue{nullptr};
+thread_local ID3D12CommandQueue* g_tlsLastDirectQueue = nullptr;
+
+std::recursive_mutex g_renderMutex;
+std::atomic<bool> g_sessionRendererDisabled{false};
+std::atomic<bool> g_firstOpenRequested{false};
+std::atomic<bool> g_firstOpenSubmitted{false};
+std::atomic<LONG> g_lastOverlayHr{S_OK};
+std::atomic<DWORD> g_lastOverlaySeh{0};
+
+void* g_presentHookTarget = nullptr;
+void* g_resizeHookTarget = nullptr;
+void* g_executeHookTarget = nullptr;
 
 std::atomic<int> g_overlayToggleVk{VK_INSERT};
 std::atomic<bool> g_overlayToggleWasDown{false};
@@ -2576,48 +2598,306 @@ bool IsInputMessage(UINT msg) {
     }
 }
 
-LRESULT CALLBACK OverlayWndProc(
-    HWND hwnd,
-    UINT msg,
-    WPARAM wParam,
-    LPARAM lParam) {
+void SetStage(
+    OverlayStage stage) {
 
-    if (g_imguiWin32Initialized) {
-        ImGui_ImplWin32_WndProcHandler(
-            hwnd,
-            msg,
-            wParam,
-            lParam);
+    g_stage.store(
+        static_cast<int>(stage),
+        std::memory_order_release);
+}
 
-        if (g_overlayReady.load(
-                std::memory_order_acquire) &&
-            g_requestedVisible.load(
-                std::memory_order_acquire) &&
-            IsInputMessage(msg)) {
+void LogOverlayHr(
+    const char* stage,
+    HRESULT hr) {
 
-            return 1;
+    g_lastOverlayHr.store(
+        static_cast<LONG>(hr),
+        std::memory_order_release);
+
+    Log(
+        "[OVERLAY] %s failed: HRESULT=0x%08lX",
+        stage ? stage : "Unknown",
+        static_cast<unsigned long>(hr));
+}
+
+void LogDeviceRemovedReason(
+    const char* context) {
+
+    if (!g_device) {
+        return;
+    }
+
+    const HRESULT reason =
+        g_device->GetDeviceRemovedReason();
+
+    if (FAILED(reason)) {
+        Log(
+            "[OVERLAY] %s device removed/reset reason=0x%08lX",
+            context ? context : "DX12",
+            static_cast<unsigned long>(reason));
+    }
+}
+
+void DisableOverlayRendering(
+    OverlayStage stage,
+    const char* reason,
+    HRESULT hr) {
+
+    g_requestedVisible.store(
+        false,
+        std::memory_order_release);
+
+    g_overlayReady.store(
+        false,
+        std::memory_order_release);
+
+    g_sessionRendererDisabled.store(
+        true,
+        std::memory_order_release);
+
+    SetStage(stage);
+
+    if (FAILED(hr)) {
+        LogOverlayHr(
+            reason,
+            hr);
+    } else {
+        Log(
+            "[OVERLAY] %s; renderer disabled for this session, gameplay remains active.",
+            reason ? reason : "Renderer failure");
+    }
+
+    LogDeviceRemovedReason(
+        reason);
+}
+
+bool SameComObject(
+    IUnknown* a,
+    IUnknown* b) {
+
+    if (!a || !b) {
+        return false;
+    }
+
+    IUnknown* ia = nullptr;
+    IUnknown* ib = nullptr;
+
+    const HRESULT hra =
+        a->QueryInterface(
+            IID_PPV_ARGS(&ia));
+
+    const HRESULT hrb =
+        b->QueryInterface(
+            IID_PPV_ARGS(&ib));
+
+    const bool same =
+        SUCCEEDED(hra) &&
+        SUCCEEDED(hrb) &&
+        ia &&
+        ib &&
+        ia == ib;
+
+    if (ia) {
+        ia->Release();
+    }
+
+    if (ib) {
+        ib->Release();
+    }
+
+    return same;
+}
+
+bool SameDevice(
+    ID3D12CommandQueue* queue,
+    ID3D12Device* swapDevice) {
+
+    if (!queue ||
+        !swapDevice) {
+
+        return false;
+    }
+
+    ID3D12Device* queueDevice =
+        nullptr;
+
+    const HRESULT hr =
+        queue->GetDevice(
+            IID_PPV_ARGS(
+                &queueDevice));
+
+    if (FAILED(hr) ||
+        !queueDevice) {
+
+        return false;
+    }
+
+    const bool same =
+        SameComObject(
+            queueDevice,
+            swapDevice);
+
+    queueDevice->Release();
+
+    return same;
+}
+
+bool BindBestQueueForDevice(
+    ID3D12Device* device) {
+
+    if (!device) {
+        return false;
+    }
+
+    ID3D12CommandQueue* current =
+        g_commandQueue.load(
+            std::memory_order_acquire);
+
+    ID3D12CommandQueue* candidate =
+        g_tlsLastDirectQueue;
+
+    if (candidate &&
+        SameDevice(
+            candidate,
+            device)) {
+
+        if (candidate != current) {
+            candidate->AddRef();
+
+            ID3D12CommandQueue* old =
+                g_commandQueue.exchange(
+                    candidate,
+                    std::memory_order_acq_rel);
+
+            if (old) {
+                old->Release();
+            }
+
+            Log(
+                "[OVERLAY] Bound DIRECT queue from current Present thread: 0x%p",
+                candidate);
         }
+
+        SetStage(
+            OverlayStage::QueueCaptured);
+
+        return true;
     }
 
-    if (g_originalWndProc) {
-        return CallWindowProcW(
-            g_originalWndProc,
-            hwnd,
-            msg,
-            wParam,
-            lParam);
+    if (current &&
+        SameDevice(
+            current,
+            device)) {
+
+        return true;
     }
 
-    return DefWindowProcW(
-        hwnd,
-        msg,
-        wParam,
-        lParam);
+    return false;
+}
+
+bool IsGameSwapChain(
+    IDXGISwapChain* swapChain,
+    DXGI_SWAP_CHAIN_DESC& desc,
+    ID3D12Device** outDevice) {
+
+    if (!swapChain ||
+        !outDevice) {
+
+        return false;
+    }
+
+    *outDevice = nullptr;
+
+    const HRESULT descHr =
+        swapChain->GetDesc(
+            &desc);
+
+    if (FAILED(descHr) ||
+        !desc.OutputWindow) {
+
+        return false;
+    }
+
+    DWORD pid = 0;
+
+    GetWindowThreadProcessId(
+        desc.OutputWindow,
+        &pid);
+
+    if (pid !=
+        GetCurrentProcessId()) {
+
+        return false;
+    }
+
+    if (!IsWindow(
+            desc.OutputWindow) ||
+        !IsWindowVisible(
+            desc.OutputWindow) ||
+        GetAncestor(
+            desc.OutputWindow,
+            GA_ROOT) !=
+            desc.OutputWindow) {
+
+        return false;
+    }
+
+    RECT rc{};
+
+    if (!GetClientRect(
+            desc.OutputWindow,
+            &rc)) {
+
+        return false;
+    }
+
+    if (rc.right - rc.left < 640 ||
+        rc.bottom - rc.top < 360 ||
+        desc.BufferCount == 0) {
+
+        return false;
+    }
+
+    ID3D12Device* device =
+        nullptr;
+
+    const HRESULT deviceHr =
+        swapChain->GetDevice(
+            IID_PPV_ARGS(
+                &device));
+
+    if (FAILED(deviceHr) ||
+        !device) {
+
+        return false;
+    }
+
+    if (!BindBestQueueForDevice(
+            device)) {
+
+        device->Release();
+        return false;
+    }
+
+    *outDevice = device;
+    return true;
+}
+
+bool IsTrackedSwapChain(
+    IDXGISwapChain* swapChain) {
+
+    return
+        swapChain &&
+        g_swapChain3 &&
+        SameComObject(
+            swapChain,
+            g_swapChain3);
 }
 
 bool WaitForFenceValue(
     UINT64 value,
-    DWORD timeoutMs) {
+    DWORD timeoutMs,
+    const char* stage) {
 
     if (!value ||
         !g_fence ||
@@ -2626,44 +2906,94 @@ bool WaitForFenceValue(
         return true;
     }
 
-    if (g_fence->GetCompletedValue() >=
+    const UINT64 completed =
+        g_fence->GetCompletedValue();
+
+    if (completed == UINT64_MAX) {
+        Log(
+            "[OVERLAY] %s fence reports device removal.",
+            stage ? stage : "Fence");
+        LogDeviceRemovedReason(stage);
+        return false;
+    }
+
+    if (completed >=
         value) {
 
         return true;
     }
 
-    if (FAILED(
-            g_fence
-                ->SetEventOnCompletion(
-                    value,
-                    g_fenceEvent))) {
+    const HRESULT eventHr =
+        g_fence
+            ->SetEventOnCompletion(
+                value,
+                g_fenceEvent);
 
+    if (FAILED(eventHr)) {
+        LogOverlayHr(
+            stage ? stage : "SetEventOnCompletion",
+            eventHr);
         return false;
     }
 
-    return WaitForSingleObject(
-               g_fenceEvent,
-               timeoutMs) ==
-           WAIT_OBJECT_0;
+    const DWORD waitResult =
+        WaitForSingleObject(
+            g_fenceEvent,
+            timeoutMs);
+
+    if (waitResult ==
+        WAIT_OBJECT_0) {
+
+        return true;
+    }
+
+    const HRESULT waitHr =
+        waitResult == WAIT_TIMEOUT
+            ? HRESULT_FROM_WIN32(
+                  ERROR_TIMEOUT)
+            : HRESULT_FROM_WIN32(
+                  GetLastError());
+
+    LogOverlayHr(
+        stage ? stage : "FenceWait",
+        waitHr);
+
+    return false;
 }
 
-bool WaitForAllFrames(
-    DWORD timeoutMs) {
+bool SynchronizeOverlayGpu(
+    DWORD timeoutMs,
+    const char* stage) {
 
-    UINT64 last = 0;
+    ID3D12CommandQueue* queue =
+        g_commandQueue.load(
+            std::memory_order_acquire);
 
-    for (const auto& frame :
-         g_frames) {
+    if (!queue ||
+        !g_fence) {
 
-        last =
-            (std::max)(
-                last,
-                frame.fenceValue);
+        return true;
+    }
+
+    const UINT64 value =
+        ++g_nextFenceValue;
+
+    const HRESULT signalHr =
+        queue->Signal(
+            g_fence,
+            value);
+
+    if (FAILED(signalHr)) {
+        LogOverlayHr(
+            stage ? stage : "QueueSignal",
+            signalHr);
+        return false;
     }
 
     return WaitForFenceValue(
-        last,
-        timeoutMs);
+        value,
+        timeoutMs,
+        stage);
 }
 
 void ReleaseDx12Resources() {
@@ -2727,176 +3057,371 @@ void ReleaseDx12Resources() {
         DXGI_FORMAT_UNKNOWN;
 }
 
-void ShutdownDx12Backend() {
+bool ShutdownDx12BackendLocked(
+    const char* reason,
+    DWORD timeoutMs) {
+
     g_overlayReady.store(
         false,
         std::memory_order_release);
 
-    WaitForAllFrames(2000);
+    if (!g_imguiDx12Initialized &&
+        !g_device &&
+        !g_swapChain3 &&
+        g_frames.empty()) {
+
+        return true;
+    }
+
+    const bool synchronized =
+        SynchronizeOverlayGpu(
+            timeoutMs,
+            reason);
+
+    const bool deviceRemoved =
+        g_device &&
+        FAILED(
+            g_device
+                ->GetDeviceRemovedReason());
+
+    if (!synchronized &&
+        !deviceRemoved) {
+
+        SetStage(
+            OverlayStage::FenceTimeout);
+
+        g_sessionRendererDisabled.store(
+            true,
+            std::memory_order_release);
+
+        Log(
+            "[OVERLAY] %s GPU synchronization did not complete. Resources are intentionally retained to avoid releasing objects still in flight.",
+            reason ? reason : "Shutdown");
+
+        return false;
+    }
 
     if (g_imguiDx12Initialized) {
         ImGui_ImplDX12_Shutdown();
-        g_imguiDx12Initialized = false;
+        g_imguiDx12Initialized =
+            false;
     }
 
     ReleaseDx12Resources();
+
+    return true;
 }
 
-void ShutdownImGui() {
-    ShutdownDx12Backend();
+void RestoreWndProcLocked() {
+    if (!g_gameWindow ||
+        !g_originalWndProc) {
 
-    if (g_imguiWin32Initialized) {
-        ImGui_ImplWin32_Shutdown();
-        g_imguiWin32Initialized = false;
+        g_originalWndProc = nullptr;
+        return;
     }
 
-    if (g_gameWindow &&
-        g_originalWndProc) {
+    const WNDPROC current =
+        reinterpret_cast<WNDPROC>(
+            GetWindowLongPtrW(
+                g_gameWindow,
+                GWLP_WNDPROC));
 
-        SetWindowLongPtrW(
-            g_gameWindow,
-            GWLP_WNDPROC,
-            reinterpret_cast<LONG_PTR>(
-                g_originalWndProc));
+    if (current ==
+        &OverlayWndProc) {
+
+        SetLastError(0);
+
+        const LONG_PTR restored =
+            SetWindowLongPtrW(
+                g_gameWindow,
+                GWLP_WNDPROC,
+                reinterpret_cast<LONG_PTR>(
+                    g_originalWndProc));
+
+        const DWORD error =
+            GetLastError();
+
+        if (restored == 0 &&
+            error != ERROR_SUCCESS) {
+
+            Log(
+                "[OVERLAY] RestoreWndProc failed: Win32=%lu",
+                static_cast<unsigned long>(
+                    error));
+        }
+    } else {
+        Log(
+            "[OVERLAY] WndProc changed by another component after Q Protocol. Leaving the current chain intact.");
     }
 
     g_originalWndProc = nullptr;
+}
+
+void ShutdownPlatformBackendLocked() {
+    if (g_imguiWin32Initialized) {
+        ImGui_ImplWin32_Shutdown();
+        g_imguiWin32Initialized =
+            false;
+    }
+
+    RestoreWndProcLocked();
+
     g_gameWindow = nullptr;
 
     if (g_imguiContextCreated) {
         ImGui::DestroyContext();
-        g_imguiContextCreated = false;
+        g_imguiContextCreated =
+            false;
     }
 }
 
-bool SameDevice(
-    ID3D12CommandQueue* queue,
-    ID3D12Device* swapDevice) {
+bool ShutdownImGuiLocked(
+    const char* reason,
+    DWORD timeoutMs) {
 
-    if (!queue ||
-        !swapDevice) {
+    const bool rendererSafe =
+        ShutdownDx12BackendLocked(
+            reason,
+            timeoutMs);
 
-        return false;
+    if (rendererSafe) {
+        ShutdownPlatformBackendLocked();
+    } else {
+        // Keep backend/context allocations alive if the GPU may still reference
+        // them, but stop intercepting window input.
+        RestoreWndProcLocked();
     }
 
-    ID3D12Device* queueDevice =
-        nullptr;
-
-    if (FAILED(
-            queue->GetDevice(
-                IID_PPV_ARGS(
-                    &queueDevice))) ||
-        !queueDevice) {
-
-        return false;
-    }
-
-    IUnknown* a = nullptr;
-    IUnknown* b = nullptr;
-
-    queueDevice->QueryInterface(
-        IID_PPV_ARGS(&a));
-
-    swapDevice->QueryInterface(
-        IID_PPV_ARGS(&b));
-
-    const bool same =
-        a && b && a == b;
-
-    if (a) {
-        a->Release();
-    }
-
-    if (b) {
-        b->Release();
-    }
-
-    queueDevice->Release();
-
-    return same;
+    return rendererSafe;
 }
 
-bool IsGameSwapChain(
-    IDXGISwapChain* swapChain,
-    DXGI_SWAP_CHAIN_DESC& desc,
-    ID3D12Device** outDevice) {
+bool GuardedCreateDeviceObjects() {
+    bool ok = false;
 
-    if (!swapChain ||
-        !outDevice) {
+    __try {
+        ok =
+            ImGui_ImplDX12_CreateDeviceObjects();
+    }
+    __except (
+        EXCEPTION_EXECUTE_HANDLER) {
+
+        g_lastOverlaySeh.store(
+            GetExceptionCode(),
+            std::memory_order_release);
 
         return false;
     }
 
-    *outDevice = nullptr;
+    return ok;
+}
 
-    if (FAILED(
-            swapChain->GetDesc(
-                &desc)) ||
-        !desc.OutputWindow) {
+bool GuardedBuildUiFrame() {
+    bool ok = false;
+
+    __try {
+        ImGui_ImplDX12_QP_ClearLastError();
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+
+        DrawOverlayWindow();
+
+        ImGui::Render();
+
+        ok = true;
+    }
+    __except (
+        EXCEPTION_EXECUTE_HANDLER) {
+
+        g_lastOverlaySeh.store(
+            GetExceptionCode(),
+            std::memory_order_release);
 
         return false;
     }
 
-    DWORD pid = 0;
+    return ok;
+}
 
-    GetWindowThreadProcessId(
-        desc.OutputWindow,
-        &pid);
+bool GuardedRenderDrawData(
+    ImDrawData* drawData,
+    ID3D12GraphicsCommandList* commandList) {
 
-    if (pid !=
-        GetCurrentProcessId()) {
+    bool ok = false;
+
+    __try {
+        ImGui_ImplDX12_RenderDrawData(
+            drawData,
+            commandList);
+
+        ok = true;
+    }
+    __except (
+        EXCEPTION_EXECUTE_HANDLER) {
+
+        g_lastOverlaySeh.store(
+            GetExceptionCode(),
+            std::memory_order_release);
 
         return false;
     }
 
-    RECT rc{};
+    return ok;
+}
 
-    if (!GetClientRect(
-            desc.OutputWindow,
-            &rc)) {
+LRESULT CALLBACK OverlayWndProc(
+    HWND hwnd,
+    UINT msg,
+    WPARAM wParam,
+    LPARAM lParam) {
 
+    std::unique_lock<std::recursive_mutex> lock(
+        g_renderMutex,
+        std::try_to_lock);
+
+    if (lock.owns_lock() &&
+        g_imguiWin32Initialized) {
+
+        ImGui_ImplWin32_WndProcHandler(
+            hwnd,
+            msg,
+            wParam,
+            lParam);
+
+        if (g_overlayReady.load(
+                std::memory_order_acquire) &&
+            g_requestedVisible.load(
+                std::memory_order_acquire) &&
+            IsInputMessage(msg)) {
+
+            return 1;
+        }
+    }
+
+    WNDPROC original =
+        g_originalWndProc;
+
+    if (original) {
+        return CallWindowProcW(
+            original,
+            hwnd,
+            msg,
+            wParam,
+            lParam);
+    }
+
+    return DefWindowProcW(
+        hwnd,
+        msg,
+        wParam,
+        lParam);
+}
+
+bool EnsurePlatformBackendLocked(
+    HWND window) {
+
+    if (!window) {
+        LogOverlayHr(
+            "Init.Window",
+            E_INVALIDARG);
         return false;
     }
 
-    if (rc.right - rc.left <
-            640 ||
-        rc.bottom - rc.top <
-            360) {
+    if (!g_imguiContextCreated) {
+        IMGUI_CHECKVERSION();
 
-        return false;
+        ImGuiContext* context =
+            ImGui::CreateContext();
+
+        if (!context) {
+            LogOverlayHr(
+                "Init.ImGuiCreateContext",
+                E_OUTOFMEMORY);
+            return false;
+        }
+
+        g_imguiContextCreated =
+            true;
+
+        ImGuiIO& io =
+            ImGui::GetIO();
+
+        io.IniFilename = nullptr;
+        io.LogFilename = nullptr;
+        io.MouseDrawCursor = true;
+
+        ApplyStyle();
     }
 
-    ID3D12Device* device =
-        nullptr;
+    if (g_imguiWin32Initialized &&
+        g_gameWindow != window) {
 
-    if (FAILED(
-            swapChain->GetDevice(
-                IID_PPV_ARGS(
-                    &device))) ||
-        !device) {
+        ImGui_ImplWin32_Shutdown();
+        g_imguiWin32Initialized =
+            false;
 
-        return false;
+        RestoreWndProcLocked();
+        g_gameWindow = nullptr;
     }
 
-    ID3D12CommandQueue* queue =
-        g_commandQueue.load(
-            std::memory_order_acquire);
+    if (!g_imguiWin32Initialized) {
+        if (!ImGui_ImplWin32_Init(
+                window)) {
 
-    if (!queue ||
-        !SameDevice(
-            queue,
-            device)) {
+            LogOverlayHr(
+                "Init.ImGuiWin32",
+                E_FAIL);
+            return false;
+        }
 
-        device->Release();
-        return false;
+        g_imguiWin32Initialized =
+            true;
+        g_gameWindow = window;
+
+        SetLastError(0);
+
+        const LONG_PTR previous =
+            SetWindowLongPtrW(
+                g_gameWindow,
+                GWLP_WNDPROC,
+                reinterpret_cast<LONG_PTR>(
+                    &OverlayWndProc));
+
+        const DWORD error =
+            GetLastError();
+
+        if (previous == 0 &&
+            error != ERROR_SUCCESS) {
+
+            Log(
+                "[OVERLAY] Init.SetWindowLongPtrW failed: Win32=%lu",
+                static_cast<unsigned long>(
+                    error));
+
+            ImGui_ImplWin32_Shutdown();
+            g_imguiWin32Initialized =
+                false;
+            g_gameWindow = nullptr;
+
+            return false;
+        }
+
+        g_originalWndProc =
+            reinterpret_cast<WNDPROC>(
+                previous);
     }
 
-    *outDevice = device;
     return true;
 }
 
-bool InitializeImGuiForSwapChain(
+bool InitializeImGuiForSwapChainLocked(
     IDXGISwapChain* swapChain) {
+
+    if (g_sessionRendererDisabled.load(
+            std::memory_order_acquire)) {
+
+        return false;
+    }
 
     DXGI_SWAP_CHAIN_DESC desc{};
     ID3D12Device* device =
@@ -2910,20 +3435,32 @@ bool InitializeImGuiForSwapChain(
         return false;
     }
 
+    Log(
+        "[OVERLAY] Init candidate: hwnd=0x%p buffers=%u format=%u size=%ux%u",
+        desc.OutputWindow,
+        desc.BufferCount,
+        static_cast<unsigned int>(
+            desc.BufferDesc.Format),
+        desc.BufferDesc.Width,
+        desc.BufferDesc.Height);
+
     g_device = device;
 
-    if (FAILED(
-            swapChain->QueryInterface(
-                IID_PPV_ARGS(
-                    &g_swapChain3))) ||
+    HRESULT hr =
+        swapChain->QueryInterface(
+            IID_PPV_ARGS(
+                &g_swapChain3));
+
+    if (FAILED(hr) ||
         !g_swapChain3) {
+
+        LogOverlayHr(
+            "Init.QuerySwapChain3",
+            FAILED(hr) ? hr : E_FAIL);
 
         ReleaseDx12Resources();
         return false;
     }
-
-    g_gameWindow =
-        desc.OutputWindow;
 
     g_backBufferFormat =
         desc.BufferDesc.Format;
@@ -2931,16 +3468,22 @@ bool InitializeImGuiForSwapChain(
     D3D12_DESCRIPTOR_HEAP_DESC rtvDesc{};
     rtvDesc.Type =
         D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-
     rtvDesc.NumDescriptors =
         desc.BufferCount;
 
-    if (FAILED(
-            g_device
-                ->CreateDescriptorHeap(
-                    &rtvDesc,
-                    IID_PPV_ARGS(
-                        &g_rtvHeap)))) {
+    hr =
+        g_device
+            ->CreateDescriptorHeap(
+                &rtvDesc,
+                IID_PPV_ARGS(
+                    &g_rtvHeap));
+
+    if (FAILED(hr) ||
+        !g_rtvHeap) {
+
+        LogOverlayHr(
+            "Init.CreateRTVHeap",
+            FAILED(hr) ? hr : E_FAIL);
 
         ReleaseDx12Resources();
         return false;
@@ -2949,18 +3492,23 @@ bool InitializeImGuiForSwapChain(
     D3D12_DESCRIPTOR_HEAP_DESC srvDesc{};
     srvDesc.Type =
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
     srvDesc.NumDescriptors = 1;
-
     srvDesc.Flags =
         D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-    if (FAILED(
-            g_device
-                ->CreateDescriptorHeap(
-                    &srvDesc,
-                    IID_PPV_ARGS(
-                        &g_srvHeap)))) {
+    hr =
+        g_device
+            ->CreateDescriptorHeap(
+                &srvDesc,
+                IID_PPV_ARGS(
+                    &g_srvHeap));
+
+    if (FAILED(hr) ||
+        !g_srvHeap) {
+
+        LogOverlayHr(
+            "Init.CreateSRVHeap",
+            FAILED(hr) ? hr : E_FAIL);
 
         ReleaseDx12Resources();
         return false;
@@ -2971,6 +3519,16 @@ bool InitializeImGuiForSwapChain(
             ->GetDescriptorHandleIncrementSize(
                 D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
+    if (!g_rtvDescriptorSize) {
+        LogOverlayHr(
+            "Init.RTVDescriptorSize",
+            E_FAIL);
+
+        ReleaseDx12Resources();
+        return false;
+    }
+
+    g_frames.clear();
     g_frames.resize(
         desc.BufferCount);
 
@@ -2985,22 +3543,36 @@ bool InitializeImGuiForSwapChain(
         FrameContext& frame =
             g_frames[i];
 
-        if (FAILED(
-                g_device
-                    ->CreateCommandAllocator(
-                        D3D12_COMMAND_LIST_TYPE_DIRECT,
-                        IID_PPV_ARGS(
-                            &frame.allocator)))) {
+        hr =
+            g_device
+                ->CreateCommandAllocator(
+                    D3D12_COMMAND_LIST_TYPE_DIRECT,
+                    IID_PPV_ARGS(
+                        &frame.allocator));
+
+        if (FAILED(hr) ||
+            !frame.allocator) {
+
+            LogOverlayHr(
+                "Init.CreateCommandAllocator",
+                FAILED(hr) ? hr : E_FAIL);
 
             ReleaseDx12Resources();
             return false;
         }
 
-        if (FAILED(
-                swapChain->GetBuffer(
-                    i,
-                    IID_PPV_ARGS(
-                        &frame.renderTarget)))) {
+        hr =
+            swapChain->GetBuffer(
+                i,
+                IID_PPV_ARGS(
+                    &frame.renderTarget));
+
+        if (FAILED(hr) ||
+            !frame.renderTarget) {
+
+            LogOverlayHr(
+                "Init.GetBackBuffer",
+                FAILED(hr) ? hr : E_FAIL);
 
             ReleaseDx12Resources();
             return false;
@@ -3018,28 +3590,52 @@ bool InitializeImGuiForSwapChain(
             g_rtvDescriptorSize;
     }
 
-    if (FAILED(
-            g_device
-                ->CreateCommandList(
-                    0,
-                    D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    g_frames[0].allocator,
-                    nullptr,
-                    IID_PPV_ARGS(
-                        &g_commandList)))) {
+    hr =
+        g_device
+            ->CreateCommandList(
+                0,
+                D3D12_COMMAND_LIST_TYPE_DIRECT,
+                g_frames[0].allocator,
+                nullptr,
+                IID_PPV_ARGS(
+                    &g_commandList));
+
+    if (FAILED(hr) ||
+        !g_commandList) {
+
+        LogOverlayHr(
+            "Init.CreateCommandList",
+            FAILED(hr) ? hr : E_FAIL);
 
         ReleaseDx12Resources();
         return false;
     }
 
-    g_commandList->Close();
+    hr =
+        g_commandList->Close();
 
-    if (FAILED(
-            g_device->CreateFence(
-                0,
-                D3D12_FENCE_FLAG_NONE,
-                IID_PPV_ARGS(
-                    &g_fence)))) {
+    if (FAILED(hr)) {
+        LogOverlayHr(
+            "Init.CommandListClose",
+            hr);
+
+        ReleaseDx12Resources();
+        return false;
+    }
+
+    hr =
+        g_device->CreateFence(
+            0,
+            D3D12_FENCE_FLAG_NONE,
+            IID_PPV_ARGS(
+                &g_fence));
+
+    if (FAILED(hr) ||
+        !g_fence) {
+
+        LogOverlayHr(
+            "Init.CreateFence",
+            FAILED(hr) ? hr : E_FAIL);
 
         ReleaseDx12Resources();
         return false;
@@ -3053,50 +3649,26 @@ bool InitializeImGuiForSwapChain(
             nullptr);
 
     if (!g_fenceEvent) {
+        LogOverlayHr(
+            "Init.CreateFenceEvent",
+            HRESULT_FROM_WIN32(
+                GetLastError()));
+
         ReleaseDx12Resources();
         return false;
     }
 
-    if (!g_imguiContextCreated) {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
+    if (!EnsurePlatformBackendLocked(
+            desc.OutputWindow)) {
 
-        g_imguiContextCreated =
-            true;
-
-        ImGuiIO& io =
-            ImGui::GetIO();
-
-        io.IniFilename = nullptr;
-        io.LogFilename = nullptr;
-        io.MouseDrawCursor = true;
-
-        ApplyStyle();
-    }
-
-    if (!g_imguiWin32Initialized) {
-        if (!ImGui_ImplWin32_Init(
-                g_gameWindow)) {
-
-            ShutdownImGui();
-            return false;
-        }
-
-        g_imguiWin32Initialized =
-            true;
-
-        g_originalWndProc =
-            reinterpret_cast<WNDPROC>(
-                SetWindowLongPtrW(
-                    g_gameWindow,
-                    GWLP_WNDPROC,
-                    reinterpret_cast<LONG_PTR>(
-                        &OverlayWndProc)));
+        ReleaseDx12Resources();
+        return false;
     }
 
     if (!ImGui_ImplDX12_Init(
             g_device,
-            desc.BufferCount,
+            static_cast<int>(
+                desc.BufferCount),
             g_backBufferFormat,
             g_srvHeap,
             g_srvHeap
@@ -3104,45 +3676,97 @@ bool InitializeImGuiForSwapChain(
             g_srvHeap
                 ->GetGPUDescriptorHandleForHeapStart())) {
 
-        ShutdownDx12Backend();
+        LogOverlayHr(
+            "Init.ImGuiDX12",
+            E_FAIL);
+
+        ReleaseDx12Resources();
         return false;
     }
 
     g_imguiDx12Initialized =
         true;
 
+    g_lastOverlaySeh.store(
+        0,
+        std::memory_order_release);
+
+    if (!GuardedCreateDeviceObjects()) {
+        const DWORD seh =
+            g_lastOverlaySeh.load(
+                std::memory_order_acquire);
+
+        const HRESULT backendHr =
+            ImGui_ImplDX12_QP_GetLastHRESULT();
+
+        const char* backendStage =
+            ImGui_ImplDX12_QP_GetLastStage();
+
+        if (seh) {
+            Log(
+                "[OVERLAY] Init.CreateDeviceObjects raised SEH=0x%08lX",
+                static_cast<unsigned long>(
+                    seh));
+        } else {
+            Log(
+                "[OVERLAY] Init.CreateDeviceObjects failed at %s HRESULT=0x%08lX",
+                backendStage ? backendStage : "Unknown",
+                static_cast<unsigned long>(
+                    backendHr));
+        }
+
+        ImGui_ImplDX12_Shutdown();
+        g_imguiDx12Initialized =
+            false;
+
+        ReleaseDx12Resources();
+
+        DisableOverlayRendering(
+            OverlayStage::InitFailed,
+            "Init.CreateDeviceObjects",
+            FAILED(backendHr)
+                ? backendHr
+                : E_FAIL);
+
+        return false;
+    }
+
     g_overlayReady.store(
         true,
         std::memory_order_release);
 
-    g_stage.store(
-        static_cast<int>(
-            OverlayStage::ImGuiReady),
-        std::memory_order_release);
+    SetStage(
+        OverlayStage::ImGuiReady);
 
     g_uiLoaded = false;
+
+    Log(
+        "[OVERLAY] Init complete: shaders/PSO/font ready before first visible frame.");
 
     return true;
 }
 
-HRESULT __stdcall HookPresent(
-    IDXGISwapChain* swapChain,
-    UINT syncInterval,
-    UINT flags) {
+void RenderOverlayFrameLocked(
+    IDXGISwapChain* swapChain) {
 
-    if (!g_originalPresent) {
-        return E_FAIL;
+    if (g_sessionRendererDisabled.load(
+            std::memory_order_acquire)) {
+
+        return;
     }
 
     if (!g_imguiDx12Initialized) {
-        if (!InitializeImGuiForSwapChain(
+        if (!InitializeImGuiForSwapChainLocked(
                 swapChain)) {
 
-            return g_originalPresent(
-                swapChain,
-                syncInterval,
-                flags);
+            return;
         }
+    }
+
+    if (!IsTrackedSwapChain(
+            swapChain)) {
+
+        return;
     }
 
     if (!g_overlayReady.load(
@@ -3150,12 +3774,18 @@ HRESULT __stdcall HookPresent(
         !g_requestedVisible.load(
             std::memory_order_acquire) ||
         !g_swapChain3 ||
-        g_frames.empty()) {
+        g_frames.empty() ||
+        !g_commandList ||
+        !g_fence) {
 
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+        return;
+    }
+
+    if (!g_firstOpenSubmitted.load(
+            std::memory_order_acquire)) {
+
+        Log(
+            "[OVERLAY] FirstOpen render begin.");
     }
 
     const UINT index =
@@ -3165,10 +3795,12 @@ HRESULT __stdcall HookPresent(
     if (index >=
         g_frames.size()) {
 
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "FirstOpen.BackBufferIndex",
+            E_BOUNDS);
+
+        return;
     }
 
     FrameContext& frame =
@@ -3176,65 +3808,99 @@ HRESULT __stdcall HookPresent(
 
     if (!WaitForFenceValue(
             frame.fenceValue,
-            1000)) {
+            1500,
+            "Render.FrameFence")) {
 
-        g_requestedVisible.store(
-            false,
-            std::memory_order_release);
+        DisableOverlayRendering(
+            OverlayStage::FenceTimeout,
+            "Render.FrameFence",
+            HRESULT_FROM_WIN32(
+                ERROR_TIMEOUT));
 
-        g_overlayReady.store(
-            false,
-            std::memory_order_release);
-
-        g_stage.store(
-            static_cast<int>(
-                OverlayStage::FenceTimeout),
-            std::memory_order_release);
-
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+        return;
     }
 
     frame.fenceValue = 0;
 
-    if (FAILED(
-            frame.allocator
-                ->Reset()) ||
-        FAILED(
-            g_commandList
-                ->Reset(
-                    frame.allocator,
-                    nullptr))) {
+    HRESULT hr =
+        frame.allocator
+            ->Reset();
 
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+    if (FAILED(hr)) {
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.CommandAllocatorReset",
+            hr);
+
+        return;
     }
 
-    ImGui_ImplDX12_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
+    hr =
+        g_commandList
+            ->Reset(
+                frame.allocator,
+                nullptr);
 
-    DrawOverlayWindow();
+    if (FAILED(hr)) {
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.CommandListReset",
+            hr);
 
-    ImGui::Render();
+        return;
+    }
+
+    g_lastOverlaySeh.store(
+        0,
+        std::memory_order_release);
+
+    if (!GuardedBuildUiFrame()) {
+        const DWORD seh =
+            g_lastOverlaySeh.load(
+                std::memory_order_acquire);
+
+        Log(
+            "[OVERLAY] FirstOpen/NewFrame SEH=0x%08lX; gameplay remains active.",
+            static_cast<unsigned long>(
+                seh));
+
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.NewFrame",
+            E_FAIL);
+
+        return;
+    }
+
+    const HRESULT newFrameBackendHr =
+        ImGui_ImplDX12_QP_GetLastHRESULT();
+
+    if (FAILED(
+            newFrameBackendHr)) {
+
+        Log(
+            "[OVERLAY] NewFrame backend failure at %s HRESULT=0x%08lX",
+            ImGui_ImplDX12_QP_GetLastStage(),
+            static_cast<unsigned long>(
+                newFrameBackendHr));
+
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.NewFrameBackend",
+            newFrameBackendHr);
+
+        return;
+    }
 
     D3D12_RESOURCE_BARRIER barrier{};
     barrier.Type =
         D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
     barrier.Transition.pResource =
         frame.renderTarget;
-
     barrier.Transition.Subresource =
         D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
     barrier.Transition.StateBefore =
         D3D12_RESOURCE_STATE_PRESENT;
-
     barrier.Transition.StateAfter =
         D3D12_RESOURCE_STATE_RENDER_TARGET;
 
@@ -3259,9 +3925,52 @@ HRESULT __stdcall HookPresent(
             1,
             heaps);
 
-    ImGui_ImplDX12_RenderDrawData(
-        ImGui::GetDrawData(),
-        g_commandList);
+    ImGui_ImplDX12_QP_ClearLastError();
+
+    if (!GuardedRenderDrawData(
+            ImGui::GetDrawData(),
+            g_commandList)) {
+
+        const DWORD seh =
+            g_lastOverlaySeh.load(
+                std::memory_order_acquire);
+
+        Log(
+            "[OVERLAY] RenderDrawData SEH=0x%08lX; command list will not be submitted.",
+            static_cast<unsigned long>(
+                seh));
+
+        g_commandList->Close();
+
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.RenderDrawData",
+            E_FAIL);
+
+        return;
+    }
+
+    const HRESULT renderBackendHr =
+        ImGui_ImplDX12_QP_GetLastHRESULT();
+
+    if (FAILED(
+            renderBackendHr)) {
+
+        Log(
+            "[OVERLAY] RenderDrawData backend failure at %s HRESULT=0x%08lX",
+            ImGui_ImplDX12_QP_GetLastStage(),
+            static_cast<unsigned long>(
+                renderBackendHr));
+
+        g_commandList->Close();
+
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.RenderDrawDataBackend",
+            renderBackendHr);
+
+        return;
+    }
 
     std::swap(
         barrier.Transition.StateBefore,
@@ -3272,13 +3981,16 @@ HRESULT __stdcall HookPresent(
             1,
             &barrier);
 
-    if (FAILED(
-            g_commandList->Close())) {
+    hr =
+        g_commandList->Close();
 
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+    if (FAILED(hr)) {
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.CommandListClose",
+            hr);
+
+        return;
     }
 
     ID3D12CommandList* lists[] = {
@@ -3290,10 +4002,12 @@ HRESULT __stdcall HookPresent(
             std::memory_order_acquire);
 
     if (!queue) {
-        return g_originalPresent(
-            swapChain,
-            syncInterval,
-            flags);
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.CommandQueueMissing",
+            E_POINTER);
+
+        return;
     }
 
     queue->ExecuteCommandLists(
@@ -3303,13 +4017,48 @@ HRESULT __stdcall HookPresent(
     const UINT64 fenceValue =
         ++g_nextFenceValue;
 
-    if (SUCCEEDED(
-            queue->Signal(
-                g_fence,
-                fenceValue))) {
+    hr =
+        queue->Signal(
+            g_fence,
+            fenceValue);
 
-        frame.fenceValue =
-            fenceValue;
+    if (FAILED(hr)) {
+        // The list may already be executing. Do not reuse its allocator/resources.
+        DisableOverlayRendering(
+            OverlayStage::RenderFailed,
+            "Render.QueueSignal",
+            hr);
+
+        return;
+    }
+
+    frame.fenceValue =
+        fenceValue;
+
+    if (!g_firstOpenSubmitted.exchange(
+            true,
+            std::memory_order_acq_rel)) {
+
+        Log(
+            "[OVERLAY] FirstOpen frame submitted successfully.");
+    }
+}
+
+HRESULT __stdcall HookPresent(
+    IDXGISwapChain* swapChain,
+    UINT syncInterval,
+    UINT flags) {
+
+    if (!g_originalPresent) {
+        return E_FAIL;
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(
+            g_renderMutex);
+
+        RenderOverlayFrameLocked(
+            swapChain);
     }
 
     return g_originalPresent(
@@ -3326,20 +4075,83 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags) {
 
-    ShutdownDx12Backend();
+    if (!g_originalResizeBuffers) {
+        return E_FAIL;
+    }
 
-    g_stage.store(
-        static_cast<int>(
-            OverlayStage::QueueCaptured),
-        std::memory_order_release);
+    bool tracked = false;
+    bool safelyReleased = true;
 
-    return g_originalResizeBuffers(
-        swapChain,
-        bufferCount,
-        width,
-        height,
-        newFormat,
-        swapChainFlags);
+    {
+        std::lock_guard<std::recursive_mutex> lock(
+            g_renderMutex);
+
+        tracked =
+            IsTrackedSwapChain(
+                swapChain);
+
+        if (tracked) {
+            Log(
+                "[OVERLAY] Resize begin: buffers=%u size=%ux%u format=%u flags=0x%X",
+                bufferCount,
+                width,
+                height,
+                static_cast<unsigned int>(
+                    newFormat),
+                swapChainFlags);
+
+            g_requestedVisible.store(
+                false,
+                std::memory_order_release);
+
+            safelyReleased =
+                ShutdownDx12BackendLocked(
+                    "Resize.GPUDrain",
+                    3000);
+
+            if (!safelyReleased) {
+                DisableOverlayRendering(
+                    OverlayStage::FenceTimeout,
+                    "Resize.GPUDrain",
+                    HRESULT_FROM_WIN32(
+                        ERROR_TIMEOUT));
+            }
+        }
+    }
+
+    const HRESULT hr =
+        g_originalResizeBuffers(
+            swapChain,
+            bufferCount,
+            width,
+            height,
+            newFormat,
+            swapChainFlags);
+
+    if (tracked) {
+        std::lock_guard<std::recursive_mutex> lock(
+            g_renderMutex);
+
+        if (FAILED(hr)) {
+            SetStage(
+                OverlayStage::ResizeFailed);
+
+            LogOverlayHr(
+                "Resize.ResizeBuffers",
+                hr);
+        } else if (safelyReleased &&
+                   !g_sessionRendererDisabled.load(
+                       std::memory_order_acquire)) {
+
+            SetStage(
+                OverlayStage::QueueCaptured);
+
+            Log(
+                "[OVERLAY] Resize complete; renderer will rebuild on the next Present.");
+        }
+    }
+
+    return hr;
 }
 
 void __stdcall HookExecuteCommandLists(
@@ -3354,6 +4166,9 @@ void __stdcall HookExecuteCommandLists(
         if (desc.Type ==
             D3D12_COMMAND_LIST_TYPE_DIRECT) {
 
+            g_tlsLastDirectQueue =
+                queue;
+
             ID3D12CommandQueue* expected =
                 nullptr;
 
@@ -3365,22 +4180,21 @@ void __stdcall HookExecuteCommandLists(
                         queue,
                         std::memory_order_acq_rel)) {
 
-                g_stage.store(
-                    static_cast<int>(
-                        OverlayStage::QueueCaptured),
-                    std::memory_order_release);
+                SetStage(
+                    OverlayStage::QueueCaptured);
 
             } else {
-
                 queue->Release();
             }
         }
     }
 
-    g_originalExecuteCommandLists(
-        queue,
-        numCommandLists,
-        lists);
+    if (g_originalExecuteCommandLists) {
+        g_originalExecuteCommandLists(
+            queue,
+            numCommandLists,
+            lists);
+    }
 }
 
 bool InstallRuntimeHooks() {
