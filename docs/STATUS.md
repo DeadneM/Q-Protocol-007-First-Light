@@ -1,5 +1,15 @@
 # Technical status
 
+## v0.9.6 public release: A25 + native DXGI (2026-10-10)
+
+- New public release v0.9.6 promoted from A25 per maintainer request, separate from historical v0.9.5.
+- Floating ImGui menu defaults to 1000×850 constrained to current work area, with the Save / Reload / Defaults footer outside scrollable tab contents.
+- Native x64 custom DXGI proxy is included in the four-file root ZIP and loads the matching QProtocol.asi alongside it. Back up existing local DXGI/ReShade/Special K wrappers before replacing.
+- A24 gameplay, A23 adaptive 41-graph discovery, A22 mouse improvements, First Debug DX12 safety, weapon IDs and public QProtocol.ini are preserved.
+- GitHub Actions audits C++ source isolation, Windows DXGI exported functions/ordinals, actual CreateDXGIFactory1 forwarding, overlay/API imports and ZIP root layout.
+- v0.9.5 stays available for rollback; historical A23 crash root cause and wide GPU/Windows support are not proved by the build CI.
+- Details: `packaging/RELEASE_NOTES_A25.md`. F1 close-combat research remains paused.
+
 ## v0.9.5 public release — A24
 
 - User reports A24 appears to work in-game and requested publication.
@@ -38,7 +48,7 @@
 
 ## Active state
 
-- Current public release: **Q Protocol v0.9.5 / A24 Overlay Compatibility & Weapon Queue Safety**.
+- Current public release: **Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI**.
 - A20J is the validated post-update base for the October 7, 2026 executable.
 - Player-ready resolution, F1, F2, F3, F4, F5-F12 and AUTO are validated in-game.
 - Weapon spawning uses each RID's native ItemEntry/Spawner graph directly.
