@@ -9,6 +9,10 @@
 - Gameplay validation scope: no intentional change to F1/F2/F3/AUTO native actions, weapon IDs, public INI values or underlying spawn routine; A23 discovery range and A24 standalone queue guards intentionally changed.
 - Build source is promoted from `dev/a24-weapon-queue-safety` through `release/v0.9.5-a24`, retaining full old issue notebook and stable v0.9.4 history.
 - Status: **public v0.9.5**, based on maintainer test; keep First Debug field feedback open and F1 melee experiments A20K–A20N paused.
+- **Production CI #144 / `38066482394`: SUCCESS**; merge commit `fddf569223a1f564a8925b04c4b4d3b3ea32f5f8`; stable release [v0.9.5](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.5) publicly available (not prerelease).
+- Final production release ZIP: `Q-Protocol_v0.9.5.zip` (452380 bytes), SHA-256 `7394c3688c70a7bf25ee8be9606b52b635b0b958c1c5d4f90e23cc2e37b9035f`.
+- Final production `QProtocol.asi`: 870400 bytes, SHA-256 `9e8c58f6b0e1d36592f8ada8606e0e304a816bc86358274f57a371718eb74cee`.
+- Public INI: 6717 bytes, SHA-256 unchanged `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`. Release package ZIP layout verified flat by CI.
 - Release notes: `packaging/RELEASE_NOTES_A24.md`.
 
 ## A24 — Weapon Queue Safety TEST (2026-10-10)
