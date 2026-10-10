@@ -1,4 +1,4 @@
-Q Protocol - Fresh Core A23 Dynamic Weapon Graph Recovery TEST
+Q Protocol - Fresh Core A24 Weapon Queue Safety TEST
 =====================================================
 
 STATUS
@@ -8,10 +8,32 @@ Public stable remains v0.9.4 / A20J.
 
 BASE
 ----
-A23 builds on the A22 reliable-input / A21 floating ImGui menu, First Debug DX12 hardening, and the validated v0.9.4 / Fresh Core A20J gameplay core. Experimental F1 branches
+A24 builds on the A23 dynamic weapon graph recovery and the A22 reliable-input / A21 floating ImGui menu, First Debug DX12 hardening, and the validated v0.9.4 / Fresh Core A20J gameplay core. Experimental F1 branches
 A20K-A20N are excluded; close-combat / F1 research is paused.
 
-A23 WEAPON GRAPH DISCOVERY REPAIR
+A24 CRASH INVESTIGATION / QUEUE SAFETY
+-------------------------------------
+A23 successfully recovers all 41 native weapon graphs, with 42 item entries
+and 43 spawners. The supplied A23 log shows 2 AUTO and 2 F3 package
+completions, and 41 direct native weapon spawn completions with no logged
+gameplay error. However the game terminated immediately after a subsequent
+Q-Pistol spawn; this log contains no exception code or crash stack. The
+exact cause is NOT established.
+
+The session also includes 33 individual weapon hotkey enqueues and many
+repeated F5-F8 requests. A24 guards ONLY F4-F12 and Debug Spawn requests:
+- repeated RID requests already active or queued are ignored;
+- at most 4 distinct requests can be pending at once;
+- at most 12 newly queued individual weapons over 30 seconds;
+- recent-request history resets on player READY/NOT READY change;
+- requests suppressed by the guard are recorded with "[A24]" in the log;
+- A23 41-graph discovery, native spawn invocation, 500 ms cooldown,
+  AUTO, F3 Manual Loadout, F1 and F2 gameplay are otherwise unchanged.
+
+A24 is a conservative crash mitigation and diagnostic candidate, not
+a proven fix. Further evidence is needed if the game still crashes.
+
+A23 WEAPON GRAPH DISCOVERY REPAIR (RETAINED)
 --------------------------------
 Observed broken A22 session:
 - graph index = 0 ItemEntry/Spawner graphs, 1 candidate;
@@ -31,7 +53,7 @@ pointers and weapon RID just as A20J did.
 QProtocol.log now reports "A23 graph index:" followed by linked graph count,
 ItemEntry RID count, spawner count and scan anchor.
 
-THIS IS AN EVIDENCE-BASED RECOVERY CANDIDATE, NOT A GUARANTEED RUNTIME FIX.
+A23 graph discovery is confirmed restored by the user's A23 runtime log.
 
 A22 MOUSE INPUT CORRECTIONS (RETAINED)
 --------------------------------------
@@ -92,6 +114,6 @@ VALIDATION
 Build/CI checks source invariants, PE imports, and package layout. These checks
 do not prove a particular GPU/driver/overlay combination works in-game.
 
-Do not promote A23 to stable until the in-game graph index recovers, F3,
+Do not promote A24 to stable until the in-game graph index remains stable, F3,
 F4, F5-F12, AUTO and Debug Spawn Weapon work again, and A22 clicks, drag,
 Insert, resize and Alt-Tab remain stable. Public v0.9.4 remains untouched.
