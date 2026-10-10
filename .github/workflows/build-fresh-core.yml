@@ -541,7 +541,7 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
-          Copy-Item packaging/README.txt dist/README.txt -Force
+          Copy-Item packaging/README_NEXT_DXGI.txt dist/README.txt -Force
 
           $files = @(
             "dist/dxgi.dll",
