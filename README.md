@@ -41,6 +41,12 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 [Download latest release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/latest)
 
+## Future builds: native DXGI included
+
+Starting with **A25 cumulative ZIPs**, future Q Protocol builds include our custom game-local `dxgi.dll` proxy **by default**. All packages must contain `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, and `README.txt` directly at ZIP root. The DXGI proxy loads the ASI and forwards Windows DXGI calls to System32. Back up any existing `dxgi.dll` (including ReShade/Special K) before installing.
+
+This policy is recorded in [DXGI_PACKAGING_POLICY.md](docs/DXGI_PACKAGING_POLICY.md). The existing public v0.9.5 release asset is **not** silently replaced; a later numbered release will incorporate the new four-file format.
+
 ## Default controls
 
 | Key | Default action |

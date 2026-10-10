@@ -1,4 +1,4 @@
-name: Build Fresh Core
+name: Build Fresh Core - Native DXGI Bundled
 
 on:
   workflow_dispatch:
@@ -28,6 +28,7 @@ on:
       - "config/QProtocol.ini"
       - "packaging/**"
       - ".github/workflows/build-fresh-core.yml"
+      - "tools/generate_dxgi_proxy.py"
 
 permissions:
   contents: write
@@ -46,6 +47,65 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+
+      - name: Generate real DXGI exports, ordinal map, and x64 thunks
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $systemDxgi = Join-Path $env:WINDIR "System32\dxgi.dll"
+          if (-not (Test-Path $systemDxgi)) { throw "Windows System32 dxgi.dll absent" }
+          dumpbin /nologo /exports $systemDxgi | Set-Content -Encoding utf8 dist\dxgi_system_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "dumpbin failed for system DXGI" }
+          python tools/generate_dxgi_proxy.py --dump dist/dxgi_system_exports.txt --out dist
+          if ($LASTEXITCODE -ne 0) { throw "DXGI generation failed" }
+
+      - name: Build local dxgi.dll proxy and DXGI ABI smoke test
+        shell: cmd
+        run: |
+          ml64 /nologo /c /Fo dist\dxgi_proxy_exports.obj dist\dxgi_proxy_exports.asm
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE /I dist src\dxgi_proxy\ProxyDxgi.cpp dist\dxgi_proxy_exports.obj kernel32.lib /link /DEF:dist\dxgi_proxy.def /OUT:dist\dxgi.dll
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /DUNICODE /D_UNICODE src\dxgi_proxy\DxgiSmoke.cpp /Fe:dist\DxgiSmoke.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Audit exact DXGI system exports and standalone dependencies
+        shell: pwsh
+        run: |
+          dumpbin /nologo /exports dist\dxgi.dll | Set-Content -Encoding utf8 dist\dxgi_proxy_actual_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "dumpbin failed for compiled proxy" }
+          python tools/generate_dxgi_proxy.py --dump dist/dxgi_system_exports.txt --out dist --verify dist/dxgi_proxy_actual_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "DXGI ABI mismatch" }
+          dumpbin /nologo /dependents dist\dxgi.dll | Set-Content -Encoding utf8 dist\dxgi_proxy_dependents.txt
+          if ($LASTEXITCODE -ne 0) { throw "DXGI dependency audit failed" }
+          $deps = Get-Content dist\dxgi_proxy_dependents.txt -Raw
+          if ($deps -match "VCRUNTIME\d*\.dll|MSVCP\d*\.dll|ucrtbase\.dll|D3DCompiler_47.dll") {
+            throw "Unexpected external runtime dependency"
+          }
+          if ($deps -notmatch "KERNEL32.dll") { throw "Expected Kernel32 dependency missing" }
+          Write-Host "Custom x64 DXGI proxy import/ABI checks PASS."
+
+      - name: Run native CreateDXGIFactory1 smoke test
+        shell: pwsh
+        run: |
+          $env:QPROTOCOL_DXGI_NO_ASI = "1"
+          Push-Location dist
+          try {
+            .\DxgiSmoke.exe
+            if ($LASTEXITCODE -ne 0) { throw "Native CreateDXGIFactory1 proxy call failed: $LASTEXITCODE" }
+            $smoke = Get-Content QProtocolDXGI.log -Raw
+            if ($smoke -notmatch "Real System32 DXGI loaded: yes") {
+              throw "Proxy failed to locate System32 DXGI"
+            }
+            if ($smoke -notmatch "QProtocol.asi: skipped for CI smoke check") {
+              throw "Unexpected ASI behavior during CI smoke"
+            }
+            Write-Host "Custom DXGI proxy native forwarding smoke PASS."
+          }
+          finally {
+            Pop-Location
+            Remove-Item Env:QPROTOCOL_DXGI_NO_ASI -ErrorAction SilentlyContinue
+          }
 
       - name: Fetch pinned overlay dependencies
         shell: pwsh
@@ -481,9 +541,10 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
-          Copy-Item packaging/README.txt dist/README.txt -Force
+          Copy-Item packaging/README_NEXT_DXGI.txt dist/README.txt -Force
 
           $files = @(
+            "dist/dxgi.dll",
             "dist/QProtocol.asi",
             "dist/QProtocol.ini",
             "dist/README.txt"
@@ -499,7 +560,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build v0.9.5 release ZIP
+      - name: Build future cumulative DXGI-bundled ZIP
         shell: pwsh
         run: |
           @'
@@ -508,8 +569,8 @@ jobs:
           import zipfile
 
           dist = Path("dist")
-          names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.5.zip"
+          names = ["dxgi.dll", "QProtocol.asi", "QProtocol.ini", "README.txt"]
+          out = dist / "Q-Protocol_Next_CustomDXGI_CI.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -525,34 +586,22 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload v0.9.5 release artifact
+      - name: Upload future DXGI-bundled CI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.5
+          name: Q-Protocol_Next_CustomDXGI_CI
           path: |
+            dist/dxgi.dll
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish public GitHub Release v0.9.5
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Guard existing stable tag and future packaging convention
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.5"
-          $asset = "dist/Q-Protocol_v0.9.5.zip"
-          $title = "Q Protocol v0.9.5 - A24 Overlay Compatibility & Weapon Queue Safety"
-
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          $exists = ($LASTEXITCODE -eq 0)
-
-          if ($exists) {
-            gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
-            if ($LASTEXITCODE -ne 0) { throw "Failed to upload v0.9.5 ZIP" }
-            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A24.md --latest --repo $env:GITHUB_REPOSITORY
-          } else {
-            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A24.md --latest --repo $env:GITHUB_REPOSITORY
-          }
-          if ($LASTEXITCODE -ne 0) { throw "Failed to publish v0.9.5 release" }
+          Write-Host "No release tag is created by the generic build workflow."
+          Write-Host "Existing public v0.9.5 is immutable and must not be clobbered."
+          Write-Host "Future numbered releases must use a new tag and include dxgi.dll,"
+          Write-Host "QProtocol.asi, QProtocol.ini, README.txt at ZIP root."
+          Write-Host "The ASI core source is not modified by DXGI packaging."

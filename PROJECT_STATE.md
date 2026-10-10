@@ -1,5 +1,17 @@
 # Q Protocol — Project State
 
+## Default DXGI packaging for ALL future builds (2026-10-10)
+
+- User authorized: **“met notre dxgi avec toutes les prochaines builds”**. From A25 onward, package our native x64 DXGI proxy **with every new build**.
+- **Mandatory exact ZIP root:** `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, `README.txt`.
+- Source-controlled native proxy: `src/dxgi_proxy/ProxyDxgi.cpp`, `src/dxgi_proxy/DxgiSmoke.cpp`, `tools/generate_dxgi_proxy.py`.
+- GitHub build pipeline compiles native proxy, verifies all system DXGI export names/ordinals and runs a real `CreateDXGIFactory1` forwarding smoke test. Missing proxy or nested ZIP path fails CI.
+- Main future-build pipeline uses `packaging/README_NEXT_DXGI.txt`; all future feature version workflows must retain the four-file contract.
+- Existing stable `v0.9.5` artifact remains untouched. The generic CI pipeline no longer overwrites published `v0.9.5` automatically; later stable releases require new version tags.
+- A25 `dev/a25-overlay-fit-default` was updated with the custom loader; DXGI-bundled A25 test ZIP rebuilt successfully on CI (#8 / run `38073989977`), 523134 bytes. This is still a user-test candidate.
+- Back up existing local DXGI wrappers/ReShade/Special K before installing; `QProtocolDXGI.log` diagnoses startup.
+- Complete contract and rollback: `docs/DXGI_PACKAGING_POLICY.md`.
+
 ## A25 — Accessible default overlay window (2026-10-10)
 
 - User supplied a 4K screenshot showing that the initial Q Protocol floating window hid the lower Save / Reload / Defaults actions behind a non-obvious vertical scrollbar.
