@@ -17,7 +17,7 @@ on:
       - dev/first-debug
       - dev/a21-overlay-compat
       - dev/a22-mouse-input
-      - dev/a24-weapon-queue-safety
+      - dev/a23-dynamic-weapon-graph
       - dev/a24-weapon-queue-safety
     paths:
       - "src/**"
@@ -256,7 +256,7 @@ jobs:
             throw "A24 must not change validated A20J gameplay/config files."
           }
 
-          Write-Host "Protected gameplay/config invariant PASS. A24 core scanner is separately audited."
+          Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
 
       - name: Audit A24 isolated weapon queue safety
         shell: pwsh
