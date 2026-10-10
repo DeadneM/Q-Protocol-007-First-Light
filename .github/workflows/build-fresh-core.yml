@@ -17,7 +17,8 @@ on:
       - dev/first-debug
       - dev/a21-overlay-compat
       - dev/a22-mouse-input
-      - dev/a23-dynamic-weapon-graph
+      - dev/a24-weapon-queue-safety
+      - dev/a24-weapon-queue-safety
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -252,70 +253,65 @@ jobs:
 
           git diff --exit-code v0.9.4 -- $protected
           if ($LASTEXITCODE -ne 0) {
-            throw "A23 must not change validated A20J gameplay/config files."
+            throw "A24 must not change validated A20J gameplay/config files."
           }
 
-          Write-Host "Protected gameplay/config invariant PASS. A23 core scanner is separately audited."
+          Write-Host "Protected gameplay/config invariant PASS. A24 core scanner is separately audited."
 
-      - name: Audit A23 isolated weapon graph repair
+      - name: Audit A24 isolated weapon queue safety
         shell: pwsh
         run: |
           @'
           from pathlib import Path
           import subprocess
-          import re
 
-          base = subprocess.check_output(
-              ["git", "show", "v0.9.4:src/QProtocol.cpp"],
+          prior = subprocess.check_output(
+              ["git", "show", "origin/dev/a23-dynamic-weapon-graph:src/QProtocol.cpp"],
               text=True, encoding="utf-8"
           )
           now = Path("src/QProtocol.cpp").read_text(encoding="utf-8")
-
-          anchor = "std::uintptr_t g_graphScanPlayerLoadout = 0; // Worker thread only; runtime discovery anchor"
-          set_anchor = (
-              "        g_graphScanPlayerLoadout = ready\n"
-              "            ? reinterpret_cast<std::uintptr_t>(player.loadout)\n"
-              "            : 0;\n"
+          extras = (
+              "std::deque<ULONGLONG> g_recentUnitaryWeaponRequests;\n"
+              "constexpr std::size_t kUnitaryPendingLimit = 4;\n"
+              "constexpr std::size_t kUnitaryBurstLimit = 12;\n"
+              "constexpr ULONGLONG kUnitaryBurstWindowMs = 30000;\n"
           )
-          if now.count(anchor) != 1 or now.count(set_anchor) != 1:
-              raise SystemExit("A23 scan anchor missing, duplicated or modified")
+          if extras not in now:
+              raise SystemExit("A24 expected queue guard globals missing")
 
-          def normalized(s):
-              s = s.replace(anchor+"\n", "")
-              s = s.replace(set_anchor, "")
-              begin = s.index("bool BuildGraphIndex() {")
-              end = s.index("bool ValidateGraph(", begin)
-              return s[:begin] + "[A23 SCANNER ONLY]\n" + s[end:]
+          def neutralize(source, a24):
+              begin = source.index("bool QueueWeapon(std::uint64_t rid, const char* source) {")
+              end = source.index("bool QueueAmmoProfile(", begin)
+              source = source[:begin] + "[A24 QUEUE GUARD ONLY]\n" + source[end:]
+              if a24:
+                  source = source.replace(extras, "")
+                  source = source.replace(
+                      "    g_recentUnitaryWeaponRequests.clear();\n", "")
+                  source = source.replace(
+                      "// A24: bounded burst protection for manual F4-F12 and Debug Spawn only.\n"
+                      "// Worker-thread state; AUTO/F3 package transaction and native spawn unchanged.\n",
+                      "")
+              return source
 
-          if normalized(base) != normalized(now):
-              raise SystemExit("A23 regression: gameplay source changed outside scanner and runtime player anchor")
-
-          for token in (
-              "auto scanRange",
-              "g_graphScanPlayerLoadout",
-              "kAnchorRadius = 0x02000000",
-              "scanRange(kGraphScanBegin, kGraphScanEnd)",
+          if neutralize(prior, False) != neutralize(now, True):
+              raise SystemExit("A24 gameplay regression outside new queue guard")
+          for key in (
+              "kUnitaryPendingLimit = 4",
+              "kUnitaryBurstLimit = 12",
+              "kUnitaryBurstWindowMs = 30000",
+              "g_activeWeapon.requestedRid == rid",
+              "std::find(g_weaponQueue.begin()",
+              "g_recentUnitaryWeaponRequests.push_back(now)",
+              "g_recentUnitaryWeaponRequests.clear()",
               "A23 graph index:",
+              "scanRange(kGraphScanBegin, kGraphScanEnd)",
           ):
-              if token not in now:
-                  raise SystemExit(f"A23 scanner invariant missing: {token}")
-
-          legacy_begin = 0x2C000000
-          legacy_end = 0x30000000
-          known_item = 0x2CE59DC8
-          known_anchor = 0x2D210E50
-          current_anchor = 0x2BDA8038
-          synthetic_item = known_item + (current_anchor - known_anchor)
-          local_begin = (current_anchor - 0x02000000) & ~0xFFFF
-          local_end = (current_anchor + 0x02000000 + 0xFFFF) & ~0xFFFF
-          assert known_item >= legacy_begin and known_item < legacy_end
-          assert synthetic_item < legacy_begin
-          assert local_begin <= synthetic_item < local_end
-          print(f"A23 synthetic layout relocation PASS: 0x{synthetic_item:X} outside fixed scan, inside adaptive window")
-          print("A23 source isolation audit PASS: all non-scanner gameplay paths unchanged")
+              if key not in now:
+                  raise SystemExit("A24 safety or A23 graph regression: " + key)
+          print("A24 gameplay isolation PASS: only isolated F4-F12/Debug queue guard; A23 scanner and native F1/F2/F3/AUTO unchanged.")
           '@ | python -
 
-      - name: Audit A23 overlay compatibility architecture
+      - name: Audit A24 overlay compatibility architecture
         shell: pwsh
         run: |
           @'
@@ -332,7 +328,7 @@ jobs:
 
           for token in forbidden:
               if token in src:
-                  raise SystemExit(f"A23 fixed-window regression: {token}")
+                  raise SystemExit(f"A24 fixed-window regression: {token}")
 
           required = [
               "ImGuiCond_FirstUseEver",
@@ -349,20 +345,20 @@ jobs:
 
           for token in required:
               if token not in src:
-                  raise SystemExit(f"A23 compatibility invariant missing: {token}")
+                  raise SystemExit(f"A24 compatibility invariant missing: {token}")
 
           if "IsInputMessage(msg)" in src:
-              raise SystemExit("A23 regression: blanket input swallowing returned.")
+              raise SystemExit("A24 regression: blanket input swallowing returned.")
 
           if "std::try_to_lock" in src:
-              raise SystemExit("A23 regression: input can be dropped on render-lock contention.")
+              raise SystemExit("A24 regression: input can be dropped on render-lock contention.")
           if "IsMouseInputMessage(msg) &&" in src:
-              raise SystemExit("A23 regression: frame-stale mouse capture gate returned.")
+              raise SystemExit("A24 regression: frame-stale mouse capture gate returned.")
 
-          print("A23 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
+          print("A24 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
           '@ | python -
 
-      - name: Compile A23 ImGui shaders
+      - name: Compile A24 ImGui shaders
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
@@ -420,35 +416,35 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Audit A23 PE dependencies
+      - name: Audit A24 PE dependencies
         shell: pwsh
         run: |
-          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A23_IMPORTS.txt
-          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A23_DEPENDENTS.txt
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A24_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A24_DEPENDENTS.txt
 
-          $imports = Get-Content dist\A23_IMPORTS.txt -Raw
-          $deps = Get-Content dist\A23_DEPENDENTS.txt -Raw
+          $imports = Get-Content dist\A24_IMPORTS.txt -Raw
+          $deps = Get-Content dist\A24_DEPENDENTS.txt -Raw
 
           if ($imports -match "WriteProcessMemory") {
-            throw "A23 regression: WriteProcessMemory is imported."
+            throw "A24 regression: WriteProcessMemory is imported."
           }
 
           if ($imports -notmatch "ReadProcessMemory") {
-            throw "A23 audit mismatch: expected ReadProcessMemory import not found."
+            throw "A24 audit mismatch: expected ReadProcessMemory import not found."
           }
 
           if ($imports -notmatch "VirtualProtect") {
-            throw "A23 audit mismatch: expected VirtualProtect import not found."
+            throw "A24 audit mismatch: expected VirtualProtect import not found."
           }
 
           if ($deps -match "D3DCompiler_47\.dll") {
-            throw "A23 regression: runtime D3DCompiler_47 dependency still present."
+            throw "A24 regression: runtime D3DCompiler_47 dependency still present."
           }
 
           if ($deps -match "VCRUNTIME\d*\.dll" -or
               $deps -match "MSVCP\d*\.dll" -or
               $deps -match "ucrtbase\.dll") {
-            throw "A23 regression: dynamic MSVC/UCRT runtime dependency detected."
+            throw "A24 regression: dynamic MSVC/UCRT runtime dependency detected."
           }
 
           foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
@@ -463,21 +459,21 @@ jobs:
 
           $asi = Get-Item dist\QProtocol.asi
           $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
-          Write-Host ("A23 ASI size: {0} bytes" -f $asi.Length)
-          Write-Host ("A23 ASI SHA-256: {0}" -f $sha)
-          Write-Host "A23 dependency audit PASS."
+          Write-Host ("A24 ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A24 ASI SHA-256: {0}" -f $sha)
+          Write-Host "A24 dependency audit PASS."
           Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
 
-      - name: Upload A23 dependency audit
+      - name: Upload A24 dependency audit
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_A23_DependencyAudit
+          name: Q-Protocol_A24_DependencyAudit
           path: |
-            dist/A23_IMPORTS.txt
-            dist/A23_DEPENDENTS.txt
+            dist/A24_IMPORTS.txt
+            dist/A24_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare A23 test files
+      - name: Prepare A24 test files
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
@@ -491,7 +487,7 @@ jobs:
 
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
-              throw "Missing A23 package file: $file"
+              throw "Missing A24 package file: $file"
             }
 
             $item = Get-Item $file
@@ -499,7 +495,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build A23 TEST ZIP
+      - name: Build A24 TEST ZIP
         shell: pwsh
         run: |
           @'
@@ -509,7 +505,7 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_FreshCore_A23_DynamicWeaponGraph_TEST.zip"
+          out = dist / "Q-Protocol_FreshCore_A24_WeaponQueueSafety_TEST.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
@@ -525,33 +521,33 @@ jobs:
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A23 test artifact
+      - name: Upload A24 test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A23_DynamicWeaponGraph_TEST
+          name: Q-Protocol_FreshCore_A24_WeaponQueueSafety_TEST
           path: |
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish A23 test pre-release
-        if: github.ref == 'refs/heads/dev/a23-dynamic-weapon-graph'
+      - name: Publish A24 test pre-release
+        if: github.ref == 'refs/heads/dev/a24-weapon-queue-safety'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "a23-test"
-          $asset = "dist/Q-Protocol_FreshCore_A23_DynamicWeaponGraph_TEST.zip"
-          $title = "Q Protocol A23 - Dynamic Weapon Graph Recovery TEST"
+          $tag = "a24-test"
+          $asset = "dist/Q-Protocol_FreshCore_A24_WeaponQueueSafety_TEST.zip"
+          $title = "Q Protocol A24 - Weapon Queue Safety TEST"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           $notes = @"
-          A23 is built from the A20J gameplay base plus the First Debug DX12 hardening.
+          A24 is based on A23 adaptive graph recovery + A22 mouse input + First Debug DX12 hardening and the A20J validated gameplay base.
           Gameplay and QProtocol.ini are unchanged from v0.9.4.
-          A23 retains the A22 mouse reliability improvements and repairs a fixed-address weapon graph discovery weakness with a player-loadout-anchored scan. F1 research remains paused.
+          A24 retains the A23 adaptive scanner and A22 mouse reliability improvements. Duplicate and excessive F4-F12/Debug weapon requests are now suppressed to reduce native spawn bursts after the A23 crash report; cause remains unconfirmed. F1 research remains paused.
           Status: TEST candidate. F1 research is paused and no A20K-A20N gameplay experiment is included.
           "@
 
@@ -563,7 +559,7 @@ jobs:
           }
 
       - name: Guard public v0.9.4 release
-        if: github.ref == 'refs/heads/dev/a23-dynamic-weapon-graph'
+        if: github.ref == 'refs/heads/dev/a24-weapon-queue-safety'
         shell: pwsh
         run: |
-          Write-Host "Public v0.9.4 release is intentionally untouched by A23 development."
+          Write-Host "Public v0.9.4 release is intentionally untouched by A24 development."
