@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## v0.9.6 — A25 accessible overlay + native DXGI public release (2026-10-10)
+
+- Maintainer said **“super, git push et build release”** following A25 and the approved default DXGI packaging. Promoting the A25 UI change to a new numbered public release; do not overwrite existing v0.9.5.
+- v0.9.6 new default window: 1000×850 ImGui units, bounded to viewport; Save/Reload/Defaults pinned outside the independently scrolling main tab child, making footer available even at small sizes.
+- A25 modifies **only** `DrawOverlayWindow()` in `src/OverlayA19.cpp`; validated A24 gameplay source, A23 graph discovery, native F1/F2/F3/AUTO logic, mouse capture and public INI remain unchanged, checked by CI against tag v0.9.5.
+- The default x64 custom DXGI proxy is compiled from source and packaged with current-version `QProtocol.asi`, `QProtocol.ini`, `README.txt` directly at ZIP root. The Windows DXGI exports/ordinals and CreateDXGIFactory1 forwarding are tested in CI.
+- Release branch `release/v0.9.6-a25`. Dedicated workflow `.github/workflows/release-v0.9.6.yml`; stable tag `v0.9.6`, ZIP `Q-Protocol_v0.9.6.zip`. Release only when workflow succeeds on `main` following reviewed PR.
+- Public v0.9.5, earlier A25 test and custom DXGI test archives stay preserved. Backup existing local dxgi.dll if using ReShade/Special K; user's runtime compatibility remains subject to field testing.
+- Release notes: `packaging/RELEASE_NOTES_A25.md`. F1 close-combat research paused.
+
 ## Default DXGI packaging for ALL future builds (2026-10-10)
 
 - User authorized: **“met notre dxgi avec toutes les prochaines builds”**. From A25 onward, package our native x64 DXGI proxy **with every new build**.
