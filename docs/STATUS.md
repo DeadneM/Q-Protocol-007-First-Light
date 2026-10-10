@@ -1,6 +1,16 @@
 # Technical status
 
-## A21 — active overlay compatibility candidate
+## v0.9.5 public release — A24
+
+- User reports A24 appears to work in-game and requested publication.
+- Runtime A23 log confirms graph index restored to 41 linked graphs, 42 ItemEntries, 43 spawners, with F3/AUTO and multiple weapon spawns completed.
+- A21/A22 harden the overlay and mouse input; A23 repairs graph discovery around live player memory; A24 guards duplicate/burst requests (4 pending, 12 per rolling 30 seconds).
+- F1/F2/F3/AUTO semantics, weapon IDs and `QProtocol.ini` defaults retained.
+- Earlier A23 crash cause remains unproven, and cross-hardware compatibility still requires field feedback.
+- `v0.9.4` is kept as the previous stable release. F1 close-combat research A20K–A20N remains paused.
+- See `packaging/RELEASE_NOTES_A24.md`.
+
+## A21 — archived overlay compatibility candidate (superseded by v0.9.5)
 
 - F1 / close-combat research is paused.
 - Active branch: `dev/a21-overlay-compat`.
@@ -18,7 +28,7 @@
 - Public `v0.9.4` remains untouched.
 - Details: `A21_OVERLAY_COMPAT.md`.
 
-## First Debug — open public overlay crash investigation (2026-10-09)
+## First Debug — public overlay compatibility investigation (2026-10-09)
 
 - Report: users encounter a game crash on **Insert** (first display of the DX12 overlay); initial log is from A20I v0.9.3.
 - Root cause unproven. Potential renderer first-frame initialization failure, swapchain mismatch, and unsafe DX12 resize/resource lifetime identified in source audit.
@@ -28,7 +38,7 @@
 
 ## Active state
 
-- Current public release: **Q Protocol v0.9.4 / Fresh Core A20J Clean Core**.
+- Current public release: **Q Protocol v0.9.5 / A24 Overlay Compatibility & Weapon Queue Safety**.
 - A20J is the validated post-update base for the October 7, 2026 executable.
 - Player-ready resolution, F1, F2, F3, F4, F5-F12 and AUTO are validated in-game.
 - Weapon spawning uses each RID's native ItemEntry/Spawner graph directly.
