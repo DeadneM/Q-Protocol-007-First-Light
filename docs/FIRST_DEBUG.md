@@ -134,3 +134,12 @@ The A22 mouse fix improved overlay input, but the maintainer reported all weapon
 The A23 branch `dev/a23-dynamic-weapon-graph` preserves A22 input and First Debug hardening while extending weapon graph discovery around the actual current player loadout. All non-scanner gameplay functions are protected by a source isolation audit. GitHub Actions run #137 PASS, test release `a23-test` (ZIP SHA-256 `daf91b4fca1bbdc07de15fbd67f7f06fa0d87757c4a75303e8a794d9b0f79e3d`). Runtime validation remains pending; the First Debug compatibility incident stays open.
 
 See `docs/A23_DYNAMIC_GRAPH.md` and `PROJECT_STATE.md`.
+
+
+## A24 follow-up: A23 gameplay success, crash under hotkey bursts (2026-10-10)
+
+The user's A23 log confirms graph recovery: 41 linked graphs, 42 item entries, 43 spawner candidates; AUTO and F3 complete, and 41 direct native spawns complete without recorded error. The game nonetheless crashes, and the log contains **no crash exception metadata**. Do not assert the cause is proven or that A23 scanner still fails.
+
+One identified safety weakness remains in the unchanged stable core: `QueueWeapon` accepts up to 16 pending manual weapon commands without deduplicating requested RIDs. The crash log features 33 F-key weapon queue events and repeated F5–F8 commands. A24 therefore adds a guarded rolling input queue (4 distinct pending, 12 accepted manual F4–F12/Debug spawn requests per 30 seconds), keeping A23 graph discovery, F1/F2/F3/AUTO, native routines and A22 UI untouched. This is **candidate mitigation, not validated crash fix**.
+
+CI #140 `38007699828` SUCCESS. [A24 test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a24-test) ZIP SHA-256 `8bcd8ebfec3081690e5f83dd64f602276296bb9ad4f368e152505d7cb87bee80`. See `docs/A24_CRASH_AUDIT.md`. First Debug still OPEN pending in-game compatibility validation. Public stable v0.9.4 unchanged.
