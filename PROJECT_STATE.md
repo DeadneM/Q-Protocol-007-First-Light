@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## A24 — Weapon Queue Safety TEST (2026-10-10)
+
+- A23 runtime result: **graph discovery repaired**, with 41 linked graphs / 42 ItemEntry RID entries / 43 spawners across two READY cycles, two AUTO packages, two complete F3 packages, and 41 successful native weapon spawn observations.
+- User reports **crash** after repeated weapon requests. A23 log ends following a successful Q-Pistol spawn; there is no exception code, stack or device-lost report in the log. Exact crash cause is **unconfirmed**.
+- The log has 33 manual weapon enqueues, many repetitive F5–F8 presses, and A20J queue accepts up to 16 pending requests without deduplication.
+- A24 test branch: `dev/a24-weapon-queue-safety`, based on A23. Change scope: only `QueueWeapon` safeguards, worker-thread history, and reset of that history on player lifecycle changes.
+- Safety guard: deduplicate active/pending RIDs, limit pending queue to **4**, limit accepted F4–F12/Debug Spawn requests to **12 per rolling 30 seconds**. `[A24]` logs explain suppressions.
+- Retains A23 dynamic 41-graph scanner and A22 mouse improvements. F1/F2/F3/AUTO/native weapon routines, IDs and public `QProtocol.ini` unchanged.
+- CI #140 / `38007699828`: **SUCCESS**, isolated gameplay audit, config audit, overlay audit, MSVC build, PE imports, flat ZIP audit all PASS.
+- Test release: [a24-test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a24-test), file `Q-Protocol_FreshCore_A24_WeaponQueueSafety_TEST.zip` (452184 bytes).
+- ZIP SHA-256: `8bcd8ebfec3081690e5f83dd64f602276296bb9ad4f368e152505d7cb87bee80`. ASI SHA-256: `73d0b4a46c5f9e5744fc4fb230062cd1c61e07c623a134c9c905b9b200d98157`. Unmodified INI SHA-256: `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- **Status: TEST ONLY.** No proof yet A24 stops the crash. Keep public stable `v0.9.4`, previous A21–A23 test builds and F1 experimental pause untouched.
+- Detailed evidence: [docs/A24_CRASH_AUDIT.md](docs/A24_CRASH_AUDIT.md).
+
 ## A23 — Dynamic Weapon Graph Recovery TEST (2026-10-09)
 
 - User reports A22 overlay improved but weapons/gameplay stopped functioning. Their `QProtocol(3).log` shows **0 linked ItemEntry/Spawner weapon graphs, 1 spawner candidate** on repeated attempts across player READY cycles. AUTO, F3, F4, F5-F12 and Debug Spawn all fail at graph discovery.
