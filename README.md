@@ -15,9 +15,14 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
-**Q Protocol v0.9.4 / Fresh Core A20J Clean Core** is the current public release.
+**Q Protocol v0.9.5 / A24 Overlay Compatibility & Weapon Queue Safety** is the current public release.
 
 - Updated for the October 7, 2026 game executable.
+- A24 received a positive in-game maintainer report and is promoted from TEST to public release.
+- First Debug / A21 harden the DX12 renderer and provide a movable, resizable ImGui overlay.
+- A22 improves click reliability and in-overlay mouse handling.
+- A23 dynamically locates native weapon graphs around the live player loadout; 41 linked graphs were recovered in the A23 runtime log.
+- A24 limits duplicate/repeated F4–F12 and Debug Spawn requests to 4 pending and 12 accepted in 30 seconds.
 - Player/loadout resolution is remapped for the new executable.
 - Weapon spawning now uses each weapon's native ItemEntry/Spawner graph directly.
 - The obsolete donor pair-clone path is no longer used.
@@ -31,6 +36,10 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 - The overlay can expose Experimental entries when testing is desired.
 - A20J is the validated post-update Clean Core base; U74 remains a historical behavioral/reference library.
 - Gadget gameplay code remains removed from the active Q Protocol direction.
+
+> **Compatibility note:** the root cause of the earlier A23 crash is not proven by its log. A24 mitigates a possible spawn-request overload; wider hardware validation is ongoing. Previous [v0.9.4](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.4) remains available.
+
+[Download latest release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/latest)
 
 ## Default controls
 
@@ -117,6 +126,7 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
 - [`PROJECT_STATE.md`](PROJECT_STATE.md) — authoritative project state.
 - [`docs/STATUS.md`](docs/STATUS.md) — concise technical status.
+- [`packaging/RELEASE_NOTES_A24.md`](packaging/RELEASE_NOTES_A24.md) — v0.9.5 release notes.
 - [`docs/OVERLAY_PLAN.md`](docs/OVERLAY_PLAN.md) — overlay and input architecture.
 - [`config/QProtocol.ini`](config/QProtocol.ini) — target configuration.
 - [`docs/HISTORY.md`](docs/HISTORY.md) — historical notebook.
