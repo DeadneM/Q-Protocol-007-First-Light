@@ -159,6 +159,12 @@ bool g_graphIndexBuilt = false;
 std::uintptr_t g_graphScanPlayerLoadout = 0; // Worker thread only; runtime discovery anchor
 std::vector<std::uint64_t> g_seenRuntimeGraphRids;
 std::deque<std::uint64_t> g_weaponQueue;
+// A24: bounded burst protection for manual F4-F12 and Debug Spawn only.
+// Worker-thread state; AUTO/F3 package transaction and native spawn unchanged.
+std::deque<ULONGLONG> g_recentUnitaryWeaponRequests;
+constexpr std::size_t kUnitaryPendingLimit = 4;
+constexpr std::size_t kUnitaryBurstLimit = 12;
+constexpr ULONGLONG kUnitaryBurstWindowMs = 30000;
 ActiveWeapon g_activeWeapon{};
 ULONGLONG g_nextWeaponAllowedAt = 0;
 unsigned int g_unitaryRetryCount = 0;
@@ -1365,16 +1371,65 @@ bool QueueWeapon(std::uint64_t rid, const char* source) {
         return false;
     }
 
-    if (g_weaponQueue.size() >= 16) {
-        Log("%s ignored: weapon queue full.", source);
+    // A24: never enqueue identical requests already pending or in-flight.
+    // A23's crash log had 33 manual weapon hotkey enqueues and 41 successful
+    // native spawns with numerous duplicate F5-F8 requests.
+    if (g_activeWeapon.active &&
+        !g_activeWeapon.packageOwned &&
+        g_activeWeapon.requestedRid == rid) {
+
+        Log(
+            "[A24] %s suppressed: RID=%016llX already active.",
+            source,
+            static_cast<unsigned long long>(RotateRid(rid)));
         return false;
     }
 
+    if (std::find(g_weaponQueue.begin(), g_weaponQueue.end(), rid) !=
+        g_weaponQueue.end()) {
+
+        Log(
+            "[A24] %s suppressed: RID=%016llX already queued.",
+            source,
+            static_cast<unsigned long long>(RotateRid(rid)));
+        return false;
+    }
+
+    if (g_weaponQueue.size() >= kUnitaryPendingLimit) {
+        Log(
+            "[A24] %s suppressed: pending weapon queue limit (%zu).",
+            source,
+            kUnitaryPendingLimit);
+        return false;
+    }
+
+    const ULONGLONG now = GetTickCount64();
+    while (!g_recentUnitaryWeaponRequests.empty() &&
+           now - g_recentUnitaryWeaponRequests.front() >=
+               kUnitaryBurstWindowMs) {
+        g_recentUnitaryWeaponRequests.pop_front();
+    }
+
+    if (g_recentUnitaryWeaponRequests.size() >= kUnitaryBurstLimit) {
+        Log(
+            "[A24] %s suppressed: rapid native spawn request guard "
+            "(%zu requests per %llu ms).",
+            source,
+            kUnitaryBurstLimit,
+            static_cast<unsigned long long>(kUnitaryBurstWindowMs));
+        return false;
+    }
+
+    g_recentUnitaryWeaponRequests.push_back(now);
     g_weaponQueue.push_back(rid);
+
     Log(
-        "%s queued RID=%016llX",
+        "%s queued RID=%016llX (pending=%zu, recent=%zu/%zu)",
         source,
-        static_cast<unsigned long long>(RotateRid(rid)));
+        static_cast<unsigned long long>(RotateRid(rid)),
+        g_weaponQueue.size(),
+        g_recentUnitaryWeaponRequests.size(),
+        kUnitaryBurstLimit);
     return true;
 }
 
@@ -1581,6 +1636,7 @@ void ResetWeaponRuntime(const char* reason) {
         ResetActiveWeaponState();
     }
     g_weaponQueue.clear();
+    g_recentUnitaryWeaponRequests.clear();
     g_nextWeaponAllowedAt = 0;
     g_unitaryRetryCount = 0;
     g_unitaryRetryAt = 0;
