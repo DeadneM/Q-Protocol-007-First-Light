@@ -254,7 +254,7 @@ jobs:
           def base(path):
               return subprocess.check_output(
                   ["git", "show", f"v0.9.5:{path}"], encoding="utf-8"
-              ).decode("utf-8")
+              )
 
           for path in (
               "src/QProtocol.cpp",
