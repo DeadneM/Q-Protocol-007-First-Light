@@ -2,7 +2,17 @@
 
 Date: 2026-10-10
 Branch: `dev/a24-weapon-queue-safety`
-Status: **TEST candidate: crash root cause not yet proven**
+Status: **A24 initially validated by maintainer and promoted to public v0.9.5 (2026-10-10); underlying A23 crash cause remains unproven**
+
+## Public release result (2026-10-10)
+
+- User reported A24 “tout a l'air bon” after the in-game test and requested GitHub push + release.
+- Code merged via [PR #4](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/4), merge `fddf569223a1f564a8925b04c4b4d3b3ea32f5f8`.
+- Production GitHub Actions #144 / `38066482394` **PASS**; public release [v0.9.5](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.5).
+- ZIP `Q-Protocol_v0.9.5.zip` (452380 bytes) SHA-256 `7394c3688c70a7bf25ee8be9606b52b635b0b958c1c5d4f90e23cc2e37b9035f`.
+- ASI SHA-256 `9e8c58f6b0e1d36592f8ada8606e0e304a816bc86358274f57a371718eb74cee`; default `QProtocol.ini` unchanged.
+- Earlier A23 crash remains unexplained without a Windows exception stack; maintainer validation does not certify all machines.
+
 
 ## Source log
 
