@@ -15,9 +15,11 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
-**Q Protocol v0.9.5 / A24 Overlay Compatibility & Weapon Queue Safety** is the current public release.
+**Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI** is the current public release.
 
 - Updated for the October 7, 2026 game executable.
+- A25 enlarges the first-open floating overlay to 1000×850 ImGui units and keeps Save / Reload / Defaults accessible below a scrollable tab content area.
+- Public ZIP now includes our custom native 64-bit `dxgi.dll` proxy to load `QProtocol.asi` directly.
 - A24 received a positive in-game maintainer report and is promoted from TEST to public release.
 - First Debug / A21 harden the DX12 renderer and provide a movable, resizable ImGui overlay.
 - A22 improves click reliability and in-overlay mouse handling.
@@ -45,7 +47,7 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 Starting with **A25 cumulative ZIPs**, future Q Protocol builds include our custom game-local `dxgi.dll` proxy **by default**. All packages must contain `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, and `README.txt` directly at ZIP root. The DXGI proxy loads the ASI and forwards Windows DXGI calls to System32. Back up any existing `dxgi.dll` (including ReShade/Special K) before installing.
 
-This policy is recorded in [DXGI_PACKAGING_POLICY.md](docs/DXGI_PACKAGING_POLICY.md). The existing public v0.9.5 release asset is **not** silently replaced; a later numbered release will incorporate the new four-file format.
+This policy is recorded in [DXGI_PACKAGING_POLICY.md](docs/DXGI_PACKAGING_POLICY.md). **v0.9.6** is the first numbered public release to use this four-file layout. The earlier v0.9.5 archive is preserved for rollback.
 
 ## Default controls
 
@@ -132,6 +134,7 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
 - [`PROJECT_STATE.md`](PROJECT_STATE.md) — authoritative project state.
 - [`docs/STATUS.md`](docs/STATUS.md) — concise technical status.
+- [`packaging/RELEASE_NOTES_A25.md`](packaging/RELEASE_NOTES_A25.md) — v0.9.6 cumulative release notes.
 - [`packaging/RELEASE_NOTES_A24.md`](packaging/RELEASE_NOTES_A24.md) — v0.9.5 release notes.
 - [`docs/OVERLAY_PLAN.md`](docs/OVERLAY_PLAN.md) — overlay and input architecture.
 - [`config/QProtocol.ini`](config/QProtocol.ini) — target configuration.
