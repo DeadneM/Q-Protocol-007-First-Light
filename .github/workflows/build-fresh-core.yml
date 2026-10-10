@@ -2,6 +2,9 @@ name: Build Fresh Core
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -14,6 +17,12 @@ on:
       - dev/a20h-weapons-debug-ltk-force-toggle
       - dev/a20i-native-ltk-state-toggle
       - dev/a20j-clean-core
+      - dev/first-debug
+      - dev/a21-overlay-compat
+      - dev/a22-mouse-input
+      - dev/a23-dynamic-weapon-graph
+      - dev/a24-weapon-queue-safety
+      - release/v0.9.5-a24
     paths:
       - "src/**"
       - "config/QProtocol.ini"
@@ -30,6 +39,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -235,23 +246,172 @@ jobs:
           )
           '@ | python -
 
+      - name: Verify A20J gameplay invariants
+        shell: pwsh
+        run: |
+          $protected = @(
+            "src/GameplayHook.asm",
+            "src/Overlay.h",
+            "config/QProtocol.ini"
+          )
+
+          git diff --exit-code v0.9.4 -- $protected
+          if ($LASTEXITCODE -ne 0) {
+            throw "A24 must not change validated A20J gameplay/config files."
+          }
+
+          Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
+
+      - name: Audit A24 isolated weapon queue safety
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import subprocess
+
+          prior = subprocess.check_output(
+              ["git", "show", "origin/dev/a23-dynamic-weapon-graph:src/QProtocol.cpp"],
+              text=True, encoding="utf-8"
+          )
+          now = Path("src/QProtocol.cpp").read_text(encoding="utf-8")
+          extras = (
+              "std::deque<ULONGLONG> g_recentUnitaryWeaponRequests;\n"
+              "constexpr std::size_t kUnitaryPendingLimit = 4;\n"
+              "constexpr std::size_t kUnitaryBurstLimit = 12;\n"
+              "constexpr ULONGLONG kUnitaryBurstWindowMs = 30000;\n"
+          )
+          if extras not in now:
+              raise SystemExit("A24 expected queue guard globals missing")
+
+          def neutralize(source, a24):
+              begin = source.index("bool QueueWeapon(std::uint64_t rid, const char* source) {")
+              end = source.index("bool QueueAmmoProfile(", begin)
+              source = source[:begin] + "[A24 QUEUE GUARD ONLY]\n" + source[end:]
+              if a24:
+                  source = source.replace(extras, "")
+                  source = source.replace(
+                      "    g_recentUnitaryWeaponRequests.clear();\n", "")
+                  source = source.replace(
+                      "// A24: bounded burst protection for manual F4-F12 and Debug Spawn only.\n"
+                      "// Worker-thread state; AUTO/F3 package transaction and native spawn unchanged.\n",
+                      "")
+              return source
+
+          if neutralize(prior, False) != neutralize(now, True):
+              raise SystemExit("A24 gameplay regression outside new queue guard")
+          for key in (
+              "kUnitaryPendingLimit = 4",
+              "kUnitaryBurstLimit = 12",
+              "kUnitaryBurstWindowMs = 30000",
+              "g_activeWeapon.requestedRid == rid",
+              "std::find(g_weaponQueue.begin()",
+              "g_recentUnitaryWeaponRequests.push_back(now)",
+              "g_recentUnitaryWeaponRequests.clear()",
+              "A23 graph index:",
+              "scanRange(kGraphScanBegin, kGraphScanEnd)",
+          ):
+              if key not in now:
+                  raise SystemExit("A24 safety or A23 graph regression: " + key)
+          print("A24 gameplay isolation PASS: only isolated F4-F12/Debug queue guard; A23 scanner and native F1/F2/F3/AUTO unchanged.")
+          '@ | python -
+
+      - name: Audit A24 overlay compatibility architecture
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          src = Path("src/OverlayA19.cpp").read_text(encoding="utf-8")
+
+          forbidden = [
+              "ImGuiWindowFlags_NoTitleBar",
+              "ImGuiWindowFlags_NoResize",
+              "ImGuiWindowFlags_NoMove",
+              "ImGuiCond_Always"
+          ]
+
+          for token in forbidden:
+              if token in src:
+                  raise SystemExit(f"A24 fixed-window regression: {token}")
+
+          required = [
+              "ImGuiCond_FirstUseEver",
+              "ImGui::SetNextWindowSizeConstraints",
+              "A22 ImGui mouse-down received",
+              "msg == WM_INPUT",
+              "io.WantCaptureKeyboard",
+              "IsMouseInputMessage",
+              "IsKeyboardInputMessage",
+              "AcquireOverlayCursorClip",
+              "ReleaseOverlayCursorClip",
+              "A21 compatibility renderer"
+          ]
+
+          for token in required:
+              if token not in src:
+                  raise SystemExit(f"A24 compatibility invariant missing: {token}")
+
+          if "IsInputMessage(msg)" in src:
+              raise SystemExit("A24 regression: blanket input swallowing returned.")
+
+          if "std::try_to_lock" in src:
+              raise SystemExit("A24 regression: input can be dropped on render-lock contention.")
+          if "IsMouseInputMessage(msg) &&" in src:
+              raise SystemExit("A24 regression: frame-stale mouse capture gate returned.")
+
+          print("A24 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
+          '@ | python -
+
+      - name: Compile A24 ImGui shaders
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
+
+          $fxc = Get-Command fxc.exe -ErrorAction SilentlyContinue
+          if (-not $fxc) {
+            $candidates = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\fxc.exe" -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending
+            $fxc = $candidates | Select-Object -First 1
+          }
+
+          if (-not $fxc) {
+            throw "fxc.exe not found in Windows SDK."
+          }
+
+          $fxcPath = if ($fxc.Source) { $fxc.Source } else { $fxc.FullName }
+          Write-Host "Using FXC: $fxcPath"
+
+          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiVS.h /Vn g_FirstDebugImGuiVS src/first_debug/imgui_vs.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Vertex shader compilation failed." }
+
+          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiPS.h /Vn g_FirstDebugImGuiPS src/first_debug/imgui_ps.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Pixel shader compilation failed." }
+
+          if (-not (Test-Path dist/shaders/FirstDebugImGuiVS.h) -or
+              -not (Test-Path dist/shaders/FirstDebugImGuiPS.h)) {
+            throw "Embedded shader headers were not generated."
+          }
+
+          Write-Host "Build-time shader compilation PASS."
+
       - name: Build QProtocol.asi
         shell: cmd
         run: |
           if not exist dist mkdir dist
           ml64 /nologo /c /Fo dist\GameplayHook.obj src\GameplayHook.asm
-          cl /nologo /std:c++20 /O2 /EHsc /W4 /LD /DUNICODE /D_UNICODE ^
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE ^
             /I _deps\imgui ^
             /I _deps\imgui\backends ^
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
+            /I dist\shaders ^
             src\QProtocol.cpp src\OverlayA19.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
             _deps\imgui\imgui_widgets.cpp ^
             _deps\imgui\backends\imgui_impl_win32.cpp ^
-            _deps\imgui\backends\imgui_impl_dx12.cpp ^
+            src\first_debug\imgui_impl_dx12_first_debug.cpp ^
             _deps\minhook\src\buffer.c ^
             _deps\minhook\src\hook.c ^
             _deps\minhook\src\trampoline.c ^
@@ -260,37 +420,64 @@ jobs:
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
-      - name: Audit A20J PE imports
+      - name: Audit A24 PE dependencies
         shell: pwsh
         run: |
-          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A20J_IMPORTS.txt
-          $imports = Get-Content dist\A20J_IMPORTS.txt -Raw
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A24_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A24_DEPENDENTS.txt
+
+          $imports = Get-Content dist\A24_IMPORTS.txt -Raw
+          $deps = Get-Content dist\A24_DEPENDENTS.txt -Raw
 
           if ($imports -match "WriteProcessMemory") {
-            throw "A20J regression: WriteProcessMemory is still imported."
+            throw "A24 regression: WriteProcessMemory is imported."
           }
 
           if ($imports -notmatch "ReadProcessMemory") {
-            throw "A20J audit mismatch: expected ReadProcessMemory import not found."
+            throw "A24 audit mismatch: expected ReadProcessMemory import not found."
           }
 
           if ($imports -notmatch "VirtualProtect") {
-            throw "A20J audit mismatch: expected VirtualProtect import not found."
+            throw "A24 audit mismatch: expected VirtualProtect import not found."
+          }
+
+          if ($deps -match "D3DCompiler_47\.dll") {
+            throw "A24 regression: runtime D3DCompiler_47 dependency still present."
+          }
+
+          if ($deps -match "VCRUNTIME\d*\.dll" -or
+              $deps -match "MSVCP\d*\.dll" -or
+              $deps -match "ucrtbase\.dll") {
+            throw "A24 regression: dynamic MSVC/UCRT runtime dependency detected."
+          }
+
+          foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
+            if ($deps -notmatch [regex]::Escape($required)) {
+              throw "Expected Windows system dependency missing from PE audit: $required"
+            }
+          }
+
+          if (Select-String -Path src\first_debug\imgui_impl_dx12_first_debug.cpp -Pattern "^[^/\r\n]*\bD3DCompile\s*\(" -Quiet) {
+            throw "Runtime D3DCompile call found in hardened backend source."
           }
 
           $asi = Get-Item dist\QProtocol.asi
-          Write-Host ("A20J ASI size: {0} bytes" -f $asi.Length)
-          Write-Host ("A20J ASI SHA-256: {0}" -f (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash)
-          Write-Host "A20J import audit PASS: WriteProcessMemory absent."
+          $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
+          Write-Host ("A24 ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A24 ASI SHA-256: {0}" -f $sha)
+          Write-Host "A24 dependency audit PASS."
+          Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
 
-      - name: Upload A20J import audit
+      - name: Upload A24 dependency audit
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20J_ImportAudit
-          path: dist/A20J_IMPORTS.txt
+          name: Q-Protocol_A24_DependencyAudit
+          path: |
+            dist/A24_IMPORTS.txt
+            dist/A24_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare A20J Clean Core release files
+      - name: Prepare A24 test files
         shell: pwsh
         run: |
           Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
@@ -304,7 +491,7 @@ jobs:
 
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
-              throw "Missing A20J package file: $file"
+              throw "Missing A24 package file: $file"
             }
 
             $item = Get-Item $file
@@ -312,7 +499,7 @@ jobs:
             Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
           }
 
-      - name: Build Q Protocol v0.9.4 release ZIP
+      - name: Build v0.9.5 release ZIP
         shell: pwsh
         run: |
           @'
@@ -322,44 +509,50 @@ jobs:
 
           dist = Path("dist")
           names = ["QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_v0.9.4.zip"
+          out = dist / "Q-Protocol_v0.9.5.zip"
 
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for name in names:
                   z.write(dist / name, arcname=name)
 
           with zipfile.ZipFile(out, "r") as z:
-              assert z.namelist() == names
+              actual = z.namelist()
+              if actual != names:
+                  raise SystemExit(f"Flat package invariant failed: {actual}")
+              if any("/" in name or "\\" in name for name in actual):
+                  raise SystemExit(f"Nested ZIP path detected: {actual}")
 
           print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
           '@ | python -
 
-      - name: Upload A20J Clean Core artifact
+      - name: Upload v0.9.5 release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_FreshCore_A20J
+          name: Q-Protocol_v0.9.5
           path: |
             dist/QProtocol.asi
             dist/QProtocol.ini
             dist/README.txt
           if-no-files-found: error
 
-      - name: Publish GitHub Release v0.9.4
-        if: github.ref == 'refs/heads/main'
+      - name: Publish public GitHub Release v0.9.5
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.4"
-          $asset = "dist/Q-Protocol_v0.9.4.zip"
-          $title = "Q Protocol v0.9.4 - Fresh Core A20J Clean Core"
+          $tag = "v0.9.5"
+          $asset = "dist/Q-Protocol_v0.9.5.zip"
+          $title = "Q Protocol v0.9.5 - A24 Overlay Compatibility & Weapon Queue Safety"
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $exists = ($LASTEXITCODE -eq 0)
 
           if ($exists) {
             gh release upload $tag $asset --clobber --repo $env:GITHUB_REPOSITORY
-            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0) { throw "Failed to upload v0.9.5 ZIP" }
+            gh release edit $tag --title $title --notes-file packaging/RELEASE_NOTES_A24.md --latest --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A20J.md --repo $env:GITHUB_REPOSITORY
+            gh release create $tag $asset --target $env:GITHUB_SHA --title $title --notes-file packaging/RELEASE_NOTES_A24.md --latest --repo $env:GITHUB_REPOSITORY
           }
+          if ($LASTEXITCODE -ne 0) { throw "Failed to publish v0.9.5 release" }

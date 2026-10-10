@@ -1,5 +1,16 @@
 # Q Protocol — Project State
 
+## v0.9.5 — A24 public release (2026-10-10)
+
+- **Promotion authorized by user:** A24 in-game feedback: “tout a l'air bon”; explicitly requested GitHub push and stable release.
+- Release tag: `v0.9.5`; ZIP: `Q-Protocol_v0.9.5.zip` (flat root `QProtocol.asi`, `QProtocol.ini`, `README.txt`).
+- Contents: A21 movable DX12 overlay + First Debug hardening, A22 reliable mouse input, A23 adaptive graph index, A24 duplicate/burst-safe F4–F12 and Debug Spawn queue.
+- Evidence: A23 user log successfully recovered **41 weapon graphs / 42 native ItemEntry RIDs / 43 spawners**, completed two AUTO packages and two F3 manual packages, and many native spawns. The later A23 crash remains unexplained without an exception stack; A24 was positively tested by maintainer but has no comprehensive multi-user certification yet.
+- Gameplay validation scope: no intentional change to F1/F2/F3/AUTO native actions, weapon IDs, public INI values or underlying spawn routine; A23 discovery range and A24 standalone queue guards intentionally changed.
+- Build source is promoted from `dev/a24-weapon-queue-safety` through `release/v0.9.5-a24`, retaining full old issue notebook and stable v0.9.4 history.
+- Status: **public v0.9.5**, based on maintainer test; keep First Debug field feedback open and F1 melee experiments A20K–A20N paused.
+- Release notes: `packaging/RELEASE_NOTES_A24.md`.
+
 ## A24 — Weapon Queue Safety TEST (2026-10-10)
 
 - A23 runtime result: **graph discovery repaired**, with 41 linked graphs / 42 ItemEntry RID entries / 43 spawners across two READY cycles, two AUTO packages, two complete F3 packages, and 41 successful native weapon spawn observations.
