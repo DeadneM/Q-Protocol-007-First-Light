@@ -1,8 +1,8 @@
 Q Protocol v0.9.5 - A25 Overlay Default Layout TEST
 =====================================================
 
-This is a small UI-only compatibility test built strictly from the
-validated v0.9.5 / A24 source. No gameplay changes or INI changes.
+This is an A25 UI-only ASI change built strictly from validated v0.9.5 / A24.
+The ZIP now also includes our native x64 DXGI loader; no gameplay or INI changes.
 
 CHANGES
 -------
@@ -23,18 +23,29 @@ safeguards are unchanged.
 
 CONTENTS
 --------
-Exactly these three files at the ZIP root:
+All next builds now include the custom DXGI loader by default.
+Exactly these FOUR files at the ZIP root:
+dxgi.dll
 QProtocol.asi
 QProtocol.ini
 README.txt
 
 INSTALL
 -------
-Back up your configured QProtocol.ini first. Replace the QProtocol.asi
-and optionally the INI in your usual Q Protocol installation location.
-This archive does not include a dxgi.dll loader. It works with the
-same ASI loading method as public v0.9.5, or with the previously
-supplied custom DXGI proxy test if that is separately installed.
+Back up your configured QProtocol.ini before replacing it.
+Place dxgi.dll, QProtocol.asi and the INI in the game folder alongside
+007FirstLight.exe.
+
+IMPORTANT: If a different dxgi.dll is already in that folder, back it up.
+Do not overwrite ReShade, Special K or another DXGI proxy without restoring
+a compatible chain. Never replace Windows/System32/dxgi.dll.
+Our dxgi.dll forwards native DXGI calls to the real Windows system DLL
+and loads the bundled QProtocol.asi outside DllMain.
+QProtocolDXGI.log confirms its startup and QProtocol.log covers gameplay.
+
+If you already installed our same native custom dxgi.dll, you may replace
+it with this cumulative build or keep your existing one after backing it up.
+The public v0.9.5 release remains untouched.
 
 TEST POINTS
 -----------
