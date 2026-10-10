@@ -8,6 +8,10 @@
 - The default x64 custom DXGI proxy is compiled from source and packaged with current-version `QProtocol.asi`, `QProtocol.ini`, `README.txt` directly at ZIP root. The Windows DXGI exports/ordinals and CreateDXGIFactory1 forwarding are tested in CI.
 - Release branch `release/v0.9.6-a25`. Dedicated workflow `.github/workflows/release-v0.9.6.yml`; stable tag `v0.9.6`, ZIP `Q-Protocol_v0.9.6.zip`. Release only when workflow succeeds on `main` following reviewed PR.
 - Public v0.9.5, earlier A25 test and custom DXGI test archives stay preserved. Backup existing local dxgi.dll if using ReShade/Special K; user's runtime compatibility remains subject to field testing.
+- **Production GitHub Actions #3 / `38075575897`: SUCCESS**. Final source merge SHA `fe3761f53b8cae6f3b540b8dfcf2c9984d204bda`; [PR #6](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/6) merged, new public [v0.9.6](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.6) published as non-prerelease.
+- Final ZIP: `Q-Protocol_v0.9.6.zip`, **523245 bytes**, SHA-256 `a87bb1436a66df98e8418c0f926a8fddff5425c9b54c86bad99de1c8fbabe4a9`.
+- Final ASI: 870400 bytes SHA-256 `7b4811e723d56ee6949a440dfcba1589140fea1af50f3fd3031a16018ac7b47a`; final native DXGI proxy: 138240 bytes SHA-256 `802a45424cb1fafa850f26048ee2969cfca19516258084ceffcdb512a23d4cfc`; unchanged INI: SHA-256 `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- Dedicated stable build and independent generic CI #148 both PASS. The release ZIP passed exact four-file root audit; DXGI native API smoke test and 20-export ordinal/name parity PASS. Existing v0.9.5 release preserved.
 - Release notes: `packaging/RELEASE_NOTES_A25.md`. F1 close-combat research paused.
 
 ## Default DXGI packaging for ALL future builds (2026-10-10)
