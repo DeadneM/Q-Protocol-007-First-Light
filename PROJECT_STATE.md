@@ -1,5 +1,19 @@
 # Q Protocol — Project State
 
+## Custom DXGI native proxy — independent TEST (2026-10-10)
+
+- User requested **“dxgi maison”** after public v0.9.5, to load QProtocol without requiring a separate third-party ASI loader.
+- Test branch: `dev/dxgi-native-loader-test`; public `v0.9.5` and its `main` gameplay code remain untouched.
+- Custom x64 game-local `dxgi.dll` dynamically delegates calls to the authentic Windows System32 `dxgi.dll` and loads adjacent `QProtocol.asi` **outside its own DllMain** on first DXGI API use.
+- Build-time export generator parses real Windows runner DXGI PE exports via `dumpbin /exports` and produces ordinal/name `.DEF` and ABI-preserving MASM dispatch thunks. Native x64 startup preserves GP/XMM arguments, forwards stack arguments; no copied Windows DXGI binary.
+- `QProtocol.asi` (SHA-256 `9e8c58f6b0e1d36592f8ada8606e0e304a816bc86358274f57a371718eb74cee`) and `QProtocol.ini` (SHA-256 `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`) are **byte-for-byte identical to stable v0.9.5**.
+- CI [run #1 / `38067340772`](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/38067340772) **SUCCESS**: 20 exported names/ordinals exactly match host System32 DXGI; dependency audit, actual `CreateDXGIFactory1` native smoke test, stable ASI/INI hash audit and flat ZIP audit PASS.
+- Test pre-release: [dxgi-native-test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/dxgi-native-test). ZIP `Q-Protocol_v0.9.5_CustomDXGI_TEST.zip` (523189 bytes) SHA-256 `c152cc63aa0cd9392dc01a7ce79c06ad054a4619396a576a28bace67bb2632b7`; `dxgi.dll` (138240 bytes) SHA-256 `97f81e267910fb54ce79f7d9d579e8f060632feef4f1f91b0508e17756bcf068`.
+- ZIP root: `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, `README.txt`.
+- Local runtime diagnostic: `QProtocolDXGI.log` overwritten each run; original mod writes `QProtocol.log`.
+- **Safety:** Back up existing game-local dxgi.dll, do not overwrite another DXGI proxy/ReShade/Special K, do not touch Windows System32. Build is *not* validated in 007 First Light yet. Older OS ordinal-only export compatibility and first-export loading timing are unverified. Existing public stable v0.9.5 is unchanged.
+- Reference: `docs/CUSTOM_DXGI.md` on the test branch. F1 experimental melee research remains paused.
+
 ## v0.9.5 — A24 public release (2026-10-10)
 
 - **Promotion authorized by user:** A24 in-game feedback: “tout a l'air bon”; explicitly requested GitHub push and stable release.
