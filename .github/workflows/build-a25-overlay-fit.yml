@@ -303,7 +303,7 @@ jobs:
           if not (body.index("ImGui::BeginChild(") <
                   body.index("ImGui::EndChild();") <
                   body.index("DrawFooter();") <
-                  body.index("ImGui::End();")):
+                  body.rindex("ImGui::End();")):
               raise SystemExit("A25 pinned footer layout order broken")
 
           for width,height in ((3840,2160), (2560,1440), (1920,1080),
