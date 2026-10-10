@@ -2589,12 +2589,15 @@ void DrawOverlayWindow() {
             460.0f,
             maxHeight);
 
+    // A25: show the entire Loadout profile and the bottom actions
+    // on first open, rather than opening a 650 px high scrolling panel.
+    // Keep the floating size bounded by the actual display work area.
     const ImVec2 defaultSize(
         (std::min)(
-            900.0f,
+            1000.0f,
             maxWidth),
         (std::min)(
-            650.0f,
+            850.0f,
             maxHeight));
 
     const ImVec2 defaultPos(
@@ -2696,7 +2699,17 @@ void DrawOverlayWindow() {
 
     ImGui::Separator();
 
-    if (ImGui::BeginTabBar(
+    // A25: the footer is deliberately outside the scrollable content.
+    // It must remain visible after a resize or on lower-height screens.
+    // A negative child height reserves the action row at the bottom.
+    constexpr float kFooterReserve = 78.0f;
+    const bool contentVisible = ImGui::BeginChild(
+        "##main_tabs_scroll",
+        ImVec2(0.0f, -kFooterReserve),
+        ImGuiChildFlags_None);
+
+    if (contentVisible &&
+        ImGui::BeginTabBar(
             "main_tabs")) {
 
         if (ImGui::BeginTabItem(
@@ -2730,6 +2743,9 @@ void DrawOverlayWindow() {
         ImGui::EndTabBar();
     }
 
+    ImGui::EndChild();
+
+    // Save / Reload / Defaults cannot disappear below the scroll region.
     DrawFooter();
 
     ImGui::End();
