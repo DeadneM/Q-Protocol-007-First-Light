@@ -1,5 +1,18 @@
 # Q Protocol — Project State
 
+## A25 — Accessible default overlay window (2026-10-10)
+
+- User supplied a 4K screenshot showing that the initial Q Protocol floating window hid the lower Save / Reload / Defaults actions behind a non-obvious vertical scrollbar.
+- Root cause in `DrawOverlayWindow()`: original default 900×650 ImGui units plus two 485-unit-tall Loadout panels, header, tabs and footer; initial height inadequate.
+- **A25 UI-only** branch `dev/a25-overlay-fit-default`. Default window now **1000×850** ImGui units, bounded to viewport work area; initial positioning still centered and `ImGuiCond_FirstUseEver`, user can freely move/resize.
+- Active tabs render in an independent child scroll region with **78 units reserved for a non-scrolling bottom Save / Reload / Defaults footer**. At smaller heights the center can scroll but the actions remain visible.
+- All gameplay source, IDs, `QProtocol.ini`, A23 adaptive graph scanner, A24 request guard, DX12 renderer backend and mouse input are byte-for-byte preserved from stable v0.9.5 (validated by the A25 CI source isolation test).
+- GitHub Actions [A25 run #4](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/38072249224): **SUCCESS**; config audit, UI source isolation and viewport simulation, ImGui mouse input audit, MSVC build, PE dependency audit and flat ZIP.
+- **Test prerelease:** [a25-overlay-fit-test](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a25-overlay-fit-test), ZIP `Q-Protocol_v0.9.5_A25_OverlayFit_TEST.zip` (450450 bytes) SHA-256 `28b1c9d6b554054859a21edcb966de4b742e3a2c2a02560d33707a4d83602ccd`.
+- A25 `QProtocol.asi`: 870400 bytes SHA-256 `f96ccf66606936d2d4043ae0373d0f245ad0ab86be69e7ee809b1fc6c16e6a53`; unchanged `QProtocol.ini`: SHA-256 `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- The ZIP has `QProtocol.asi`, `QProtocol.ini`, `README.txt` directly at root and no `dxgi.dll`. Existing loader remains a separate choice.
+- Status: **CI built / awaiting in-game layout acceptance**; stable public v0.9.5 and custom DXGI test remain unchanged. Detailed note on branch: `docs/A25_OVERLAY_FIT.md`.
+
 ## Custom DXGI native proxy — independent TEST (2026-10-10)
 
 - User requested **“dxgi maison”** after public v0.9.5, to load QProtocol without requiring a separate third-party ASI loader.
