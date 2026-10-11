@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## First Debug — first-open device loss report on A21 renderer / A25 baseline (2026-10-11)
+
+- New user trace: shader/PSO/font init OK; first visible overlay frame submitted; next frame fence returns `UINT64_MAX` (device removed); `GetDeviceRemovedReason()=0x887A002B` = `DXGI_ERROR_ACCESS_DENIED`; diagnostic timeout `0x800705B4` is secondary.
+- Latest release audited: **v0.9.6 / A25**; it retains A21 DX12 renderer. `A21` status text alone is not an installed-version identifier.
+- Primary audit target: observed DIRECT queue is matched only by device COM identity, **not** by documented DXGI swapchain creation queue. Capture and reference the true creation queue for each swapchain before overlay submission; use safe no-render fallback if it cannot be established.
+- Root cause NOT proven. Correct device-loss vs timeout logging; developer-side DRED/debug-layer/PIX investigation, GPU resource/transition auditing. Do not require affected users to perform manual tests.
+- Preserve current public v0.9.6, A25 UI, A24 gameplay guards, A23 graph recovery, A22 input, F1–F12/Manual/AUTO, INI and native DXGI four-file ZIP until a fix is validated.
+- Detailed notebook: **[FIRST_DEBUG_A25_GPU_DEVICE_LOSS.md](docs/FIRST_DEBUG_A25_GPU_DEVICE_LOSS.md)**. First Debug status: **OPEN**.
+
+
 ## v0.9.6 — A25 accessible overlay + native DXGI public release (2026-10-10)
 
 - Maintainer said **“super, git push et build release”** following A25 and the approved default DXGI packaging. Promoting the A25 UI change to a new numbered public release; do not overwrite existing v0.9.5.
