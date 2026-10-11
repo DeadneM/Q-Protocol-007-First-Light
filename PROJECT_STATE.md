@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## A26 — First Debug verified DXGI swapchain queue TEST (2026-10-11)
+
+- New public incident documented in `docs/FIRST_DEBUG_A25_GPU_DEVICE_LOSS.md`: immediately after `FirstOpen frame submitted successfully`, the next `Render.FrameFence` reads `UINT64_MAX`, the DX12 device was lost with `GetDeviceRemovedReason()=0x887A002B` (`DXGI_ERROR_ACCESS_DENIED`). Synthetic `0x800705B4` timeout had masked the main error. Cause of GPU removal **not proven**.
+- **A26 test candidate**, branch `dev/a26-authoritative-swapchain-queue`, separate from production stable `v0.9.6`. Detailed note: `docs/A26_AUTHORITATIVE_QUEUE.md` on branch. A26 modifies only `src/OverlayA19.cpp` in runtime: installs `IDXGIFactory::CreateSwapChain` and `IDXGIFactory2::CreateSwapChainForHwnd` hooks to capture the COM swapchain identity and the exact creating DIRECT queue. Present now uses only that verified queue; no last-seen TLS / same-device queue guess. Missing mapping **skips overlay GPU drawing**.
+- Improves fence failure reporting by distinguishing `DeviceLost` from genuine timeout and preserving driver reason HRESULT, fence expected/completed values, queue/swapchain references.
+- A26 ZIP is exactly `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, `README.txt` at root. Full F1–F12/AUTO gameplay and public INI unchanged; A25 UI unchanged; DXGI proxy built from standard source.
+- GitHub Actions [A26 run #2](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/38124115620): **SUCCESS**. 31 weapon catalog, frozen source audit, A25 UI identical to v0.9.6, verified binding/DEVICE_LOST guard, DXGI 20-export ABI / CreateDXGIFactory1 smoke, PE dependency audit, root ZIP all pass.
+- [A26 prerelease](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a26-verified-queue-test): `Q-Protocol_v0.9.6_A26_VerifiedQueue_TEST.zip`, 524768 bytes, SHA-256 `9026bb71e1316abfa2d00425acc61178cae45067331f6f91ff971e78323814fa`. QProtocol.asi: 874496 bytes, SHA-256 `5121cbb1fb9f4a125f7e8303e69ab46ee238d0088b7cce0c590d107e7304e6ce`. dxgi.dll: 138240 bytes, SHA-256 `b514b72aaaeed4ae9724551cdfdc0d5142d545d2655f4cceb33ce2d25f270a20`. INI unchanged SHA-256 `8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`.
+- Important: production v0.9.6 and older archived test builds must NOT be altered before real runtime validation. Capturing the factory method may miss swapchains created before hook installation or by unsupported factory APIs; the intended behavior then is fail-open with no overlay, not a speculative queue fallback.
+
 ## First Debug — first-open device loss report on A21 renderer / A25 baseline (2026-10-11)
 
 - New user trace: shader/PSO/font init OK; first visible overlay frame submitted; next frame fence returns `UINT64_MAX` (device removed); `GetDeviceRemovedReason()=0x887A002B` = `DXGI_ERROR_ACCESS_DENIED`; diagnostic timeout `0x800705B4` is secondary.
