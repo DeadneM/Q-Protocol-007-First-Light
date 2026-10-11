@@ -3180,14 +3180,19 @@ bool WaitForFenceValue(
         return true;
     }
 
-    const UINT64 completed =
-        g_fence->GetCompletedValue();
+    g_lastOverlayHr.store(S_OK, std::memory_order_release);
+    const UINT64 completed = g_fence->GetCompletedValue();
 
     if (completed == UINT64_MAX) {
-        Log(
-            "[OVERLAY] %s fence reports device removal.",
-            stage ? stage : "Fence");
-        LogDeviceRemovedReason(stage);
+        const HRESULT removal = g_device
+            ? g_device->GetDeviceRemovedReason()
+            : DXGI_ERROR_DEVICE_REMOVED;
+        Log("[OVERLAY] A26 %s DEVICE_LOST: expected=%llu completed=UINT64_MAX reason=0x%08lX queue=%p swapchain=%p",
+            stage ? stage : "Fence", static_cast<unsigned long long>(value),
+            static_cast<unsigned long>(removal),
+            g_commandQueue.load(std::memory_order_acquire), g_swapChain3);
+        g_lastOverlayHr.store(removal, std::memory_order_release);
+        SetStage(OverlayStage::DeviceLost);
         return false;
     }
 
@@ -3215,11 +3220,40 @@ bool WaitForFenceValue(
             g_fenceEvent,
             timeoutMs);
 
-    if (waitResult ==
-        WAIT_OBJECT_0) {
-
-        return true;
+    if (waitResult == WAIT_OBJECT_0) {
+        // A signaled event does not mean success if the device was removed.
+        const UINT64 afterWait = g_fence->GetCompletedValue();
+        if (afterWait == UINT64_MAX) {
+            const HRESULT removal = g_device
+                ? g_device->GetDeviceRemovedReason()
+                : DXGI_ERROR_DEVICE_REMOVED;
+            Log("[OVERLAY] A26 %s DEVICE_LOST after fence event: expected=%llu reason=0x%08lX",
+                stage ? stage : "Fence", static_cast<unsigned long long>(value),
+                static_cast<unsigned long>(removal));
+            g_lastOverlayHr.store(removal, std::memory_order_release);
+            SetStage(OverlayStage::DeviceLost);
+            return false;
+        }
+        return afterWait >= value;
     }
+
+    const UINT64 afterWait = g_fence->GetCompletedValue();
+    if (afterWait == UINT64_MAX) {
+        const HRESULT removal = g_device
+            ? g_device->GetDeviceRemovedReason()
+            : DXGI_ERROR_DEVICE_REMOVED;
+        Log("[OVERLAY] A26 %s DEVICE_LOST during fence wait: expected=%llu reason=0x%08lX",
+            stage ? stage : "Fence", static_cast<unsigned long long>(value),
+            static_cast<unsigned long>(removal));
+        g_lastOverlayHr.store(removal, std::memory_order_release);
+        SetStage(OverlayStage::DeviceLost);
+        return false;
+    }
+    Log("[OVERLAY] A26 %s FENCE_WAIT: expected=%llu completed=%llu result=%lu queue=%p",
+        stage ? stage : "Fence", static_cast<unsigned long long>(value),
+        static_cast<unsigned long long>(afterWait),
+        static_cast<unsigned long>(waitResult),
+        g_commandQueue.load(std::memory_order_acquire));
 
     const HRESULT waitHr =
         waitResult == WAIT_TIMEOUT
@@ -4149,12 +4183,23 @@ void RenderOverlayFrameLocked(
             1500,
             "Render.FrameFence")) {
 
-        DisableOverlayRendering(
-            OverlayStage::FenceTimeout,
-            "Render.FrameFence",
-            HRESULT_FROM_WIN32(
-                ERROR_TIMEOUT));
+        // Do not bury device loss under the synthetic 0x800705B4 timeout.
+        const auto reasonStage = static_cast<OverlayStage>(
+            g_stage.load(std::memory_order_acquire));
+        const HRESULT lastHr = static_cast<HRESULT>(
+            g_lastOverlayHr.load(std::memory_order_acquire));
 
+        DisableOverlayRendering(
+            reasonStage == OverlayStage::DeviceLost
+                ? OverlayStage::DeviceLost
+                : lastHr == HRESULT_FROM_WIN32(ERROR_TIMEOUT)
+                    ? OverlayStage::FenceTimeout
+                    : OverlayStage::RenderFailed,
+            reasonStage == OverlayStage::DeviceLost
+                ? "Render.FrameFence.DEVICE_LOST"
+                : "Render.FrameFence.FENCE_WAIT",
+            FAILED(lastHr) ? lastHr
+                : HRESULT_FROM_WIN32(ERROR_TIMEOUT));
         return;
     }
 
@@ -4986,7 +5031,7 @@ bool OverlayInitialize(
     LoadOverlayToggleKeyFromIni();
 
     Log(
-        "[OVERLAY] A21 compatibility renderer: First Debug DX12 hardening + floating movable/resizable ImGui window + selective input capture.");
+        "[OVERLAY] A26 authoritative DXGI queue capture: A25 UI, A24 gameplay, First Debug DX12 renderer protected.");
 
     LogKnownOverlayModules();
 
@@ -5198,7 +5243,7 @@ const char* OverlayStatus() {
         return "Q Protocol A21 hooks ready; waiting for DIRECT queue";
 
     case OverlayStage::QueueCaptured:
-        return "Q Protocol A21 DIRECT queue observed; waiting for tracked game Present";
+        return "Q Protocol A26 verified DXGI presenting queue captured";
 
     case OverlayStage::ImGuiReady:
         return "Q Protocol A21 floating DX12 ImGui ready";
@@ -5214,6 +5259,9 @@ const char* OverlayStatus() {
 
     case OverlayStage::FenceTimeout:
         return "Q Protocol overlay GPU synchronization timeout; gameplay core remains active";
+
+    case OverlayStage::DeviceLost:
+        return "Q Protocol overlay D3D12 DEVICE_LOST; rendering disabled for this session";
 
     case OverlayStage::Disabled:
         return "Q Protocol overlay disabled for this session; gameplay core remains active";
