@@ -4578,6 +4578,8 @@ bool InstallRuntimeHooks() {
     bool presentCreated = false;
     bool resizeCreated = false;
     bool executeCreated = false;
+    bool factoryClassicCreated = false;
+    bool factoryHwndCreated = false;
     bool ok = false;
 
     HWND dummyWindow =
@@ -4698,6 +4700,11 @@ bool InstallRuntimeHooks() {
             *reinterpret_cast<void***>(
                 queue);
 
+        void** factoryVtable =
+            *reinterpret_cast<void***>(factory);
+        g_factoryCreateSwapHookTarget = factoryVtable[10];
+        g_factoryCreateHwndHookTarget = factoryVtable[15];
+
         g_presentHookTarget =
             swapVtable[8];
 
@@ -4773,6 +4780,30 @@ bool InstallRuntimeHooks() {
             break;
         }
 
+        // Both legacy DXGI and DXGI 1.2 HWND creation paths must be
+        // captured before drawing. Never fall back to a same-device guess.
+        const MH_STATUS factoryClassicStatus = MH_CreateHook(
+            g_factoryCreateSwapHookTarget,
+            reinterpret_cast<void*>(&HookFactoryCreateSwapChain),
+            reinterpret_cast<void**>(&g_originalFactoryCreateSwap));
+        factoryClassicCreated = factoryClassicStatus == MH_OK;
+        if (!factoryClassicCreated) {
+            Log("[OVERLAY] A26 factory CreateSwapChain hook failed: %s",
+                MH_StatusToString(factoryClassicStatus));
+            break;
+        }
+
+        const MH_STATUS factoryHwndStatus = MH_CreateHook(
+            g_factoryCreateHwndHookTarget,
+            reinterpret_cast<void*>(&HookFactoryCreateSwapChainForHwnd),
+            reinterpret_cast<void**>(&g_originalFactoryCreateHwnd));
+        factoryHwndCreated = factoryHwndStatus == MH_OK;
+        if (!factoryHwndCreated) {
+            Log("[OVERLAY] A26 factory CreateSwapChainForHwnd hook failed: %s",
+                MH_StatusToString(factoryHwndStatus));
+            break;
+        }
+
         const MH_STATUS q1 =
             MH_QueueEnableHook(
                 g_presentHookTarget);
@@ -4785,15 +4816,22 @@ bool InstallRuntimeHooks() {
             MH_QueueEnableHook(
                 g_executeHookTarget);
 
+        const MH_STATUS q4 =
+            MH_QueueEnableHook(g_factoryCreateSwapHookTarget);
+        const MH_STATUS q5 =
+            MH_QueueEnableHook(g_factoryCreateHwndHookTarget);
+
         if (q1 != MH_OK ||
             q2 != MH_OK ||
-            q3 != MH_OK) {
+            q3 != MH_OK ||
+            q4 != MH_OK ||
+            q5 != MH_OK) {
 
             Log(
-                "[OVERLAY] MinHook queue-enable failed: Present=%s Resize=%s Execute=%s",
-                MH_StatusToString(q1),
-                MH_StatusToString(q2),
-                MH_StatusToString(q3));
+                "[OVERLAY] A26 MinHook queue-enable failed: Present=%s Resize=%s Execute=%s Factory=%s Hwnd=%s",
+                MH_StatusToString(q1), MH_StatusToString(q2),
+                MH_StatusToString(q3), MH_StatusToString(q4),
+                MH_StatusToString(q5));
 
             break;
         }
@@ -4847,6 +4885,20 @@ bool InstallRuntimeHooks() {
                 g_executeHookTarget);
         }
 
+        if (factoryClassicCreated && g_factoryCreateSwapHookTarget) {
+            MH_DisableHook(g_factoryCreateSwapHookTarget);
+            MH_RemoveHook(g_factoryCreateSwapHookTarget);
+        }
+        if (factoryHwndCreated && g_factoryCreateHwndHookTarget) {
+            MH_DisableHook(g_factoryCreateHwndHookTarget);
+            MH_RemoveHook(g_factoryCreateHwndHookTarget);
+        }
+
+        g_factoryCreateSwapHookTarget = nullptr;
+        g_factoryCreateHwndHookTarget = nullptr;
+        g_originalFactoryCreateSwap = nullptr;
+        g_originalFactoryCreateHwnd = nullptr;
+
         g_presentHookTarget = nullptr;
         g_resizeHookTarget = nullptr;
         g_executeHookTarget = nullptr;
@@ -4883,10 +4935,9 @@ bool InstallRuntimeHooks() {
         OverlayStage::RuntimeHooksReady);
 
     Log(
-        "[OVERLAY] Runtime hooks ready: Present=%p ResizeBuffers=%p ExecuteCommandLists=%p",
-        g_presentHookTarget,
-        g_resizeHookTarget,
-        g_executeHookTarget);
+        "[OVERLAY] A26 hooks ready: Present=%p ResizeBuffers=%p ExecuteCommandLists=%p Factory=%p Hwnd=%p",
+        g_presentHookTarget, g_resizeHookTarget, g_executeHookTarget,
+        g_factoryCreateSwapHookTarget, g_factoryCreateHwndHookTarget);
 
     return true;
 }
@@ -4917,6 +4968,9 @@ bool OverlayInitialize(
     g_firstOpenSubmitted.store(
         false,
         std::memory_order_release);
+
+    g_missingVerifiedQueueLogged.store(false, std::memory_order_release);
+    g_observedDirectExecutions.store(0, std::memory_order_release);
 
     g_lastOverlayHr.store(
         S_OK,
@@ -5199,6 +5253,10 @@ void OverlayShutdown() {
             MH_DisableHook(
                 g_executeHookTarget);
         }
+        if (g_factoryCreateSwapHookTarget)
+            MH_DisableHook(g_factoryCreateSwapHookTarget);
+        if (g_factoryCreateHwndHookTarget)
+            MH_DisableHook(g_factoryCreateHwndHookTarget);
     }
 
     {
@@ -5214,6 +5272,11 @@ void OverlayShutdown() {
             Log(
                 "[OVERLAY] Shutdown kept DX12 allocations alive because GPU completion was not proven. Process teardown will reclaim them.");
         }
+
+        for (auto& entry : g_verifiedSwapQueues) {
+            if (entry.queue) entry.queue->Release();
+        }
+        g_verifiedSwapQueues.clear();
     }
 
     ID3D12CommandQueue* queue =
@@ -5240,6 +5303,10 @@ void OverlayShutdown() {
             MH_RemoveHook(
                 g_executeHookTarget);
         }
+        if (g_factoryCreateSwapHookTarget)
+            MH_RemoveHook(g_factoryCreateSwapHookTarget);
+        if (g_factoryCreateHwndHookTarget)
+            MH_RemoveHook(g_factoryCreateHwndHookTarget);
 
         MH_Uninitialize();
 
@@ -5250,10 +5317,14 @@ void OverlayShutdown() {
     g_presentHookTarget = nullptr;
     g_resizeHookTarget = nullptr;
     g_executeHookTarget = nullptr;
+    g_factoryCreateSwapHookTarget = nullptr;
+    g_factoryCreateHwndHookTarget = nullptr;
 
     g_originalPresent = nullptr;
     g_originalResizeBuffers = nullptr;
     g_originalExecuteCommandLists = nullptr;
+    g_originalFactoryCreateSwap = nullptr;
+    g_originalFactoryCreateHwnd = nullptr;
 
     SetStage(
         OverlayStage::Disabled);
