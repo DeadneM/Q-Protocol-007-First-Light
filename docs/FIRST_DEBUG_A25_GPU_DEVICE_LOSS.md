@@ -1,5 +1,7 @@
 # First Debug — A25/v0.9.6 First-Frame GPU Device Loss
 
+> **A26 experimental test now available (2026-10-11):** source branch `dev/a26-authoritative-swapchain-queue`. A26 records the creating DIRECT queue via DXGI factory swapchain creation hooks and refuses unverified queue substitutions; it also logs `DEVICE_LOST` rather than burying the reason under a synthetic timeout. [A26 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a26-verified-queue-test) is compiled and isolated from v0.9.6, **NOT YET CONFIRMED IN GAME**. See `docs/A26_AUTHORITATIVE_QUEUE.md` on that branch. Incident remains OPEN until runtime verification.
+
 Date: 2026-10-11
 Status: **OPEN — corroborated D3D12 device-loss symptom, root command still unknown**
 Scope: newest public release **v0.9.6 (A25)** and shared A21 DX12 backend.
