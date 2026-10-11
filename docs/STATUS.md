@@ -1,5 +1,13 @@
 # Technical status
 
+## First Debug — A21 first-open D3D12 device loss (2026-10-11)
+
+- A user report contains successful A21 floating renderer initialization and first-frame submission, followed by `GetCompletedValue()==UINT64_MAX` (device removal), `GetDeviceRemovedReason()==0x887A002B` (`DXGI_ERROR_ACCESS_DENIED`), and a secondary `0x800705B4` frame-fence timeout.
+- Latest release **v0.9.6 A25** still uses the A21 backend. Most urgent source gap: DIRECT queue inferred by same-device and thread-local observation, not positively linked to the swapchain's creation queue.
+- Correct the log's misleading timeout/device removed labeling; capture DXGI creating queue; conduct DRED validation developer-side. Root cause unproven; **do not mark fixed** or require end-user experiments.
+- Complete case record: [First Debug GPU Device Loss](FIRST_DEBUG_A25_GPU_DEVICE_LOSS.md). Status **OPEN**.
+
+
 ## v0.9.6 public release: A25 + native DXGI (2026-10-10)
 
 - New public release v0.9.6 promoted from A25 per maintainer request, separate from historical v0.9.5.
