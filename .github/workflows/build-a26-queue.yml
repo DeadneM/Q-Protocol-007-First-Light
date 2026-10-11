@@ -403,7 +403,7 @@ jobs:
               "IsKeyboardInputMessage",
               "AcquireOverlayCursorClip",
               "ReleaseOverlayCursorClip",
-              "A21 compatibility renderer"
+              "A26 authoritative DXGI queue capture"
           ]
 
           for token in required:
