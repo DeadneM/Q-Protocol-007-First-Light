@@ -317,7 +317,7 @@ jobs:
               )
 
           frozen = (
-              "src/QProtocol.cpp", "src/GameplayHook.asm",
+              "src/GameplayHook.asm",
               "src/Overlay.h", "config/QProtocol.ini",
               "src/first_debug/imgui_impl_dx12_first_debug.cpp",
               "src/first_debug/imgui_ps.hlsl",
