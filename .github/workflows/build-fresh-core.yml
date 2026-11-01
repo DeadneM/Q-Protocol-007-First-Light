@@ -1,4 +1,4 @@
-name: Build Fresh Core - Native DXGI Bundled
+name: Build Q Protocol - A27 Baseline Native DXGI (CI)
 
 on:
   workflow_dispatch:
@@ -322,60 +322,140 @@ jobs:
 
           Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
 
-      - name: Audit A24 isolated weapon queue safety
+      - name: Audit A26 scope and authoritative swapchain queue invariants
         shell: pwsh
         run: |
           @'
           from pathlib import Path
           import subprocess
 
-          prior = subprocess.check_output(
-              ["git", "show", "origin/dev/a23-dynamic-weapon-graph:src/QProtocol.cpp"],
-              text=True, encoding="utf-8"
-          )
-          now = Path("src/QProtocol.cpp").read_text(encoding="utf-8")
-          extras = (
-              "std::deque<ULONGLONG> g_recentUnitaryWeaponRequests;\n"
-              "constexpr std::size_t kUnitaryPendingLimit = 4;\n"
-              "constexpr std::size_t kUnitaryBurstLimit = 12;\n"
-              "constexpr ULONGLONG kUnitaryBurstWindowMs = 30000;\n"
-          )
-          if extras not in now:
-              raise SystemExit("A24 expected queue guard globals missing")
+          def baseline(path):
+              return subprocess.check_output(
+                  ["git", "show", f"v0.9.6:{path}"], text=True, encoding="utf-8"
+              )
 
-          def neutralize(source, a24):
-              begin = source.index("bool QueueWeapon(std::uint64_t rid, const char* source) {")
-              end = source.index("bool QueueAmmoProfile(", begin)
-              source = source[:begin] + "[A24 QUEUE GUARD ONLY]\n" + source[end:]
-              if a24:
-                  source = source.replace(extras, "")
-                  source = source.replace(
-                      "    g_recentUnitaryWeaponRequests.clear();\n", "")
-                  source = source.replace(
-                      "// A24: bounded burst protection for manual F4-F12 and Debug Spawn only.\n"
-                      "// Worker-thread state; AUTO/F3 package transaction and native spawn unchanged.\n",
-                      "")
-              return source
+          frozen = (
+              "src/GameplayHook.asm",
+              "src/Overlay.h", "config/QProtocol.ini",
+              "src/first_debug/imgui_impl_dx12_first_debug.cpp",
+              "src/first_debug/imgui_ps.hlsl",
+              "src/first_debug/imgui_vs.hlsl",
+          )
+          for path in frozen:
+              if Path(path).read_text(encoding="utf-8") != baseline(path):
+                  raise SystemExit(f"A26 forbidden change in frozen file: {path}")
 
-          if neutralize(prior, False) != neutralize(now, True):
-              raise SystemExit("A24 gameplay regression outside new queue guard")
-          for key in (
-              "kUnitaryPendingLimit = 4",
-              "kUnitaryBurstLimit = 12",
-              "kUnitaryBurstWindowMs = 30000",
-              "g_activeWeapon.requestedRid == rid",
-              "std::find(g_weaponQueue.begin()",
-              "g_recentUnitaryWeaponRequests.push_back(now)",
-              "g_recentUnitaryWeaponRequests.clear()",
-              "A23 graph index:",
-              "scanRange(kGraphScanBegin, kGraphScanEnd)",
+          src = Path("src/OverlayA19.cpp").read_text(encoding="utf-8")
+          old = baseline("src/OverlayA19.cpp")
+          ui_a = "void DrawOverlayWindow() {"
+          ui_b = "bool IsMouseInputMessage("
+          def extract(s):
+              return s[s.index(ui_a):s.index(ui_b, s.index(ui_a))]
+          if extract(src) != extract(old):
+              raise SystemExit("A26 regression: A25 accessible UI must be identical")
+          for keyword in ("1000.0f", "850.0f", "kFooterReserve = 78.0f",
+                          "##main_tabs_scroll", "DrawFooter();"):
+              if keyword not in extract(src):
+                  raise SystemExit(f"A25 UI invariant disappeared: {keyword}")
+
+          must = (
+              "HookFactoryCreateSwapChain(",
+              "HookFactoryCreateSwapChainForHwnd(",
+              "factoryVtable[10]",
+              "factoryVtable[15]",
+              "RegisterVerifiedSwapQueue(",
+              "BindVerifiedSwapChainQueue(",
+              "if (!BindVerifiedSwapChainQueue(",
+              "g_verifiedSwapQueues",
+              "kMaxSwapchainBindings = 16",
+              "g_commandQueue.exchange(entry.queue",
+              "A26 renderer skipped:",
+              "A26 authoritative PRESENT queue bound",
+              "OverlayStage::DeviceLost",
+              "GetDeviceRemovedReason()",
+              "GetCompletedValue()",
+              "UINT64_MAX",
+              "Render.FrameFence.DEVICE_LOST",
+              "DXGI_ERROR_DEVICE_REMOVED",
+          )
+          for keyword in must:
+              if keyword not in src:
+                  raise SystemExit(f"A26 queue/device-loss invariant missing: {keyword}")
+          for forbidden in (
+              "g_tlsLastDirectQueue",
+              "BindBestQueueForDevice(",
+              "g_commandQueue.compare_exchange_strong(",
           ):
-              if key not in now:
-                  raise SystemExit("A24 safety or A23 graph regression: " + key)
-          print("A24 gameplay isolation PASS: only isolated F4-F12/Debug queue guard; A23 scanner and native F1/F2/F3/AUTO unchanged.")
+              if forbidden in src:
+                  raise SystemExit(f"A26 regression: unsafe queue heuristic present: {forbidden}")
+          print("A26 queue selection and DEVICE_LOST scope audit PASS.")
           '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "A26 source isolation audit failed" }
 
-      - name: Audit A24 overlay compatibility architecture
+      - name: Audit A27 x64 scan-only gameplay scope and simulate affected anchor
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import subprocess
+
+          path = "src/QProtocol.cpp"
+          original = subprocess.check_output(
+              ["git", "show", f"v0.9.6:{path}"],
+              text=True, encoding="utf-8")
+          updated = Path(path).read_text(encoding="utf-8")
+
+          start = "bool BuildGraphIndex() {"
+          end = "bool ValidateGraph(std::uint64_t rid,"
+          for segment in (start, end):
+              if original.count(segment) != 1 or updated.count(segment) != 1:
+                  raise SystemExit(f"Cannot isolate graph scanner: {segment}")
+          if original[:original.index(start)] != updated[:updated.index(start)]:
+              raise SystemExit("A27 regression: gameplay before graph scanner modified")
+          if original[original.index(end):] != updated[updated.index(end):]:
+              raise SystemExit("A27 regression: gameplay after graph scanner modified")
+
+          graph = updated[updated.index(start):updated.index(end)]
+          required = (
+              "GetNativeSystemInfo(&systemInfo)",
+              "systemInfo.lpMaximumApplicationAddress",
+              "VirtualQuery(reinterpret_cast<LPCVOID>(anchor)",
+              "anchorMemory.State == MEM_COMMIT",
+              "IsReadableProtection(anchorMemory.Protect)",
+              "kAnchorRadius = 0x02000000",
+              "maxUserAddress - anchor < kAnchorRadius",
+              "A27 graph scan: anchor=",
+              "fixedStats", "localStats",
+              "scanRange(kGraphScanBegin, kGraphScanEnd, fixedStats)",
+              "A23 graph index:",
+          )
+          for token in required:
+              if token not in graph:
+                  raise SystemExit(f"A27 missing scan invariant: {token}")
+          if "anchor < 0x80000000" in graph:
+              raise SystemExit("A27 regression: broken 2 GiB anchor ceiling survived")
+
+          sample_anchor = 0x80B60E50
+          min_user = 0x10000000
+          max_user = 0x7FFFFFFEFFFF
+          radius = 0x02000000
+          mask = ~0xFFFF
+          assert min_user <= sample_anchor <= max_user
+          lower = (sample_anchor - min(sample_anchor, radius)) & mask
+          raw_upper = min(max_user, sample_anchor + radius)
+          upper = (raw_upper + 0xFFFF) & mask
+          if not (lower < sample_anchor < upper):
+              raise SystemExit("A27 affected user's anchor excluded")
+          if upper - lower > 2 * radius + 0x10000:
+              raise SystemExit("A27 local scan exceeds bounded 64 MiB range")
+          if lower != 0x7EB60000 or upper != 0x82B70000:
+              raise SystemExit(f"Unexpected affected anchor span: {lower:X}..{upper:X}")
+          print(f"A27 x64 scan-only source audit PASS: anchor 0x{sample_anchor:X} "
+                f"within 0x{lower:X}..0x{upper:X}; gameplay outside scanner frozen.")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "A27 scan audit failed" }
+
+      - name: Audit A25 overlay compatibility architecture
         shell: pwsh
         run: |
           @'
@@ -392,7 +472,7 @@ jobs:
 
           for token in forbidden:
               if token in src:
-                  raise SystemExit(f"A24 fixed-window regression: {token}")
+                  raise SystemExit(f"A25 fixed-window regression: {token}")
 
           required = [
               "ImGuiCond_FirstUseEver",
@@ -404,22 +484,22 @@ jobs:
               "IsKeyboardInputMessage",
               "AcquireOverlayCursorClip",
               "ReleaseOverlayCursorClip",
-              "A21 compatibility renderer"
+              "A26 authoritative DXGI queue capture"
           ]
 
           for token in required:
               if token not in src:
-                  raise SystemExit(f"A24 compatibility invariant missing: {token}")
+                  raise SystemExit(f"A25 compatibility invariant missing: {token}")
 
           if "IsInputMessage(msg)" in src:
-              raise SystemExit("A24 regression: blanket input swallowing returned.")
+              raise SystemExit("A25 regression: blanket input swallowing returned.")
 
           if "std::try_to_lock" in src:
-              raise SystemExit("A24 regression: input can be dropped on render-lock contention.")
+              raise SystemExit("A25 regression: input can be dropped on render-lock contention.")
           if "IsMouseInputMessage(msg) &&" in src:
-              raise SystemExit("A24 regression: frame-stale mouse capture gate returned.")
+              raise SystemExit("A25 regression: frame-stale mouse capture gate returned.")
 
-          print("A24 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
+          print("A25 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
           '@ | python -
 
       - name: Compile A24 ImGui shaders

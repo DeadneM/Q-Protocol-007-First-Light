@@ -59,6 +59,14 @@ using ExecuteCommandListsFn = void(__stdcall*)(
     UINT,
     ID3D12CommandList* const*);
 
+// A26: For D3D12 the factory's pDevice is the actual presentation queue.
+// Capture this association when the swapchain is created, not during Present.
+using CreateSwapChainFn = HRESULT(__stdcall*)(
+    IDXGIFactory*, IUnknown*, DXGI_SWAP_CHAIN_DESC*, IDXGISwapChain**);
+using CreateSwapChainForHwndFn = HRESULT(__stdcall*)(
+    IDXGIFactory2*, IUnknown*, HWND, const DXGI_SWAP_CHAIN_DESC1*,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC*, IDXGIOutput*, IDXGISwapChain1**);
+
 struct FrameContext {
     ID3D12CommandAllocator* allocator = nullptr;
     ID3D12Resource* renderTarget = nullptr;
@@ -97,6 +105,7 @@ enum class OverlayStage : int {
     RenderFailed,
     ResizeFailed,
     FenceTimeout,
+    DeviceLost,
     Disabled
 };
 
@@ -111,9 +120,18 @@ std::atomic<bool> g_playerReady{false};
 std::atomic<int> g_stage{static_cast<int>(OverlayStage::Bootstrap)};
 
 std::atomic<ID3D12CommandQueue*> g_commandQueue{nullptr};
-thread_local ID3D12CommandQueue* g_tlsLastDirectQueue = nullptr;
 
 std::recursive_mutex g_renderMutex;
+// Swapchain identity is a weak key, never dereferenced after QI releases it.
+// Queue is AddRef-owned until replacement/shutdown. The mapping is bounded.
+struct VerifiedSwapQueue {
+    IUnknown* swapIdentity = nullptr;
+    ID3D12CommandQueue* queue = nullptr;
+    const char* origin = nullptr;
+};
+std::vector<VerifiedSwapQueue> g_verifiedSwapQueues;
+std::atomic<bool> g_missingVerifiedQueueLogged{false};
+std::atomic<unsigned int> g_observedDirectExecutions{0};
 std::mutex g_cursorMutex;
 RECT g_savedCursorClip{};
 bool g_cursorClipLease = false;
@@ -129,6 +147,8 @@ std::atomic<DWORD> g_lastOverlaySeh{0};
 void* g_presentHookTarget = nullptr;
 void* g_resizeHookTarget = nullptr;
 void* g_executeHookTarget = nullptr;
+void* g_factoryCreateSwapHookTarget = nullptr;
+void* g_factoryCreateHwndHookTarget = nullptr;
 
 std::atomic<int> g_overlayToggleVk{VK_INSERT};
 std::atomic<bool> g_overlayToggleWasDown{false};
@@ -140,6 +160,8 @@ bool g_minHookInitialized = false;
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 ExecuteCommandListsFn g_originalExecuteCommandLists = nullptr;
+CreateSwapChainFn g_originalFactoryCreateSwap = nullptr;
+CreateSwapChainForHwndFn g_originalFactoryCreateHwnd = nullptr;
 
 ID3D12Device* g_device = nullptr;
 IDXGISwapChain3* g_swapChain3 = nullptr;
@@ -2952,56 +2974,97 @@ bool SameDevice(
     return same;
 }
 
-bool BindBestQueueForDevice(
-    ID3D12Device* device) {
+// A26: retain the real swapchain->DIRECT queue relationship from DXGI.
+// A DIRECT queue on the same ID3D12Device is NOT proof of ordering compatibility.
+void RegisterVerifiedSwapQueue(
+    IDXGISwapChain* swapChain,
+    IUnknown* factoryDevice,
+    const char* origin) {
 
-    if (!device) {
-        return false;
+    if (!swapChain || !factoryDevice) return;
+
+    ID3D12CommandQueue* queue = nullptr;
+    if (FAILED(factoryDevice->QueryInterface(IID_PPV_ARGS(&queue))) ||
+        !queue) return;
+
+    if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT) {
+        queue->Release();
+        return;
     }
 
-    ID3D12CommandQueue* current =
-        g_commandQueue.load(
-            std::memory_order_acquire);
+    IUnknown* identity = nullptr;
+    if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&identity))) ||
+        !identity) {
+        queue->Release();
+        return;
+    }
 
-    ID3D12CommandQueue* candidate =
-        g_tlsLastDirectQueue;
+    // Identity pointer is compared only. No ref to the swapchain is held,
+    // which would otherwise prevent normal DXGI swapchain destruction.
+    identity->Release();
 
-    if (candidate &&
-        SameDevice(
-            candidate,
-            device)) {
-
-        if (candidate != current) {
-            candidate->AddRef();
-
-            ID3D12CommandQueue* old =
-                g_commandQueue.exchange(
-                    candidate,
-                    std::memory_order_acq_rel);
-
-            if (old) {
-                old->Release();
+    {
+        std::lock_guard<std::recursive_mutex> lock(g_renderMutex);
+        for (auto& entry : g_verifiedSwapQueues) {
+            if (entry.swapIdentity == identity) {
+                entry.queue->Release();
+                entry.queue = queue;
+                entry.origin = origin;
+                g_missingVerifiedQueueLogged.store(false, std::memory_order_release);
+                Log("[OVERLAY] A26 verified swapchain queue updated: chain=%p queue=%p via=%s",
+                    swapChain, queue, origin);
+                return;
             }
-
-            Log(
-                "[OVERLAY] Bound DIRECT queue from current Present thread: 0x%p",
-                candidate);
         }
 
-        SetStage(
-            OverlayStage::QueueCaptured);
+        constexpr std::size_t kMaxSwapchainBindings = 16;
+        if (g_verifiedSwapQueues.size() >= kMaxSwapchainBindings) {
+            g_verifiedSwapQueues.front().queue->Release();
+            g_verifiedSwapQueues.erase(g_verifiedSwapQueues.begin());
+        }
 
+        g_verifiedSwapQueues.push_back({identity, queue, origin});
+        g_missingVerifiedQueueLogged.store(false, std::memory_order_release);
+    }
+
+    Log("[OVERLAY] A26 verified swapchain creation: chain=%p queue=%p via=%s",
+        swapChain, queue, origin);
+}
+
+bool BindVerifiedSwapChainQueue(
+    IDXGISwapChain* swapChain,
+    ID3D12Device* device) {
+
+    if (!swapChain || !device) return false;
+
+    IUnknown* identity = nullptr;
+    if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&identity))) ||
+        !identity) return false;
+    identity->Release();
+
+    std::lock_guard<std::recursive_mutex> lock(g_renderMutex);
+    for (const auto& entry : g_verifiedSwapQueues) {
+        if (entry.swapIdentity != identity ||
+            !entry.queue || !SameDevice(entry.queue, device)) continue;
+
+        ID3D12CommandQueue* current =
+            g_commandQueue.load(std::memory_order_acquire);
+        if (current != entry.queue) {
+            entry.queue->AddRef();
+            ID3D12CommandQueue* old =
+                g_commandQueue.exchange(entry.queue, std::memory_order_acq_rel);
+            if (old) old->Release();
+        }
+        Log("[OVERLAY] A26 authoritative PRESENT queue bound: chain=%p queue=%p origin=%s",
+            swapChain, entry.queue, entry.origin);
+        SetStage(OverlayStage::QueueCaptured);
         return true;
     }
 
-    if (current &&
-        SameDevice(
-            current,
-            device)) {
-
-        return true;
+    if (!g_missingVerifiedQueueLogged.exchange(true, std::memory_order_acq_rel)) {
+        Log("[OVERLAY] A26 renderer skipped: swapchain=%p has no verified creation queue. "
+            "Never substitute a last-seen DIRECT queue from the same device.", swapChain);
     }
-
     return false;
 }
 
@@ -3082,7 +3145,8 @@ bool IsGameSwapChain(
         return false;
     }
 
-    if (!BindBestQueueForDevice(
+    if (!BindVerifiedSwapChainQueue(
+            swapChain,
             device)) {
 
         device->Release();
@@ -3116,14 +3180,19 @@ bool WaitForFenceValue(
         return true;
     }
 
-    const UINT64 completed =
-        g_fence->GetCompletedValue();
+    g_lastOverlayHr.store(S_OK, std::memory_order_release);
+    const UINT64 completed = g_fence->GetCompletedValue();
 
     if (completed == UINT64_MAX) {
-        Log(
-            "[OVERLAY] %s fence reports device removal.",
-            stage ? stage : "Fence");
-        LogDeviceRemovedReason(stage);
+        const HRESULT removal = g_device
+            ? g_device->GetDeviceRemovedReason()
+            : DXGI_ERROR_DEVICE_REMOVED;
+        Log("[OVERLAY] A26 %s DEVICE_LOST: expected=%llu completed=UINT64_MAX reason=0x%08lX queue=%p swapchain=%p",
+            stage ? stage : "Fence", static_cast<unsigned long long>(value),
+            static_cast<unsigned long>(removal),
+            g_commandQueue.load(std::memory_order_acquire), g_swapChain3);
+        g_lastOverlayHr.store(removal, std::memory_order_release);
+        SetStage(OverlayStage::DeviceLost);
         return false;
     }
 
@@ -3151,11 +3220,40 @@ bool WaitForFenceValue(
             g_fenceEvent,
             timeoutMs);
 
-    if (waitResult ==
-        WAIT_OBJECT_0) {
-
-        return true;
+    if (waitResult == WAIT_OBJECT_0) {
+        // A signaled event does not mean success if the device was removed.
+        const UINT64 afterWait = g_fence->GetCompletedValue();
+        if (afterWait == UINT64_MAX) {
+            const HRESULT removal = g_device
+                ? g_device->GetDeviceRemovedReason()
+                : DXGI_ERROR_DEVICE_REMOVED;
+            Log("[OVERLAY] A26 %s DEVICE_LOST after fence event: expected=%llu reason=0x%08lX",
+                stage ? stage : "Fence", static_cast<unsigned long long>(value),
+                static_cast<unsigned long>(removal));
+            g_lastOverlayHr.store(removal, std::memory_order_release);
+            SetStage(OverlayStage::DeviceLost);
+            return false;
+        }
+        return afterWait >= value;
     }
+
+    const UINT64 afterWait = g_fence->GetCompletedValue();
+    if (afterWait == UINT64_MAX) {
+        const HRESULT removal = g_device
+            ? g_device->GetDeviceRemovedReason()
+            : DXGI_ERROR_DEVICE_REMOVED;
+        Log("[OVERLAY] A26 %s DEVICE_LOST during fence wait: expected=%llu reason=0x%08lX",
+            stage ? stage : "Fence", static_cast<unsigned long long>(value),
+            static_cast<unsigned long>(removal));
+        g_lastOverlayHr.store(removal, std::memory_order_release);
+        SetStage(OverlayStage::DeviceLost);
+        return false;
+    }
+    Log("[OVERLAY] A26 %s FENCE_WAIT: expected=%llu completed=%llu result=%lu queue=%p",
+        stage ? stage : "Fence", static_cast<unsigned long long>(value),
+        static_cast<unsigned long long>(afterWait),
+        static_cast<unsigned long>(waitResult),
+        g_commandQueue.load(std::memory_order_acquire));
 
     const HRESULT waitHr =
         waitResult == WAIT_TIMEOUT
@@ -4085,12 +4183,23 @@ void RenderOverlayFrameLocked(
             1500,
             "Render.FrameFence")) {
 
-        DisableOverlayRendering(
-            OverlayStage::FenceTimeout,
-            "Render.FrameFence",
-            HRESULT_FROM_WIN32(
-                ERROR_TIMEOUT));
+        // Do not bury device loss under the synthetic 0x800705B4 timeout.
+        const auto reasonStage = static_cast<OverlayStage>(
+            g_stage.load(std::memory_order_acquire));
+        const HRESULT lastHr = static_cast<HRESULT>(
+            g_lastOverlayHr.load(std::memory_order_acquire));
 
+        DisableOverlayRendering(
+            reasonStage == OverlayStage::DeviceLost
+                ? OverlayStage::DeviceLost
+                : lastHr == HRESULT_FROM_WIN32(ERROR_TIMEOUT)
+                    ? OverlayStage::FenceTimeout
+                    : OverlayStage::RenderFailed,
+            reasonStage == OverlayStage::DeviceLost
+                ? "Render.FrameFence.DEVICE_LOST"
+                : "Render.FrameFence.FENCE_WAIT",
+            FAILED(lastHr) ? lastHr
+                : HRESULT_FROM_WIN32(ERROR_TIMEOUT));
         return;
     }
 
@@ -4428,47 +4537,44 @@ HRESULT __stdcall HookResizeBuffers(
     return hr;
 }
 
+// Execution observations are diagnostic only: not evidence of the presenting queue.
 void __stdcall HookExecuteCommandLists(
     ID3D12CommandQueue* queue,
     UINT numCommandLists,
     ID3D12CommandList* const* lists) {
 
-    if (queue) {
-        const D3D12_COMMAND_QUEUE_DESC desc =
-            queue->GetDesc();
-
-        if (desc.Type ==
-            D3D12_COMMAND_LIST_TYPE_DIRECT) {
-
-            g_tlsLastDirectQueue =
-                queue;
-
-            ID3D12CommandQueue* expected =
-                nullptr;
-
-            queue->AddRef();
-
-            if (g_commandQueue
-                    .compare_exchange_strong(
-                        expected,
-                        queue,
-                        std::memory_order_acq_rel)) {
-
-                SetStage(
-                    OverlayStage::QueueCaptured);
-
-            } else {
-                queue->Release();
-            }
-        }
+    if (queue && queue->GetDesc().Type == D3D12_COMMAND_LIST_TYPE_DIRECT) {
+        g_observedDirectExecutions.fetch_add(1, std::memory_order_relaxed);
     }
 
     if (g_originalExecuteCommandLists) {
-        g_originalExecuteCommandLists(
-            queue,
-            numCommandLists,
-            lists);
+        g_originalExecuteCommandLists(queue, numCommandLists, lists);
     }
+}
+
+HRESULT __stdcall HookFactoryCreateSwapChain(
+    IDXGIFactory* factory, IUnknown* device,
+    DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** outChain) {
+
+    if (!g_originalFactoryCreateSwap) return E_FAIL;
+    const HRESULT hr = g_originalFactoryCreateSwap(factory, device, desc, outChain);
+    if (SUCCEEDED(hr) && outChain && *outChain)
+        RegisterVerifiedSwapQueue(*outChain, device, "IDXGIFactory::CreateSwapChain");
+    return hr;
+}
+
+HRESULT __stdcall HookFactoryCreateSwapChainForHwnd(
+    IDXGIFactory2* factory, IUnknown* device, HWND window,
+    const DXGI_SWAP_CHAIN_DESC1* desc,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreen,
+    IDXGIOutput* restrictOutput, IDXGISwapChain1** outChain) {
+
+    if (!g_originalFactoryCreateHwnd) return E_FAIL;
+    const HRESULT hr = g_originalFactoryCreateHwnd(
+        factory, device, window, desc, fullscreen, restrictOutput, outChain);
+    if (SUCCEEDED(hr) && outChain && *outChain)
+        RegisterVerifiedSwapQueue(*outChain, device, "IDXGIFactory2::CreateSwapChainForHwnd");
+    return hr;
 }
 
 void LogKnownOverlayModules() {
@@ -4517,6 +4623,8 @@ bool InstallRuntimeHooks() {
     bool presentCreated = false;
     bool resizeCreated = false;
     bool executeCreated = false;
+    bool factoryClassicCreated = false;
+    bool factoryHwndCreated = false;
     bool ok = false;
 
     HWND dummyWindow =
@@ -4637,6 +4745,11 @@ bool InstallRuntimeHooks() {
             *reinterpret_cast<void***>(
                 queue);
 
+        void** factoryVtable =
+            *reinterpret_cast<void***>(factory);
+        g_factoryCreateSwapHookTarget = factoryVtable[10];
+        g_factoryCreateHwndHookTarget = factoryVtable[15];
+
         g_presentHookTarget =
             swapVtable[8];
 
@@ -4712,6 +4825,30 @@ bool InstallRuntimeHooks() {
             break;
         }
 
+        // Both legacy DXGI and DXGI 1.2 HWND creation paths must be
+        // captured before drawing. Never fall back to a same-device guess.
+        const MH_STATUS factoryClassicStatus = MH_CreateHook(
+            g_factoryCreateSwapHookTarget,
+            reinterpret_cast<void*>(&HookFactoryCreateSwapChain),
+            reinterpret_cast<void**>(&g_originalFactoryCreateSwap));
+        factoryClassicCreated = factoryClassicStatus == MH_OK;
+        if (!factoryClassicCreated) {
+            Log("[OVERLAY] A26 factory CreateSwapChain hook failed: %s",
+                MH_StatusToString(factoryClassicStatus));
+            break;
+        }
+
+        const MH_STATUS factoryHwndStatus = MH_CreateHook(
+            g_factoryCreateHwndHookTarget,
+            reinterpret_cast<void*>(&HookFactoryCreateSwapChainForHwnd),
+            reinterpret_cast<void**>(&g_originalFactoryCreateHwnd));
+        factoryHwndCreated = factoryHwndStatus == MH_OK;
+        if (!factoryHwndCreated) {
+            Log("[OVERLAY] A26 factory CreateSwapChainForHwnd hook failed: %s",
+                MH_StatusToString(factoryHwndStatus));
+            break;
+        }
+
         const MH_STATUS q1 =
             MH_QueueEnableHook(
                 g_presentHookTarget);
@@ -4724,15 +4861,22 @@ bool InstallRuntimeHooks() {
             MH_QueueEnableHook(
                 g_executeHookTarget);
 
+        const MH_STATUS q4 =
+            MH_QueueEnableHook(g_factoryCreateSwapHookTarget);
+        const MH_STATUS q5 =
+            MH_QueueEnableHook(g_factoryCreateHwndHookTarget);
+
         if (q1 != MH_OK ||
             q2 != MH_OK ||
-            q3 != MH_OK) {
+            q3 != MH_OK ||
+            q4 != MH_OK ||
+            q5 != MH_OK) {
 
             Log(
-                "[OVERLAY] MinHook queue-enable failed: Present=%s Resize=%s Execute=%s",
-                MH_StatusToString(q1),
-                MH_StatusToString(q2),
-                MH_StatusToString(q3));
+                "[OVERLAY] A26 MinHook queue-enable failed: Present=%s Resize=%s Execute=%s Factory=%s Hwnd=%s",
+                MH_StatusToString(q1), MH_StatusToString(q2),
+                MH_StatusToString(q3), MH_StatusToString(q4),
+                MH_StatusToString(q5));
 
             break;
         }
@@ -4786,6 +4930,20 @@ bool InstallRuntimeHooks() {
                 g_executeHookTarget);
         }
 
+        if (factoryClassicCreated && g_factoryCreateSwapHookTarget) {
+            MH_DisableHook(g_factoryCreateSwapHookTarget);
+            MH_RemoveHook(g_factoryCreateSwapHookTarget);
+        }
+        if (factoryHwndCreated && g_factoryCreateHwndHookTarget) {
+            MH_DisableHook(g_factoryCreateHwndHookTarget);
+            MH_RemoveHook(g_factoryCreateHwndHookTarget);
+        }
+
+        g_factoryCreateSwapHookTarget = nullptr;
+        g_factoryCreateHwndHookTarget = nullptr;
+        g_originalFactoryCreateSwap = nullptr;
+        g_originalFactoryCreateHwnd = nullptr;
+
         g_presentHookTarget = nullptr;
         g_resizeHookTarget = nullptr;
         g_executeHookTarget = nullptr;
@@ -4822,10 +4980,9 @@ bool InstallRuntimeHooks() {
         OverlayStage::RuntimeHooksReady);
 
     Log(
-        "[OVERLAY] Runtime hooks ready: Present=%p ResizeBuffers=%p ExecuteCommandLists=%p",
-        g_presentHookTarget,
-        g_resizeHookTarget,
-        g_executeHookTarget);
+        "[OVERLAY] A26 hooks ready: Present=%p ResizeBuffers=%p ExecuteCommandLists=%p Factory=%p Hwnd=%p",
+        g_presentHookTarget, g_resizeHookTarget, g_executeHookTarget,
+        g_factoryCreateSwapHookTarget, g_factoryCreateHwndHookTarget);
 
     return true;
 }
@@ -4857,6 +5014,9 @@ bool OverlayInitialize(
         false,
         std::memory_order_release);
 
+    g_missingVerifiedQueueLogged.store(false, std::memory_order_release);
+    g_observedDirectExecutions.store(0, std::memory_order_release);
+
     g_lastOverlayHr.store(
         S_OK,
         std::memory_order_release);
@@ -4871,7 +5031,7 @@ bool OverlayInitialize(
     LoadOverlayToggleKeyFromIni();
 
     Log(
-        "[OVERLAY] A21 compatibility renderer: First Debug DX12 hardening + floating movable/resizable ImGui window + selective input capture.");
+        "[OVERLAY] A26 authoritative DXGI queue capture: A25 UI, A24 gameplay, First Debug DX12 renderer protected.");
 
     LogKnownOverlayModules();
 
@@ -5083,7 +5243,7 @@ const char* OverlayStatus() {
         return "Q Protocol A21 hooks ready; waiting for DIRECT queue";
 
     case OverlayStage::QueueCaptured:
-        return "Q Protocol A21 DIRECT queue observed; waiting for tracked game Present";
+        return "Q Protocol A26 verified DXGI presenting queue captured";
 
     case OverlayStage::ImGuiReady:
         return "Q Protocol A21 floating DX12 ImGui ready";
@@ -5099,6 +5259,9 @@ const char* OverlayStatus() {
 
     case OverlayStage::FenceTimeout:
         return "Q Protocol overlay GPU synchronization timeout; gameplay core remains active";
+
+    case OverlayStage::DeviceLost:
+        return "Q Protocol overlay D3D12 DEVICE_LOST; rendering disabled for this session";
 
     case OverlayStage::Disabled:
         return "Q Protocol overlay disabled for this session; gameplay core remains active";
@@ -5138,6 +5301,10 @@ void OverlayShutdown() {
             MH_DisableHook(
                 g_executeHookTarget);
         }
+        if (g_factoryCreateSwapHookTarget)
+            MH_DisableHook(g_factoryCreateSwapHookTarget);
+        if (g_factoryCreateHwndHookTarget)
+            MH_DisableHook(g_factoryCreateHwndHookTarget);
     }
 
     {
@@ -5153,6 +5320,11 @@ void OverlayShutdown() {
             Log(
                 "[OVERLAY] Shutdown kept DX12 allocations alive because GPU completion was not proven. Process teardown will reclaim them.");
         }
+
+        for (auto& entry : g_verifiedSwapQueues) {
+            if (entry.queue) entry.queue->Release();
+        }
+        g_verifiedSwapQueues.clear();
     }
 
     ID3D12CommandQueue* queue =
@@ -5179,6 +5351,10 @@ void OverlayShutdown() {
             MH_RemoveHook(
                 g_executeHookTarget);
         }
+        if (g_factoryCreateSwapHookTarget)
+            MH_RemoveHook(g_factoryCreateSwapHookTarget);
+        if (g_factoryCreateHwndHookTarget)
+            MH_RemoveHook(g_factoryCreateHwndHookTarget);
 
         MH_Uninitialize();
 
@@ -5189,10 +5365,14 @@ void OverlayShutdown() {
     g_presentHookTarget = nullptr;
     g_resizeHookTarget = nullptr;
     g_executeHookTarget = nullptr;
+    g_factoryCreateSwapHookTarget = nullptr;
+    g_factoryCreateHwndHookTarget = nullptr;
 
     g_originalPresent = nullptr;
     g_originalResizeBuffers = nullptr;
     g_originalExecuteCommandLists = nullptr;
+    g_originalFactoryCreateSwap = nullptr;
+    g_originalFactoryCreateHwnd = nullptr;
 
     SetStage(
         OverlayStage::Disabled);

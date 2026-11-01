@@ -741,8 +741,19 @@ bool BuildGraphIndex() {
     // sessions, graphics initialization patterns, or Windows heap layouts.
     // Scan the original known-good range, and extend it around the live
     // player loadout (within 32 MiB in either direction).
-    auto scanRange = [&](std::uintptr_t scanBegin, std::uintptr_t scanEnd) {
-            std::uintptr_t cursor = scanBegin;
+    struct ScanStats {
+        std::size_t regions = 0;
+        std::size_t readableRegions = 0;
+        std::size_t readCalls = 0;
+        std::size_t readFailures = 0;
+        std::size_t bytesRead = 0;
+    };
+    ScanStats fixedStats{};
+    ScanStats localStats{};
+
+    auto scanRange = [&](std::uintptr_t scanBegin, std::uintptr_t scanEnd,
+                         ScanStats& stats) {
+        std::uintptr_t cursor = scanBegin;
         while (cursor < scanEnd) {
             MEMORY_BASIC_INFORMATION mbi{};
             if (VirtualQuery(reinterpret_cast<LPCVOID>(cursor), &mbi, sizeof(mbi)) != sizeof(mbi)) {
@@ -750,12 +761,14 @@ bool BuildGraphIndex() {
                 continue;
             }
 
+            ++stats.regions;
             const std::uintptr_t regionBase =
                 reinterpret_cast<std::uintptr_t>(mbi.BaseAddress);
             const std::uintptr_t regionEnd =
                 regionBase + static_cast<std::uintptr_t>(mbi.RegionSize);
 
             if (mbi.State == MEM_COMMIT && IsReadableProtection(mbi.Protect)) {
+                ++stats.readableRegions;
                 std::uintptr_t chunk = (std::max)(regionBase, scanBegin);
                 while (chunk < regionEnd && chunk < scanEnd) {
                     const SIZE_T wanted = static_cast<SIZE_T>(
@@ -764,13 +777,16 @@ bool BuildGraphIndex() {
                             std::min<std::uintptr_t>(regionEnd, scanEnd) - chunk));
 
                     SIZE_T got = 0;
-                    if (ReadProcessMemory(
-                            GetCurrentProcess(),
-                            reinterpret_cast<LPCVOID>(chunk),
-                            buffer.data(),
-                            wanted,
-                            &got) &&
-                        got >= sizeof(std::uintptr_t)) {
+                    ++stats.readCalls;
+                    const BOOL readOk = ReadProcessMemory(
+                        GetCurrentProcess(),
+                        reinterpret_cast<LPCVOID>(chunk),
+                        buffer.data(),
+                        wanted,
+                        &got);
+                    if (!readOk) ++stats.readFailures;
+                    if (readOk && got >= sizeof(std::uintptr_t)) {
+                        stats.bytesRead += got;
 
                         for (SIZE_T off = 0; off + sizeof(std::uintptr_t) <= got; off += 8) {
                             std::uintptr_t value = 0;
@@ -803,24 +819,74 @@ bool BuildGraphIndex() {
 
     };
 
-    scanRange(kGraphScanBegin, kGraphScanEnd);
+    scanRange(kGraphScanBegin, kGraphScanEnd, fixedStats);
 
     const std::uintptr_t anchor = g_graphScanPlayerLoadout;
-    if (anchor >= 0x10000000 && anchor < 0x80000000) {
-        constexpr std::uintptr_t kAnchorRadius = 0x02000000;
-        constexpr std::uintptr_t kPageMask = ~std::uintptr_t{0xFFFF};
-        const std::uintptr_t localBegin = (anchor - kAnchorRadius) & kPageMask;
-        const std::uintptr_t localEnd = (anchor + kAnchorRadius + 0xFFFF) & kPageMask;
 
-        // Avoid rescanning overlapping memory. Both scans populate the
-        // same item/spawner maps and can associate cross-region pairs.
+    // A27: 0x80000000 is NOT the Windows x64 user-mode address ceiling.
+    // The previous 32-bit gate silently ignored e.g. 0x80B60E50 (as seen
+    // in the user's A26 log), losing the entire player-relative scan.
+    // Use the actual OS user address bound and VirtualQuery instead.
+    SYSTEM_INFO systemInfo{};
+    GetNativeSystemInfo(&systemInfo);
+    const std::uintptr_t maxUserAddress =
+        reinterpret_cast<std::uintptr_t>(systemInfo.lpMaximumApplicationAddress);
+    constexpr std::uintptr_t kAnchorRadius = 0x02000000; // 32 MiB each side
+    constexpr std::uintptr_t kMinAnchor = 0x10000000;
+    constexpr std::uintptr_t kPageMask = ~std::uintptr_t{0xFFFF};
+    constexpr std::uintptr_t kPageRound = 0xFFFF;
+
+    MEMORY_BASIC_INFORMATION anchorMemory{};
+    const bool anchorInUserSpace =
+        anchor >= kMinAnchor && anchor <= maxUserAddress;
+    const bool anchorQueried =
+        anchorInUserSpace &&
+        VirtualQuery(reinterpret_cast<LPCVOID>(anchor),
+                     &anchorMemory, sizeof(anchorMemory)) == sizeof(anchorMemory);
+    const bool anchorReadable =
+        anchorQueried && anchorMemory.State == MEM_COMMIT &&
+        IsReadableProtection(anchorMemory.Protect);
+
+    std::uintptr_t localBegin = 0;
+    std::uintptr_t localEnd = 0;
+    if (anchorReadable) {
+        // All arithmetic is bounded by the actual user-mode address range.
+        // The scan is never wider than 64 MiB + alignment and always
+        // excludes duplicate areas already visited by the fixed scan.
+        localBegin = (anchor - (std::min)(anchor, kAnchorRadius)) & kPageMask;
+        const std::uintptr_t endUnaligned =
+            maxUserAddress - anchor < kAnchorRadius
+                ? maxUserAddress : anchor + kAnchorRadius;
+        localEnd = endUnaligned <= maxUserAddress - kPageRound
+            ? (endUnaligned + kPageRound) & kPageMask
+            : maxUserAddress;
+
         if (localBegin < kGraphScanBegin) {
-            scanRange(localBegin, (std::min)(localEnd, kGraphScanBegin));
+            scanRange(localBegin, (std::min)(localEnd, kGraphScanBegin), localStats);
         }
         if (localEnd > kGraphScanEnd) {
-            scanRange((std::max)(localBegin, kGraphScanEnd), localEnd);
+            scanRange((std::max)(localBegin, kGraphScanEnd), localEnd, localStats);
         }
+    } else {
+        Log("A27 graph scan: player anchor=%p rejected (userSpace=%d queried=%d "
+            "committed=%d readable=%d); fixed-range fallback only.",
+            reinterpret_cast<void*>(anchor),
+            anchorInUserSpace ? 1 : 0, anchorQueried ? 1 : 0,
+            anchorQueried && anchorMemory.State == MEM_COMMIT ? 1 : 0,
+            anchorReadable ? 1 : 0);
     }
+
+    Log("A27 graph scan: anchor=%p maxUser=%p local=%p..%p fixed=0x%llX..0x%llX "
+        "fixed{regions=%zu readable=%zu calls=%zu failed=%zu bytes=%zu} "
+        "local{regions=%zu readable=%zu calls=%zu failed=%zu bytes=%zu}.",
+        reinterpret_cast<void*>(anchor), reinterpret_cast<void*>(maxUserAddress),
+        reinterpret_cast<void*>(localBegin), reinterpret_cast<void*>(localEnd),
+        static_cast<unsigned long long>(kGraphScanBegin),
+        static_cast<unsigned long long>(kGraphScanEnd),
+        fixedStats.regions, fixedStats.readableRegions, fixedStats.readCalls,
+        fixedStats.readFailures, fixedStats.bytesRead,
+        localStats.regions, localStats.readableRegions, localStats.readCalls,
+        localStats.readFailures, localStats.bytesRead);
 
     std::sort(spawners.begin(), spawners.end());
     spawners.erase(std::unique(spawners.begin(), spawners.end()), spawners.end());
