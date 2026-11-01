@@ -1,5 +1,17 @@
 # Q Protocol — Project State
 
+## 2026-11-01 ? A28 TEST native map prepared (runtime pending)
+
+Local Steam build 26252352 was found and analyzed read-only (EXE SHA-256
+`6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1`).
+Individual native RVAs are remapped; PE refusal is retained and native code/type
+checks are added before hooks. A25/A26/A27, assembly, gameplay and INI are frozen.
+**EXPERIMENTAL; build/ZIP verification pending; no launch/install performed.**
+Old EXE unavailable; existing logs are from October 14. GPU DEVICE_LOST remains
+OPEN. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md) and the static manifest.
+Next: Windows CI and four-file ZIP, then one approved maintainer runtime test.
+
+
 ## 2026-11-01 — A26/A27 merged to main; new game patch compatibility OPEN
 
 - **Source integration complete:** [PR #7](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/7) squash commit `06245ba6623f590d165c05d227c078f2072831e5` integrated the already-tested A26 DXGI queue verification and A27 x64 weapon graph scanning into the `main` development baseline. The previous public release `v0.9.6` and its tag/ZIP remain immutable.

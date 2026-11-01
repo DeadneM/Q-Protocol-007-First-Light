@@ -1,6 +1,6 @@
 # 007 First Light — November 2026 executable compatibility port
 
-Status: **BLOCKED on new executable**. Development branch `dev/nov2026-game-update-remap` created after integrating A26+A27 to `main`.
+Status: **A28 TEST map prepared; build and runtime validation pending**. The updated local EXE is now available; see [A28 evidence and TODO](A28_NOV2026_NATIVE_REMAP.md). The original plan below is retained for history. Development branch `dev/nov2026-game-update-remap` created after integrating A26+A27 to `main`.
 Date: 2026-11-01. The existing stable v0.9.6 package is unchanged and **not certified** for the new game update.
 
 ## Current known October 2026 identity

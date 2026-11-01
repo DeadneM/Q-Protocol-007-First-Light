@@ -15,9 +15,11 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
+**A28 TEST compatibility work:** the local Steam build 26252352 has been analyzed and individually remapped on `dev/nov2026-game-update-remap`. The new PE/native-map gate refuses mismatches before hooks. Build verification and gameplay acceptance are pending. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md). Public v0.9.6 is unchanged.
+
 **Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI** is the current public release.
 
-> **November 2026 game-update notice:** A26 verified DXGI queue capture and A27 x64 weapon graph scanner are now integrated in `main` ([PR #7](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/7)). This is the source baseline, **not a public release validated for the newest game executable**. The public v0.9.6 ZIP targets the October 7, 2026 executable. A new `Retail/007FirstLight.exe` is required to revalidate native offsets after the latest game update. GPU `DEVICE_LOST` remains an open compatibility issue on some machines.
+> **November 2026 game-update notice:** A26 verified DXGI queue capture and A27 x64 weapon graph scanner are now integrated in `main` ([PR #7](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/7)). This is the source baseline, **not a public release validated for the newest game executable**. The public v0.9.6 ZIP targets the October 7, 2026 executable. The local updated executable has now been statically remapped for A28 TEST; gameplay acceptance is still pending. GPU `DEVICE_LOST` remains an open compatibility issue on some machines.
 
 - Updated for the October 7, 2026 game executable.
 - A25 enlarges the first-open floating overlay to 1000×850 ImGui units and keeps Save / Reload / Defaults accessible below a scrollable tab content area.

@@ -1,3 +1,9 @@
+## A28 TEST ? 2026-11-01
+
+Static remap prepared for Steam build 26252352; native code/type gate retained.
+Build and runtime validation pending. A26/A27 baseline preserved. GPU issue OPEN.
+See [A28 notebook](A28_NOV2026_NATIVE_REMAP.md).
+
 # Technical status
 
 ## First Debug — A21 first-open D3D12 device loss (2026-10-11)

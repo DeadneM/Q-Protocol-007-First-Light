@@ -1,0 +1,95 @@
+{
+  "exe_sha256": "6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1",
+  "steam_build": "26252352",
+  "timestamp": "0x6AE0DF3C",
+  "size_of_image": "0x06D31000",
+  "status": "EXPERIMENTAL - STATIC IDENTIFICATION ONLY, NOT GAMEPLAY VALIDATED",
+  "map": {
+    "kPlayerResolverRva": "0x0171D2E0",
+    "kPlayerRegistryHelperRva": "0x007D6E80",
+    "kPlayerRegistryGlobalRva": "0x06792438",
+    "kRuntimePlayerGlobalRva": "0x06452BF8",
+    "kAmmoOwnerGlobalRva": "0x06452BE0",
+    "kPlayerLoadoutVtableRva": "0x02EDD278",
+    "kLicenseToKillRva": "0x0191B694",
+    "kLicenseToKillNativeOnRva": "0x0191B6FB",
+    "kLtkObserveHookRva": "0x0191B6B8",
+    "kLtkObserveTrueRva": "0x0191B6C7",
+    "kLtkObserveFalseRva": "0x0191B743",
+    "kItemEntryVtableRva": "0x02ECA0A8",
+    "kSpawnerVtableRva": "0x02ECA270",
+    "kNativeSpawnRva": "0x016B5E90",
+    "kNativeAmmoInsertRva": "0x001157B0",
+    "kNativeAmmoNotifyRva": "0x012A8470",
+    "kGameplayHookRva": "0x0194CBD1"
+  },
+  "checks": [
+    {
+      "name": "kPlayerResolverRva",
+      "rva": "0x0171D2E0",
+      "bytes": "40 53 48 83 ec 20 45 33 c9 48 8b da 4c 39 0d 3d 6e d3 04 ba ac 01 00 00 0f 84 ea 00 00 00 48 8b"
+    },
+    {
+      "name": "kPlayerRegistryHelperRva",
+      "rva": "0x007D6E80",
+      "bytes": "48 83 ec 08 44 8b 41 08 4c 8b da 48 8b 05 f6 07 52 05 ba ac 01 00 00 46 8b 0c 80 90 65 48 8b 04"
+    },
+    {
+      "name": "kNativeSpawnRva",
+      "rva": "0x016B5E90",
+      "bytes": "40 55 56 41 55 48 8d 6c 24 b9 48 81 ec f0 00 00 00 8b 05 81 47 05 05 33 f6 4c 8b e9 89 45 87 8b"
+    },
+    {
+      "name": "kNativeAmmoInsertRva",
+      "rva": "0x001157B0",
+      "bytes": "48 89 5c 24 18 55 56 57 41 54 41 56 48 83 ec 30 4c 8b 51 08 48 8b ea 4c 8b 61 10 48 8b d9 49 bb"
+    },
+    {
+      "name": "kNativeAmmoNotifyRva",
+      "rva": "0x012A8470",
+      "bytes": "b8 01 00 00 00 44 8b d2 44 8b c8 87 81 08 39 02 00 85 c0 74 44 8b 81 08 39 02 00 85 c0 74 2b 90"
+    },
+    {
+      "name": "kLicenseToKillRva",
+      "rva": "0x0191B694",
+      "bytes": "32 d2 4c 8b 15 03 76 b3 04 44 0f b7 cb 0f b7 c3 41 8b c9 48 c1 e8 06 41 b8 01 00 00 00 49 d3 e0"
+    },
+    {
+      "name": "kLicenseToKillNativeOnRva",
+      "rva": "0x0191B6FB",
+      "bytes": "b2 01 eb 97 48 8b 87 08 07 00 00 4e 85 1c d0 74 88 41 83 79 0c 00 77 e8 48 8b 87 f0 06 00 00 4e"
+    },
+    {
+      "name": "kLtkObserveHookRva",
+      "rva": "0x0191B6B8",
+      "bytes": "49 8b bb f0 06 00 00 4c 23 04 c7 84 d2 74 7c 4d 85 c0 0f 84 29 02 00 00 41 b8 4a 00 00 00 0f b7"
+    },
+    {
+      "name": "kLtkObserveTrueRva",
+      "rva": "0x0191B6C7",
+      "bytes": "4d 85 c0 0f 84 29 02 00 00 41 b8 4a 00 00 00 0f b7 d3 49 8b ca e8 6f 46 82 ff 48 8b 8c 24 20 01"
+    },
+    {
+      "name": "kLtkObserveFalseRva",
+      "rva": "0x0191B743",
+      "bytes": "4d 85 c0 0f 85 ad 01 00 00 0f b7 cb 41 b8 01 00 00 00 8b d1 49 d3 e0 48 c1 ea 06 4c 85 04 d7 0f"
+    },
+    {
+      "name": "kGameplayHookRva",
+      "rva": "0x0194CBD1",
+      "bytes": "48 81 c4 00 01 00 00 41 5f 41 5e 41 5d 41 5c 5f 5e 5b c3"
+    },
+    {
+      "name": "AmmoPublicationCallsite",
+      "rva": "0x015D5AC2",
+      "bytes": "48 8d 8d 70 0b 02 00 48 8d 54 24 30 e8 dd fc b3 fe 4c 8d 85 d0 0a 02 00 ba de 01 00 00 48 8b cd e8 89 29 cd ff"
+    }
+  ],
+  "pointer_links": {
+    "0x03740FB8": "0x06792438",
+    "0x02EDD5D8": "0x0171D2E0",
+    "0x02EDD278": "0x0171BFA0",
+    "0x02ECA0A8": "0x016B8810",
+    "0x02ECA270": "0x016B6A30"
+  }
+}

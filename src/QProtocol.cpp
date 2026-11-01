@@ -18,27 +18,27 @@
 namespace qp {
 
 constexpr std::uintptr_t kExpectedSizeOfImage = 0x06D31000;
-constexpr DWORD kExpectedTimeDateStamp = 0x6AC4D653;
+constexpr DWORD kExpectedTimeDateStamp = 0x6AE0DF3C;
 
-// October 2026 executable mappings.
-constexpr std::uintptr_t kPlayerResolverRva       = 0x0171C2B0;
-constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E20;
-constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x067925D8;
-constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452838;
-constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452820;
-constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD108;
-constexpr std::uintptr_t kLicenseToKillRva         = 0x0191A6B4;
-constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191A71B;
-constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191A6D8;
-constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191A6E7;
-constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191A763;
+// A28 TEST: Steam build 26252352, SHA-256 6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1.
+constexpr std::uintptr_t kPlayerResolverRva       = 0x0171D2E0;
+constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E80;
+constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x06792438;
+constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452BF8;
+constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452BE0;
+constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD278;
+constexpr std::uintptr_t kLicenseToKillRva         = 0x0191B694;
+constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191B6FB;
+constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191B6B8;
+constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191B6C7;
+constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191B743;
 
-constexpr std::uintptr_t kItemEntryVtableRva      = 0x02EC97C8;
-constexpr std::uintptr_t kSpawnerVtableRva        = 0x02EC9990;
-constexpr std::uintptr_t kNativeSpawnRva          = 0x016B4E80;
-constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00115820;
-constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A7330;
-constexpr std::uintptr_t kGameplayHookRva         = 0x0194BC01;
+constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECA0A8;
+constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECA270;
+constexpr std::uintptr_t kNativeSpawnRva          = 0x016B5E90;
+constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x001157B0;
+constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8470;
+constexpr std::uintptr_t kGameplayHookRva         = 0x0194CBD1;
 
 constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
 constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
@@ -282,6 +282,66 @@ bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
     return true;
 }
 
+// A28 compatibility gate: verify native code and relocated type links before any hook.
+// This is a static-map check, not proof of runtime gameplay acceptance.
+bool ValidateNovemberNativeMap() {
+    auto code = [](const char* name, std::uintptr_t rva, const BYTE* expected, SIZE_T size) {
+        BYTE current[64]{};
+        SIZE_T got = 0;
+        if (size > sizeof(current) || rva >= kExpectedSizeOfImage ||
+            size > kExpectedSizeOfImage - rva ||
+            !ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<LPCVOID>(g_exeBase + rva),
+                               current, size, &got) || got != size ||
+            memcmp(current, expected, size) != 0) {
+            Log("[ERROR] A28 native-map mismatch: %s at EXE+0x%llX. No hooks installed.",
+                name, static_cast<unsigned long long>(rva));
+            return false;
+        }
+        return true;
+    };
+    const BYTE expected0[] = {0x40, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x45, 0x33, 0xC9, 0x48, 0x8B, 0xDA, 0x4C, 0x39, 0x0D, 0x3D, 0x6E, 0xD3, 0x04, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x0F, 0x84, 0xEA, 0x00, 0x00, 0x00, 0x48, 0x8B};
+    if (!code("kPlayerResolverRva", 0x0171D2E0, expected0, sizeof(expected0))) return false;
+    const BYTE expected1[] = {0x48, 0x83, 0xEC, 0x08, 0x44, 0x8B, 0x41, 0x08, 0x4C, 0x8B, 0xDA, 0x48, 0x8B, 0x05, 0xF6, 0x07, 0x52, 0x05, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x46, 0x8B, 0x0C, 0x80, 0x90, 0x65, 0x48, 0x8B, 0x04};
+    if (!code("kPlayerRegistryHelperRva", 0x007D6E80, expected1, sizeof(expected1))) return false;
+    const BYTE expected2[] = {0x40, 0x55, 0x56, 0x41, 0x55, 0x48, 0x8D, 0x6C, 0x24, 0xB9, 0x48, 0x81, 0xEC, 0xF0, 0x00, 0x00, 0x00, 0x8B, 0x05, 0x81, 0x47, 0x05, 0x05, 0x33, 0xF6, 0x4C, 0x8B, 0xE9, 0x89, 0x45, 0x87, 0x8B};
+    if (!code("kNativeSpawnRva", 0x016B5E90, expected2, sizeof(expected2))) return false;
+    const BYTE expected3[] = {0x48, 0x89, 0x5C, 0x24, 0x18, 0x55, 0x56, 0x57, 0x41, 0x54, 0x41, 0x56, 0x48, 0x83, 0xEC, 0x30, 0x4C, 0x8B, 0x51, 0x08, 0x48, 0x8B, 0xEA, 0x4C, 0x8B, 0x61, 0x10, 0x48, 0x8B, 0xD9, 0x49, 0xBB};
+    if (!code("kNativeAmmoInsertRva", 0x001157B0, expected3, sizeof(expected3))) return false;
+    const BYTE expected4[] = {0xB8, 0x01, 0x00, 0x00, 0x00, 0x44, 0x8B, 0xD2, 0x44, 0x8B, 0xC8, 0x87, 0x81, 0x08, 0x39, 0x02, 0x00, 0x85, 0xC0, 0x74, 0x44, 0x8B, 0x81, 0x08, 0x39, 0x02, 0x00, 0x85, 0xC0, 0x74, 0x2B, 0x90};
+    if (!code("kNativeAmmoNotifyRva", 0x012A8470, expected4, sizeof(expected4))) return false;
+    const BYTE expected5[] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x03, 0x76, 0xB3, 0x04, 0x44, 0x0F, 0xB7, 0xCB, 0x0F, 0xB7, 0xC3, 0x41, 0x8B, 0xC9, 0x48, 0xC1, 0xE8, 0x06, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x49, 0xD3, 0xE0};
+    if (!code("kLicenseToKillRva", 0x0191B694, expected5, sizeof(expected5))) return false;
+    const BYTE expected6[] = {0xB2, 0x01, 0xEB, 0x97, 0x48, 0x8B, 0x87, 0x08, 0x07, 0x00, 0x00, 0x4E, 0x85, 0x1C, 0xD0, 0x74, 0x88, 0x41, 0x83, 0x79, 0x0C, 0x00, 0x77, 0xE8, 0x48, 0x8B, 0x87, 0xF0, 0x06, 0x00, 0x00, 0x4E};
+    if (!code("kLicenseToKillNativeOnRva", 0x0191B6FB, expected6, sizeof(expected6))) return false;
+    const BYTE expected7[] = {0x49, 0x8B, 0xBB, 0xF0, 0x06, 0x00, 0x00, 0x4C, 0x23, 0x04, 0xC7, 0x84, 0xD2, 0x74, 0x7C, 0x4D, 0x85, 0xC0, 0x0F, 0x84, 0x29, 0x02, 0x00, 0x00, 0x41, 0xB8, 0x4A, 0x00, 0x00, 0x00, 0x0F, 0xB7};
+    if (!code("kLtkObserveHookRva", 0x0191B6B8, expected7, sizeof(expected7))) return false;
+    const BYTE expected8[] = {0x4D, 0x85, 0xC0, 0x0F, 0x84, 0x29, 0x02, 0x00, 0x00, 0x41, 0xB8, 0x4A, 0x00, 0x00, 0x00, 0x0F, 0xB7, 0xD3, 0x49, 0x8B, 0xCA, 0xE8, 0x6F, 0x46, 0x82, 0xFF, 0x48, 0x8B, 0x8C, 0x24, 0x20, 0x01};
+    if (!code("kLtkObserveTrueRva", 0x0191B6C7, expected8, sizeof(expected8))) return false;
+    const BYTE expected9[] = {0x4D, 0x85, 0xC0, 0x0F, 0x85, 0xAD, 0x01, 0x00, 0x00, 0x0F, 0xB7, 0xCB, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x8B, 0xD1, 0x49, 0xD3, 0xE0, 0x48, 0xC1, 0xEA, 0x06, 0x4C, 0x85, 0x04, 0xD7, 0x0F};
+    if (!code("kLtkObserveFalseRva", 0x0191B743, expected9, sizeof(expected9))) return false;
+    const BYTE expected10[] = {0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00, 0x41, 0x5F, 0x41, 0x5E, 0x41, 0x5D, 0x41, 0x5C, 0x5F, 0x5E, 0x5B, 0xC3};
+    if (!code("kGameplayHookRva", 0x0194CBD1, expected10, sizeof(expected10))) return false;
+    const BYTE expected11[] = {0x48, 0x8D, 0x8D, 0x70, 0x0B, 0x02, 0x00, 0x48, 0x8D, 0x54, 0x24, 0x30, 0xE8, 0xDD, 0xFC, 0xB3, 0xFE, 0x4C, 0x8D, 0x85, 0xD0, 0x0A, 0x02, 0x00, 0xBA, 0xDE, 0x01, 0x00, 0x00, 0x48, 0x8B, 0xCD, 0xE8, 0x89, 0x29, 0xCD, 0xFF};
+    if (!code("AmmoPublicationCallsite", 0x015D5AC2, expected11, sizeof(expected11))) return false;
+    const std::uintptr_t links[][2] = {
+        {0x03740FB8, 0x06792438},
+        {0x02EDD5D8, 0x0171D2E0},
+        {0x02EDD278, 0x0171BFA0},
+        {0x02ECA0A8, 0x016B8810},
+        {0x02ECA270, 0x016B6A30},
+    };
+    for (const auto& link : links) {
+        std::uintptr_t value = 0;
+        if (!SafeRead(g_exeBase + link[0], value) || value != g_exeBase + link[1]) {
+            Log("[ERROR] A28 type-map mismatch at EXE+0x%llX. No hooks installed.",
+                static_cast<unsigned long long>(link[0]));
+            return false;
+        }
+    }
+    Log("A28 native-map code/type checks PASS; runtime validation pending.");
+    return true;
+}
+
 bool ValidateTargetExecutable() {
     g_exeBase = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(nullptr));
     if (!g_exeBase) {
@@ -312,6 +372,8 @@ bool ValidateTargetExecutable() {
         Log("[ERROR] Unsupported 007FirstLight.exe build. No game memory will be modified.");
         return false;
     }
+
+    if (!ValidateNovemberNativeMap()) return false;
 
     g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
@@ -1732,8 +1794,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.4 / Fresh Core A20J Clean Core");
-    Log("Scope: validated A20J Clean Core; A20I gameplay/RIDs/timings preserved.");
+    Log("Q Protocol v0.9.6 / A28 November Remap TEST");
+    Log("Scope: A28 TEST static native remap; A25/A26/A27 preserved; runtime validation pending.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");

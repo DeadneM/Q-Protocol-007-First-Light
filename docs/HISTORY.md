@@ -375,3 +375,15 @@ Current working integration/test base.
 Latest gameplay feedback: all major systems work again, but the gadget wheel remains wrong. The U67 log reports target mask `0x0F`, so the remaining blocker is the name/identity catalogue rather than F2 execution or AUTO lifecycle.
 
 U67 is accepted as the current working test/integration base, while U57 remains the stable canonical fallback until the seven gadget identities are recaptured authoritatively.
+
+
+## 2026-11-01 ? A28 TEST native map prepared (runtime pending)
+
+Local Steam build 26252352 was found and analyzed read-only (EXE SHA-256
+`6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1`).
+Individual native RVAs are remapped; PE refusal is retained and native code/type
+checks are added before hooks. A25/A26/A27, assembly, gameplay and INI are frozen.
+**EXPERIMENTAL; build/ZIP verification pending; no launch/install performed.**
+Old EXE unavailable; existing logs are from October 14. GPU DEVICE_LOST remains
+OPEN. See [A28 notebook](A28_NOV2026_NATIVE_REMAP.md) and the static manifest.
+Next: Windows CI and four-file ZIP, then one approved maintainer runtime test.
