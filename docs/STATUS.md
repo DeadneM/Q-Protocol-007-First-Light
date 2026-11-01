@@ -1,7 +1,7 @@
 ## A28 TEST ? 2026-11-01
 
 Static remap prepared for Steam build 26252352; native code/type gate retained.
-Build and runtime validation pending. A26/A27 baseline preserved. GPU issue OPEN.
+Windows CI 41357519256 SUCCESS; downloaded four-file ZIP, hashes and unchanged INI checked. Runtime validation pending. A26/A27 baseline preserved. GPU issue OPEN.
 See [A28 notebook](A28_NOV2026_NATIVE_REMAP.md).
 
 # Technical status

@@ -387,3 +387,17 @@ checks are added before hooks. A25/A26/A27, assembly, gameplay and INI are froze
 Old EXE unavailable; existing logs are from October 14. GPU DEVICE_LOST remains
 OPEN. See [A28 notebook](A28_NOV2026_NATIVE_REMAP.md) and the static manifest.
 Next: Windows CI and four-file ZIP, then one approved maintainer runtime test.
+
+
+### A28 build/package result ? 2026-11-01
+
+A28 TEST source `580e57c` built successfully in Windows CI run 41357519256.
+Separate prerelease `a28-nov2026-remap-test`; downloaded ZIP 527319 bytes,
+SHA-256 `93eed2c59d71e7349512aa717fd16b39802bcf6db87f2431c286385be604334e`.
+CRC, exact four-file root, AMD64 binaries, A28 identity, README and unchanged INI
+checked independently. Static code/type map checked against a read-only local
+EXE snapshot. Public v0.9.6 asset remains 523245 bytes with original SHA-256
+`a87bb1436a66df98e8418c0f926a8fddff5425c9b54c86bad99de1c8fbabe4a9`.
+Status CONSTRUIT / CONTR?L? / EXP?RIMENTAL, not user VALID?. No installation or
+launch. Next step: explicitly approved single maintainer runtime session and
+fresh QProtocol.log + QProtocolDXGI.log; GPU incident remains open.

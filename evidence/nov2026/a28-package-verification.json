@@ -1,0 +1,28 @@
+{
+  "zip": "Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip",
+  "size": 527319,
+  "sha256": "93eed2c59d71e7349512aa717fd16b39802bcf6db87f2431c286385be604334e",
+  "source_commit": "580e57cb1e240df04e1a3f8cdc0fb0b46067fcc2",
+  "ci_run": 41357519256,
+  "ci_conclusion": "success",
+  "files": {
+    "dxgi.dll": {
+      "size": 138240,
+      "sha256": "f781a01cf3092cf099d2c1dc899057390500cdc4d9a7f2419d7b124e789a3bf2",
+      "machine": "AMD64"
+    },
+    "QProtocol.asi": {
+      "size": 878592,
+      "sha256": "940deffc8ce833b17284c2f1633a472dd4cc50830b1e8f15f420dc0452da07fe",
+      "machine": "AMD64"
+    },
+    "QProtocol.ini": {
+      "size": 6717,
+      "sha256": "8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022"
+    },
+    "README.txt": {
+      "size": 2261,
+      "sha256": "ad95a3c61a75a586e418e7856f57b79b7f6a5a0aa4d32d3a95e2a1552678bcca"
+    }
+  }
+}

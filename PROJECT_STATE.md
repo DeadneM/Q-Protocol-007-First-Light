@@ -1,15 +1,17 @@
 # Q Protocol — Project State
 
-## 2026-11-01 ? A28 TEST native map prepared (runtime pending)
+## 2026-11-01 ? A28 TEST built and package checked (runtime pending)
 
 Local Steam build 26252352 was found and analyzed read-only (EXE SHA-256
 `6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1`).
 Individual native RVAs are remapped; PE refusal is retained and native code/type
 checks are added before hooks. A25/A26/A27, assembly, gameplay and INI are frozen.
-**EXPERIMENTAL; build/ZIP verification pending; no launch/install performed.**
+**CONSTRUIT + CONTR?L? + EXP?RIMENTAL; NOT gameplay VALIDATED; no launch/install performed.**
 Old EXE unavailable; existing logs are from October 14. GPU DEVICE_LOST remains
 OPEN. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md) and the static manifest.
-Next: Windows CI and four-file ZIP, then one approved maintainer runtime test.
+Source commit `580e57cb1e240df04e1a3f8cdc0fb0b46067fcc2`; [Windows CI 41357519256](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41357519256) SUCCESS, including native DXGI smoke, export parity, preservation audits, shader/ASI builds, imports and exact four-file ZIP.
+[Download A28 TEST](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a28-nov2026-remap-test/Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip): 527319 bytes, SHA-256 `93eed2c59d71e7349512aa717fd16b39802bcf6db87f2431c286385be604334e`. Downloaded and independently checked: CRC, four root files, AMD64 binaries, A28 identity, README and identical baseline INI. Full hashes: `evidence/nov2026/a28-package-verification.json`.
+Next: one explicitly approved maintainer runtime test and both fresh logs; no stable promotion.
 
 
 ## 2026-11-01 — A26/A27 merged to main; new game patch compatibility OPEN

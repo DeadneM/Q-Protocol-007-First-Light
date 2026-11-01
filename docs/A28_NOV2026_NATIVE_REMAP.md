@@ -95,7 +95,7 @@ backup on failure; old mod packages also require a matching old executable.
 
 ## TODO
 
-- Verify Windows build, native DXGI export parity/smoke and flat ZIP, record hashes.
+- DONE: Windows CI 41357519256 SUCCESS; native DXGI export parity/smoke, source preservation, AMD64 ASI, dependency audit and flat ZIP. Downloaded ZIP 527319 bytes, SHA-256 `93eed2c59d71e7349512aa717fd16b39802bcf6db87f2431c286385be604334e`. INI identical; full hashes in `evidence/nov2026/a28-package-verification.json`.
 - Obtain explicit launch approval for one maintainer runtime test.
 - Review both fresh logs and actual gameplay outcomes; never infer acceptance.
 - Resolve any READY/callback/ABI issue before a broader test or stable promotion.
