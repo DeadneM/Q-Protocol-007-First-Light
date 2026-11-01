@@ -1,5 +1,14 @@
 # Q Protocol — Project State
 
+## 2026-11-01 — A26/A27 merged to main; new game patch compatibility OPEN
+
+- **Source integration complete:** [PR #7](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/7) squash commit `06245ba6623f590d165c05d227c078f2072831e5` integrated the already-tested A26 DXGI queue verification and A27 x64 weapon graph scanning into the `main` development baseline. The previous public release `v0.9.6` and its tag/ZIP remain immutable.
+- The generic main Windows CI now audits the integrated A26/A27 code (and frozen A25 UI, F1–F12, catalog/INI) and packages the custom DXGI loader; the versioned historical v0.9.6 publish workflow is archived and no longer runs on new `main` changes.
+- Prior maintainer A27 runtime test: 41 graphs, 42 item RID entries, 43 spawners, complete three-role F3 loadout, F2 ammo, F1 LTK, Spawn Weapon and ImGui. **GPU `DEVICE_LOST` (`0x887A002B`) reported on another system remains unresolved; A26's correct queue binding is not a universal GPU crash fix.**
+- **New November 2026 007 First Light update reported by user:** updated executable **not yet provided**. Current gameplay core in `src/QProtocol.cpp` still requires October PE `TimeDateStamp=0x6AC4D653`, `SizeOfImage=0x06D31000`, plus static native code/data RVA mappings. Reuse of those RVA mappings against the new EXE is **not validated and must not be forced**. Source integrated to `main` is NOT proof of compatibility with the updated game.
+- **Next required artifact:** user-supplied new `007FirstLight.exe` from `Retail` (preferably also `QProtocol.log` captured on the new game version). Read new PE header, SHA-256, section table; diff against known October executable where available; audit player resolver, gameplay hook preimage, LTK native state, native spawn/graph vtables, ammo paths and runtime readiness one by one; build a TEST with new tag and four-file root ZIP before any numbered release.
+- Do not disable executable validation or blindly transplant October game RVAs. Avoid reintroducing rejected gameplay experiments. Preserve rollbacks.
+
 ## A27 — x64 weapon graph discovery fix TEST (2026-10-14)
 
 - **Do not promote without affected-user validation.** A27 is a test prerelease based on A26 DXGI queue capture, not an update to public stable `v0.9.6`. GPU device loss `0x887A002B` remains **OPEN**.
