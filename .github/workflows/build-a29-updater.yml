@@ -316,13 +316,13 @@ jobs:
         shell: pwsh
         run: |
           $csc = Join-Path $env:WINDIR "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
-          & $csc /nologo /target:winexe /out:dist/QProtocolUpdater.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater/UpdateEngine.cs
+          & $csc /nologo /target:winexe /out:dist\QProtocolUpdater.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs
           if ($LASTEXITCODE -ne 0) { throw "Updater helper compilation failed" }
-          & $csc /nologo /target:exe /main:UpdaterTests /out:dist/UpdaterTests.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater/UpdateEngine.cs tests/UpdaterTests.cs
+          & $csc /nologo /target:exe /main:UpdaterTests /out:dist\UpdaterTests.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs tests\UpdaterTests.cs
           if ($LASTEXITCODE -ne 0) { throw "Updater tests compilation failed" }
-          ./dist/UpdaterTests.exe
+          ./dist\UpdaterTests.exe
           if ($LASTEXITCODE -ne 0) { throw "Updater transaction tests failed" }
-          rc /nologo /fo dist/QProtocolResources.res src/QProtocolResources.rc
+          rc /nologo /fo dist\QProtocolResources.res src\QProtocolResources.rc
           if ($LASTEXITCODE -ne 0) { throw "Updater/default-INI resource compilation failed" }
 
       - name: Audit A25 overlay compatibility architecture
