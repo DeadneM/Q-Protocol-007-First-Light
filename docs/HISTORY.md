@@ -448,3 +448,18 @@ A28 remains installed and accepted locally. A29 was NOT installed or launched.
 Next: maintainer visual/startup/channel test, then an actual staged update after
 exit when a future compatible build exists. No stable promotion; GPU incident
 on the other system remains open. Old main/tag/release archives remain unchanged.
+
+## 2026-11-02 - v0.9.7 stable promotion authorized
+
+Maintainer accepts A29 and explicitly requests beta updates OFF by default,
+main integration and push/build release. Beta defaults are now false in native
+state and the missing-INI-key fallback; startup checks remain ON. Existing
+explicit preferences are preserved. Runtime updater/menu/native behavior is
+otherwise identical to accepted A29, checked by `tools/verify_release_scope.py`.
+
+Prepared stable v0.9.7 (updater build 30, newer than A29 build 29). The package
+remains the two binaries only, plus a separate updater manifest release asset.
+Release workflow is gated to main and refuses to overwrite an existing tag or
+release. PR checks precede merge; main then builds/publishes its own source SHA.
+Old v0.9.6/A28/A29 archives and personal installation are preserved.
+Validation/publication pending. Real post-exit update cycle remains unconfirmed.

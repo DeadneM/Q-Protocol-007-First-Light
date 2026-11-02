@@ -1,34 +1,19 @@
-name: Build Q Protocol - A27 Baseline Native DXGI (CI)
+name: Q Protocol v0.9.7 Stable Build and Release
 
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   push:
-    branches:
-      - main
-      - dev/a19-qpistol-native-bootstrap
-      - dev/a20c-package-sequencer-native-confirmation
-      - dev/a20d-game-update-remap
-      - dev/a20e-player-loadout-vtable-fix
-      - dev/a20f-direct-native-weapon-graphs
-      - dev/a20g-mod-weapon-slots
-      - dev/a20h-weapons-debug-ltk-force-toggle
-      - dev/a20i-native-ltk-state-toggle
-      - dev/a20j-clean-core
-      - dev/first-debug
-      - dev/a21-overlay-compat
-      - dev/a22-mouse-input
-      - dev/a23-dynamic-weapon-graph
-      - dev/a24-weapon-queue-safety
-      - release/v0.9.5-a24
+    branches: [main]
     paths:
       - "src/**"
-      - "config/QProtocol.ini"
+      - "updater/**"
+      - "tests/**"
+      - "tools/**"
+      - "config/**"
       - "packaging/**"
       - ".github/workflows/build-fresh-core.yml"
-      - "tools/generate_dxgi_proxy.py"
 
 permissions:
   contents: write
@@ -322,138 +307,26 @@ jobs:
 
           Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
 
-      - name: Audit A26 scope and authoritative swapchain queue invariants
+      - name: Audit A29 scope against the player-accepted A28 baseline
         shell: pwsh
         run: |
-          @'
-          from pathlib import Path
-          import subprocess
+          python tools/verify_a29_scope.py
+          if ($LASTEXITCODE -ne 0) { throw "A28/A29 preservation audit failed" }
+          python tools/verify_release_scope.py
+          if ($LASTEXITCODE -ne 0) { throw "A29 preservation audit failed" }
 
-          def baseline(path):
-              return subprocess.check_output(
-                  ["git", "show", f"v0.9.6:{path}"], text=True, encoding="utf-8"
-              )
-
-          frozen = (
-              "src/GameplayHook.asm",
-              "src/Overlay.h", "config/QProtocol.ini",
-              "src/first_debug/imgui_impl_dx12_first_debug.cpp",
-              "src/first_debug/imgui_ps.hlsl",
-              "src/first_debug/imgui_vs.hlsl",
-          )
-          for path in frozen:
-              if Path(path).read_text(encoding="utf-8") != baseline(path):
-                  raise SystemExit(f"A26 forbidden change in frozen file: {path}")
-
-          src = Path("src/OverlayA19.cpp").read_text(encoding="utf-8")
-          old = baseline("src/OverlayA19.cpp")
-          ui_a = "void DrawOverlayWindow() {"
-          ui_b = "bool IsMouseInputMessage("
-          def extract(s):
-              return s[s.index(ui_a):s.index(ui_b, s.index(ui_a))]
-          if extract(src) != extract(old):
-              raise SystemExit("A26 regression: A25 accessible UI must be identical")
-          for keyword in ("1000.0f", "850.0f", "kFooterReserve = 78.0f",
-                          "##main_tabs_scroll", "DrawFooter();"):
-              if keyword not in extract(src):
-                  raise SystemExit(f"A25 UI invariant disappeared: {keyword}")
-
-          must = (
-              "HookFactoryCreateSwapChain(",
-              "HookFactoryCreateSwapChainForHwnd(",
-              "factoryVtable[10]",
-              "factoryVtable[15]",
-              "RegisterVerifiedSwapQueue(",
-              "BindVerifiedSwapChainQueue(",
-              "if (!BindVerifiedSwapChainQueue(",
-              "g_verifiedSwapQueues",
-              "kMaxSwapchainBindings = 16",
-              "g_commandQueue.exchange(entry.queue",
-              "A26 renderer skipped:",
-              "A26 authoritative PRESENT queue bound",
-              "OverlayStage::DeviceLost",
-              "GetDeviceRemovedReason()",
-              "GetCompletedValue()",
-              "UINT64_MAX",
-              "Render.FrameFence.DEVICE_LOST",
-              "DXGI_ERROR_DEVICE_REMOVED",
-          )
-          for keyword in must:
-              if keyword not in src:
-                  raise SystemExit(f"A26 queue/device-loss invariant missing: {keyword}")
-          for forbidden in (
-              "g_tlsLastDirectQueue",
-              "BindBestQueueForDevice(",
-              "g_commandQueue.compare_exchange_strong(",
-          ):
-              if forbidden in src:
-                  raise SystemExit(f"A26 regression: unsafe queue heuristic present: {forbidden}")
-          print("A26 queue selection and DEVICE_LOST scope audit PASS.")
-          '@ | python -
-          if ($LASTEXITCODE -ne 0) { throw "A26 source isolation audit failed" }
-
-      - name: Audit A27 x64 scan-only gameplay scope and simulate affected anchor
+      - name: Build embedded updater and run transaction tests
         shell: pwsh
         run: |
-          @'
-          from pathlib import Path
-          import subprocess
-
-          path = "src/QProtocol.cpp"
-          original = subprocess.check_output(
-              ["git", "show", f"v0.9.6:{path}"],
-              text=True, encoding="utf-8")
-          updated = Path(path).read_text(encoding="utf-8")
-
-          start = "bool BuildGraphIndex() {"
-          end = "bool ValidateGraph(std::uint64_t rid,"
-          for segment in (start, end):
-              if original.count(segment) != 1 or updated.count(segment) != 1:
-                  raise SystemExit(f"Cannot isolate graph scanner: {segment}")
-          if original[:original.index(start)] != updated[:updated.index(start)]:
-              raise SystemExit("A27 regression: gameplay before graph scanner modified")
-          if original[original.index(end):] != updated[updated.index(end):]:
-              raise SystemExit("A27 regression: gameplay after graph scanner modified")
-
-          graph = updated[updated.index(start):updated.index(end)]
-          required = (
-              "GetNativeSystemInfo(&systemInfo)",
-              "systemInfo.lpMaximumApplicationAddress",
-              "VirtualQuery(reinterpret_cast<LPCVOID>(anchor)",
-              "anchorMemory.State == MEM_COMMIT",
-              "IsReadableProtection(anchorMemory.Protect)",
-              "kAnchorRadius = 0x02000000",
-              "maxUserAddress - anchor < kAnchorRadius",
-              "A27 graph scan: anchor=",
-              "fixedStats", "localStats",
-              "scanRange(kGraphScanBegin, kGraphScanEnd, fixedStats)",
-              "A23 graph index:",
-          )
-          for token in required:
-              if token not in graph:
-                  raise SystemExit(f"A27 missing scan invariant: {token}")
-          if "anchor < 0x80000000" in graph:
-              raise SystemExit("A27 regression: broken 2 GiB anchor ceiling survived")
-
-          sample_anchor = 0x80B60E50
-          min_user = 0x10000000
-          max_user = 0x7FFFFFFEFFFF
-          radius = 0x02000000
-          mask = ~0xFFFF
-          assert min_user <= sample_anchor <= max_user
-          lower = (sample_anchor - min(sample_anchor, radius)) & mask
-          raw_upper = min(max_user, sample_anchor + radius)
-          upper = (raw_upper + 0xFFFF) & mask
-          if not (lower < sample_anchor < upper):
-              raise SystemExit("A27 affected user's anchor excluded")
-          if upper - lower > 2 * radius + 0x10000:
-              raise SystemExit("A27 local scan exceeds bounded 64 MiB range")
-          if lower != 0x7EB60000 or upper != 0x82B70000:
-              raise SystemExit(f"Unexpected affected anchor span: {lower:X}..{upper:X}")
-          print(f"A27 x64 scan-only source audit PASS: anchor 0x{sample_anchor:X} "
-                f"within 0x{lower:X}..0x{upper:X}; gameplay outside scanner frozen.")
-          '@ | python -
-          if ($LASTEXITCODE -ne 0) { throw "A27 scan audit failed" }
+          $csc = Join-Path $env:WINDIR "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
+          & $csc /nologo /target:winexe /out:dist\QProtocolUpdater.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs
+          if ($LASTEXITCODE -ne 0) { throw "Updater helper compilation failed" }
+          & $csc /nologo /target:exe /main:UpdaterTests /out:dist\UpdaterTests.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs tests\UpdaterTests.cs
+          if ($LASTEXITCODE -ne 0) { throw "Updater tests compilation failed" }
+          ./dist\UpdaterTests.exe
+          if ($LASTEXITCODE -ne 0) { throw "Updater transaction tests failed" }
+          rc /nologo /fo dist\QProtocolResources.res src\QProtocolResources.rc
+          if ($LASTEXITCODE -ne 0) { throw "Updater/default-INI resource compilation failed" }
 
       - name: Audit A25 overlay compatibility architecture
         shell: pwsh
@@ -545,7 +418,7 @@ jobs:
             /I _deps\minhook\include ^
             /I _deps\minhook\src ^
             /I dist\shaders ^
-            src\QProtocol.cpp src\OverlayA19.cpp ^
+            src\QProtocol.cpp src\OverlayA19.cpp src\Updates.cpp ^
             _deps\imgui\imgui.cpp ^
             _deps\imgui\imgui_draw.cpp ^
             _deps\imgui\imgui_tables.cpp ^
@@ -556,9 +429,36 @@ jobs:
             _deps\minhook\src\hook.c ^
             _deps\minhook\src\trampoline.c ^
             _deps\minhook\src\hde\hde64.c ^
-            dist\GameplayHook.obj ^
+            dist\GameplayHook.obj dist\QProtocolResources.res ^
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
+
+      - name: Exercise real menu layouts and fresh-INI bootstrap without a game
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /DUNICODE /D_UNICODE ^
+            /I _deps\imgui ^
+            /I _deps\imgui\backends ^
+            /I _deps\minhook\include ^
+            /I _deps\minhook\src ^
+            /I dist\shaders ^
+            tests\MenuSmoke.cpp src\Updates.cpp ^
+            _deps\imgui\imgui.cpp ^
+            _deps\imgui\imgui_draw.cpp ^
+            _deps\imgui\imgui_tables.cpp ^
+            _deps\imgui\imgui_widgets.cpp ^
+            _deps\imgui\backends\imgui_impl_win32.cpp ^
+            src\first_debug\imgui_impl_dx12_first_debug.cpp ^
+            _deps\minhook\src\buffer.c ^
+            _deps\minhook\src\hook.c ^
+            _deps\minhook\src\trampoline.c ^
+            _deps\minhook\src\hde\hde64.c ^
+            dist\QProtocolResources.res ^
+            user32.lib kernel32.lib d3d12.lib dxgi.lib ^
+            /Fe:dist\MenuSmoke.exe
+          if errorlevel 1 exit /b 1
+          dist\MenuSmoke.exe
+          if errorlevel 1 exit /b 1
 
       - name: Audit A24 PE dependencies
         shell: pwsh
@@ -617,71 +517,31 @@ jobs:
             dist/A24_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Prepare A24 test files
+      - name: Package only binaries and generate compatible updater manifest
         shell: pwsh
         run: |
-          Copy-Item config/QProtocol.ini dist/QProtocol.ini -Force
-          Copy-Item packaging/README_NEXT_DXGI.txt dist/README.txt -Force
+          python tools/package_release.py
+          if ($LASTEXITCODE -ne 0) { throw "A29 binary-only packaging failed" }
 
-          $files = @(
-            "dist/dxgi.dll",
-            "dist/QProtocol.asi",
-            "dist/QProtocol.ini",
-            "dist/README.txt"
-          )
-
-          foreach ($file in $files) {
-            if (-not (Test-Path $file)) {
-              throw "Missing A24 package file: $file"
-            }
-
-            $item = Get-Item $file
-            $hash = (Get-FileHash $file -Algorithm SHA256).Hash
-            Write-Host ("{0}: {1} bytes SHA-256 {2}" -f $item.Name, $item.Length, $hash)
-          }
-
-      - name: Build future cumulative DXGI-bundled ZIP
-        shell: pwsh
-        run: |
-          @'
-          from pathlib import Path
-          import hashlib
-          import zipfile
-
-          dist = Path("dist")
-          names = ["dxgi.dll", "QProtocol.asi", "QProtocol.ini", "README.txt"]
-          out = dist / "Q-Protocol_Next_CustomDXGI_CI.zip"
-
-          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-              for name in names:
-                  z.write(dist / name, arcname=name)
-
-          with zipfile.ZipFile(out, "r") as z:
-              actual = z.namelist()
-              if actual != names:
-                  raise SystemExit(f"Flat package invariant failed: {actual}")
-              if any("/" in name or "\\" in name for name in actual):
-                  raise SystemExit(f"Nested ZIP path detected: {actual}")
-
-          print(f"ZIP: {out.stat().st_size} bytes SHA-256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
-          '@ | python -
-
-      - name: Upload future DXGI-bundled CI artifact
+      - name: Upload A29 package and manifest
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_Next_CustomDXGI_CI
+          name: Q-Protocol_v0.9.7
           path: |
-            dist/dxgi.dll
-            dist/QProtocol.asi
-            dist/QProtocol.ini
-            dist/README.txt
+            dist/Q-Protocol_v0.9.7.zip
+            dist/QProtocol-update.json
           if-no-files-found: error
 
-      - name: Guard existing stable tag and future packaging convention
+      - name: Publish v0.9.7 stable without changing older releases
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          Write-Host "No release tag is created by the generic build workflow."
-          Write-Host "Existing public v0.9.5 is immutable and must not be clobbered."
-          Write-Host "Future numbered releases must use a new tag and include dxgi.dll,"
-          Write-Host "QProtocol.asi, QProtocol.ini, README.txt at ZIP root."
-          Write-Host "The ASI core source is not modified by DXGI packaging."
+          $tag = "v0.9.7"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { throw "v0.9.7 release exists; refusing overwrite" }
+          git ls-remote --exit-code --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -eq 0) { throw "v0.9.7 tag exists; refusing overwrite" }
+          gh release create $tag dist/Q-Protocol_v0.9.7.zip dist/QProtocol-update.json --repo "${{ github.repository }}" --target "${{ github.sha }}" --latest --title "Q Protocol v0.9.7 - Updater and Readable Menu" --notes-file packaging/RELEASE_NOTES_V0.9.7.md
+          if ($LASTEXITCODE -ne 0) { throw "v0.9.7 stable release failed" }

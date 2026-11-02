@@ -2,10 +2,10 @@
 #include <string>
 
 namespace qp::updates {
-inline constexpr int Build = 29;
-inline constexpr char Version[] = "A29 TEST";
+inline constexpr int Build = 30;
+inline constexpr char Version[] = "v0.9.7";
 struct Status {
-    bool busy = false, available = false, queued = false, checkedBeta = true;
+    bool busy = false, available = false, queued = false, checkedBeta = false;
     int build = 0;
     std::string phase, version, message = "Check GitHub for a compatible update.";
 };

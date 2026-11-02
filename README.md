@@ -15,6 +15,13 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
+**v0.9.7 stable promotion approved:** accepted A28/A29 native core, updater and
+readable menu. Beta updates are OFF by default; startup checks remain ON.
+Existing explicit updater preferences and personal INI are preserved.
+Package: only `dxgi.dll` and `QProtocol.asi`; README and defaults stay here.
+See [v0.9.7 release notes](packaging/RELEASE_NOTES_V0.9.7.md). Build/publication
+verification is pending; old releases remain archived unchanged.
+
 **A29 TEST development:** A28 was accepted on the maintainer system. A29 adds
 startup update checking, beta releases and explicit installation after exit,
 plus a clearer responsive menu. Native A28 gameplay/input/rendering stay frozen.

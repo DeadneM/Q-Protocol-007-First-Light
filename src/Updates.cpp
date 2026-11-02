@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 std::mutex lock;
 Status status;
 std::wstring ini;
-std::atomic_bool running{false}, startup{true}, betaChannel{true};
+std::atomic_bool running{false}, startup{true}, betaChannel{false};
 enum class Action { None, Check, Stage, Cancel };
 Action action = Action::None;
 
@@ -148,7 +148,7 @@ bool EnsureDefaultIni(const std::wstring& path) {
 void Initialize(const std::wstring& path) {
     ini = path;
     startup.store(GetPrivateProfileIntW(L"Updater",L"CheckAtStart",1,path.c_str()) != 0);
-    betaChannel.store(GetPrivateProfileIntW(L"Updater",L"Beta",1,path.c_str()) != 0);
+    betaChannel.store(GetPrivateProfileIntW(L"Updater",L"Beta",0,path.c_str()) != 0);
     HMODULE pinned = nullptr;
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
             reinterpret_cast<LPCWSTR>(&Initialize),&pinned)) { Failure("Updater lifetime could not be secured."); return; }

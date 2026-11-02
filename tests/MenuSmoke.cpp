@@ -8,6 +8,7 @@
 namespace qp { void Log(const char*, ...) {} }
 
 int main() {
+    if(qp::updates::Beta() || !qp::updates::CheckAtStart()) return 7;
     namespace fs=std::filesystem;
     fs::path dir=fs::temp_directory_path()/(L"QProtocol-MenuSmoke-"+std::to_wstring(GetCurrentProcessId()));
     fs::create_directories(dir);

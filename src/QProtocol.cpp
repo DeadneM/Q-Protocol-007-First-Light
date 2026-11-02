@@ -1795,8 +1795,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.6 / A29 Updater and Menu TEST");
-    Log("Scope: A28 native core preserved; background updater and menu readability TEST.");
+    Log("Q Protocol v0.9.7 / Updater and Readable Menu");
+    Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");

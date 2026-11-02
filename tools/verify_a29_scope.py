@@ -14,6 +14,9 @@ normalized=normalized.replace('''    if (!updates::EnsureDefaultIni(iniPath)) {
     }
 ''','')
 normalized=normalized.replace('    updates::Initialize(iniPath);\n','').replace('    updates::Shutdown();\n','')
+normalized=normalized.replace('Q Protocol v0.9.7 / Updater and Readable Menu','Q Protocol v0.9.6 / A29 Updater and Menu TEST')
+normalized=normalized.replace('Scope: accepted A28/A29 core and menu; stable updates by default.',
+                              'Scope: A28 native core preserved; background updater and menu readability TEST.')
 normalized=normalized.replace('Q Protocol v0.9.6 / A29 Updater and Menu TEST','Q Protocol v0.9.6 / A28 November Remap TEST')
 normalized=normalized.replace('Scope: A28 native core preserved; background updater and menu readability TEST.',
                               'Scope: A28 TEST static native remap; A25/A26/A27 preserved; runtime validation pending.')
