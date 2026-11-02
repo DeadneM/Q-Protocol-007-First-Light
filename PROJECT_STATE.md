@@ -1,5 +1,23 @@
 # Q Protocol — Project State
 
+## 2026-11-02 - A28 accepted on maintainer system; A29 updater/menu TEST
+
+Maintainer reports "ok parfait tout a lair de marcher" after installing A28.
+Fresh logs confirm READY, complete F3 loadout, F1 transitions and F2 native ammo
+publication for six classes. Evidence: `evidence/a28-runtime/`. A28 is the accepted
+local base; the other system's GPU incident remains open.
+
+User explicitly changes packaging: future ZIPs contain only `dxgi.dll` and
+`QProtocol.asi`; README/default INI remain on GitHub. Existing releases are kept.
+A29 embeds the updater helper and default INI, seeds a missing INI without
+overwriting one, adds startup check/beta/explicit Update on exit and a readable
+responsive menu. Reference: Darksiders Genesis Updates UI, inspected read-only.
+
+Branch `dev/a29-updater-menu`, separate from main and A28. Local preservation
+audit and 19 updater fixture checks PASS. Windows/native menu/package checks
+pending. No A29 install or game launch. See [A29 notebook](docs/A29_UPDATER_AND_MENU.md).
+
+
 ## 2026-11-01 ? A28 TEST built and package checked (runtime pending)
 
 Local Steam build 26252352 was found and analyzed read-only (EXE SHA-256

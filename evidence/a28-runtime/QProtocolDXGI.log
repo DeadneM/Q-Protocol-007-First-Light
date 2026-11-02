@@ -1,0 +1,5 @@
+Q Protocol custom DXGI proxy TEST
+Real System32 DXGI loaded: yes (Win32=0)
+Native exports enumerated: 20
+QProtocol.asi: loaded (Win32=0)
+Note: Use only one dxgi.dll proxy in the game directory.

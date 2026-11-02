@@ -15,6 +15,18 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 ## Current state
 
+**A29 TEST development:** A28 was accepted on the maintainer system. A29 adds
+startup update checking, beta releases and explicit installation after exit,
+plus a clearer responsive menu. Native A28 gameplay/input/rendering stay frozen.
+See [A29 notebook](docs/A29_UPDATER_AND_MENU.md) and
+[release notes](packaging/RELEASE_NOTES_A29.md). Build/package checks are pending;
+A29 gameplay and the real post-exit update cycle are not yet validated.
+
+**New package policy (maintainer request, 2 November 2026):** from A29 onward,
+the ZIP contains only `dxgi.dll` and `QProtocol.asi`. An existing personal INI is
+kept; default settings are embedded and create an INI only when missing. README,
+default INI and release history remain on GitHub. Older ZIPs stay unchanged.
+
 **A28 TEST compatibility work:** the local Steam build 26252352 has been analyzed and individually remapped on `dev/nov2026-game-update-remap`. The new PE/native-map gate refuses mismatches before hooks. [A28 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a28-nov2026-remap-test/Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip) is built and package-checked; gameplay acceptance is pending. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md). Public v0.9.6 is unchanged.
 
 **Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI** is the current public release.
@@ -47,9 +59,9 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 
 [Download latest release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/latest)
 
-## Future builds: native DXGI included
+## Native DXGI and package history
 
-Starting with **A25 cumulative ZIPs**, future Q Protocol builds include our custom game-local `dxgi.dll` proxy **by default**. All packages must contain `dxgi.dll`, `QProtocol.asi`, `QProtocol.ini`, and `README.txt` directly at ZIP root. The DXGI proxy loads the ASI and forwards Windows DXGI calls to System32. Back up any existing `dxgi.dll` (including ReShade/Special K) before installing.
+Starting with **A25 cumulative ZIPs**, future Q Protocol builds include our custom game-local `dxgi.dll` proxy **by default**. A25-A28 packages contained four root files. The user-approved A29 policy above supersedes that layout for future packages. The DXGI proxy loads the ASI and forwards Windows DXGI calls to System32. Back up any existing `dxgi.dll` (including ReShade/Special K) before installing.
 
 This policy is recorded in [DXGI_PACKAGING_POLICY.md](docs/DXGI_PACKAGING_POLICY.md). **v0.9.6** is the first numbered public release to use this four-file layout. The earlier v0.9.5 archive is preserved for rollback.
 

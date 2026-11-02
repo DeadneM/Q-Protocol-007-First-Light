@@ -1,3 +1,11 @@
+# A29 policy update - 2026-11-02
+
+The maintainer explicitly requests binary-only ZIPs from A29: `dxgi.dll` and
+`QProtocol.asi` at root, with no INI or README payload. The ASI embeds default
+configuration (create only if absent) and the updater helper. README, configuration
+source and release notes stay on GitHub. Preserve personal INIs and historical
+archives. This supersedes the older four-file requirements below for future builds.
+
 # Q Protocol: native DXGI packaging policy (from A25 onward)
 
 Status: approved user request on 2026-10-10: **“met notre dxgi avec toutes les prochaines builds”**.

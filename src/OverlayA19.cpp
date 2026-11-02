@@ -6,6 +6,7 @@
 #include <dxgi1_4.h>
 
 #include "Overlay.h"
+#include "Updates.h"
 
 #include "MinHook.h"
 #include "imgui.h"
@@ -1337,53 +1338,24 @@ void DrawProfilePanel(
 }
 
 void DrawLoadoutTab() {
-    if (ImGui::BeginTable(
-            "loadout_profiles",
-            2,
-            ImGuiTableFlags_SizingStretchSame |
-            ImGuiTableFlags_BordersInnerV)) {
-
+    ImGui::TextWrapped("Choose your three weapon roles and reserve ammunition. Save to apply your changes.");
+    ImGui::Spacing();
+    const bool wide = ImGui::GetContentRegionAvail().x >= 850.0f;
+    if (ImGui::BeginTable("loadout_profiles", wide ? 2 : 1,
+            ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_BordersInnerV)) {
         ImGui::TableNextColumn();
-
-        ImGui::BeginChild(
-            "manual_profile",
-            ImVec2(0.0f, 485.0f),
-            ImGuiChildFlags_Borders);
-
-        DrawProfilePanel(
-            "MANUAL",
-            g_manualUi,
-            false);
-
+        ImGui::BeginChild("manual_profile", ImVec2(0, 500), ImGuiChildFlags_Borders);
+        DrawProfilePanel("MANUAL", g_manualUi, false);
         ImGui::EndChild();
-
         ImGui::TableNextColumn();
-
-        ImGui::BeginChild(
-            "automatic_profile",
-            ImVec2(0.0f, 485.0f),
-            ImGuiChildFlags_Borders);
-
-        DrawProfilePanel(
-            "AUTOMATIC",
-            g_autoUi,
-            true);
-
+        ImGui::BeginChild("automatic_profile", ImVec2(0, 500), ImGuiChildFlags_Borders);
+        DrawProfilePanel("AUTOMATIC", g_autoUi, true);
         ImGui::EndChild();
-
         ImGui::EndTable();
     }
-
     ImGui::Spacing();
-
-    ImGui::Checkbox(
-        "Show Experimental weapons in loadout lists",
-        &g_showExperimentalLoadout);
-
-    ImGui::SameLine();
-
-    ImGui::TextDisabled(
-        "Not Working weapons stay hidden");
+    ImGui::Checkbox("Show Experimental weapons in loadout lists", &g_showExperimentalLoadout);
+    ImGui::TextDisabled("Not Working weapons stay hidden.");
 }
 
 std::string Lower(
@@ -2259,6 +2231,53 @@ void DrawHotkeysTab() {
     }
 }
 
+void DrawUpdatesTab() {
+    const auto update = updates::Snapshot();
+    bool startup = updates::CheckAtStart(), beta = updates::Beta();
+    ImGui::SeparatorText("Mod updates");
+    ImGui::TextWrapped("Check GitHub for a compatible build. Updates are installed only after you close the game.");
+    ImGui::Spacing();
+    ImGui::BeginDisabled(update.busy || update.queued);
+    if (ImGui::Checkbox("Check updates at start", &startup)) {
+        updates::SetOptions(startup,beta);
+        if (startup) updates::Check();
+    }
+    ImGui::TextDisabled("One background check when the mod starts. No automatic installation.");
+    if (ImGui::Checkbox("Beta builds", &beta)) {
+        updates::SetOptions(startup,beta);
+        updates::Check();
+    }
+    ImGui::TextDisabled("OFF: stable releases  |  ON: stable and experimental builds");
+    ImGui::EndDisabled();
+    ImGui::Spacing();
+    ImGui::SeparatorText("Version and status");
+    ImGui::Text("Installed: %s", updates::Version);
+    ImGui::Text("Channel: %s", beta ? "Beta" : "Stable");
+    if (!update.version.empty()) ImGui::Text("Available: %s", update.version.c_str());
+    ImGui::TextWrapped("%s", update.message.c_str());
+    ImGui::Spacing();
+    ImGui::BeginDisabled(update.busy || update.queued);
+    if (ImGui::Button("Check now", ImVec2(190, 36))) updates::Check();
+    ImGui::EndDisabled();
+    ImGui::BeginDisabled(update.busy || update.queued || !update.available);
+    if (ImGui::Button("Update on exit", ImVec2(190,36))) ImGui::OpenPopup("Confirm Q Protocol update");
+    ImGui::EndDisabled();
+    if (update.queued && ImGui::Button("Cancel scheduled update", ImVec2(240,36))) updates::Cancel();
+    ImGui::Spacing();
+    ImGui::TextWrapped("Your personal INI is kept. Previous binaries are backed up before replacement. Changing channels never installs a build or downgrades the mod.");
+    ImGui::TextDisabled("Update preferences are saved immediately.");
+    if (ImGui::BeginPopupModal("Confirm Q Protocol update", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Install %s after closing the game?", update.version.c_str());
+        ImGui::TextUnformatted("Your INI will be kept and previous binaries backed up.");
+        if (ImGui::Button("Confirm update", ImVec2(160,34))) {
+            updates::InstallOnExit(); ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(110,34))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+}
+
 void DrawFooter() {
     ImGui::Separator();
 
@@ -2349,9 +2368,9 @@ void ApplyStyle() {
 
     c[ImGuiCol_TextDisabled] =
         ImVec4(
-            0.48f,
-            0.52f,
-            0.58f,
+            0.65f,
+            0.71f,
+            0.79f,
             1.00f);
 
     c[ImGuiCol_WindowBg] =
@@ -2685,18 +2704,9 @@ void DrawOverlayWindow() {
     ImGui::TextDisabled(
         "007 FIRST LIGHT");
 
-    const float readyLabelWidth =
-        155.0f;
-
-    const float readyX =
-        (std::max)(
-            ImGui::GetCursorPosX(),
-            ImGui::GetWindowWidth() -
-                readyLabelWidth);
-
-    ImGui::SameLine(
-        readyX);
-
+    ImGui::SameLine();
+    ImGui::TextDisabled("|  %s", updates::Version);
+    ImGui::Spacing();
     if (g_playerReady.load(
             std::memory_order_acquire)) {
 
@@ -2720,6 +2730,14 @@ void DrawOverlayWindow() {
     }
 
     ImGui::Separator();
+
+    const auto update = updates::Snapshot();
+    if (update.available) {
+        ImGui::TextColored(ImVec4(1.0f,0.81f,0.35f,1.0f), "Update available: %s", update.version.c_str());
+        ImGui::TextWrapped("Open Updates to review and install it after closing the game.");
+    } else if (update.queued) {
+        ImGui::TextColored(ImVec4(1.0f,0.81f,0.35f,1.0f), "Update scheduled for game exit");
+    }
 
     // A25: the footer is deliberately outside the scrollable content.
     // It must remain visible after a resize or on lower-height screens.
@@ -2748,17 +2766,20 @@ void DrawOverlayWindow() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem(
-                "Debug")) {
-
-            DrawDebugTab();
+        if (ImGui::BeginTabItem("Controls###Hotkeys")) {
+            ImGui::TextWrapped("Keep your familiar F1-F12 actions and choose the menu toggle key.");
+            ImGui::Spacing();
+            DrawHotkeysTab();
             ImGui::EndTabItem();
         }
-
-        if (ImGui::BeginTabItem(
-                "Hotkeys")) {
-
-            DrawHotkeysTab();
+        if (ImGui::BeginTabItem("Updates")) {
+            DrawUpdatesTab();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Advanced###Debug")) {
+            ImGui::TextWrapped("Weapon catalogue and runtime discovery tools for controlled testing.");
+            ImGui::Spacing();
+            DrawDebugTab();
             ImGui::EndTabItem();
         }
 

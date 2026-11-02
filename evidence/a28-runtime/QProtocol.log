@@ -1,0 +1,266 @@
+Q Protocol v0.9.6 / A28 November Remap TEST
+Scope: A28 TEST static native remap; A25/A26/A27 preserved; runtime validation pending.
+EXE base = 0x0000000140000000
+EXE TimeDateStamp = 0x6AE0DF3C
+EXE SizeOfImage = 0x06D31000
+A28 native-map code/type checks PASS; runtime validation pending.
+Target executable accepted.
+F4 Q-Pistol ModeA = 019973508A5E327B
+F4 Q-Pistol ModeB = 01BE2C45AA55200D
+F5 weapon = 016886A4B599391C
+F6 weapon = 01702FE09FEA3596
+F7 weapon = 010D8295A99561AB
+F8 weapon = 013F40B3AD756F14
+F9 weapon = 018C90273080F785
+F10 weapon = 016D12D89A0A658E
+F11 weapon = 01E7EDCF4CA78A61
+F12 weapon = 013BD1F27CC907FA
+ManualLoadout QPistol = 019973508A5E327B
+ManualLoadout OneHanded = 013F40B3AD756F14
+ManualLoadout TwoHanded = 01E7EDCF4CA78A61
+AUTO Enabled = 0
+AutoLoadout QPistol = 019973508A5E327B
+AutoLoadout OneHanded = None
+AutoLoadout TwoHanded = None
+ManualAmmo QPistol = 10
+ManualAmmo SMG/MachinePistol = 30
+ManualAmmo AssaultRifle = 30
+ManualAmmo Shotgun = 8
+ManualAmmo Sniper/Marksman = 5
+ManualAmmo HeavyPistol50Cal = 8
+AutoAmmo QPistol = 10
+AutoAmmo SMG/MachinePistol = 30
+AutoAmmo AssaultRifle = 30
+AutoAmmo Shotgun = 8
+AutoAmmo Sniper/Marksman = 5
+AutoAmmo HeavyPistol50Cal = 8
+Gameplay hook installed at EXE+0x194CBD1.
+LTK native-state observe hook installed at EXE+0x191B6B8.
+[OVERLAY] A26 authoritative DXGI queue capture: A25 UI, A24 gameplay, First Debug DX12 renderer protected.
+[OVERLAY] Compatibility module detected: Steam Overlay (GameOverlayRenderer64.dll). Hook chaining is supported on a best-effort basis.
+[OVERLAY] A26 hooks ready: Present=00007FFB711984C0 ResizeBuffers=00007FFB711C7A20 ExecuteCommandLists=00007FFAC4553AF0 Factory=00007FFB711BA8F0 Hwnd=00007FFB711BC430
+Overlay bootstrap started in fail-open mode. Toggle key loaded from [Overlay] ToggleKey.
+Overlay status: Q Protocol A21 hooks ready; waiting for DIRECT queue
+F1 = License To Kill toggle.
+F2 = ManualAmmo through native AddFirearmAmmunitionToPlayer.
+F3 = ManualLoadout through shared GiveWeapon.
+F4 = Q-Pistol swap through shared GiveWeapon.
+F5-F12 = configured weapons through shared GiveWeapon.
+AUTO = same shared GiveWeapon + AddAmmo primitives using AutoLoadout/AutoAmmo.
+Overlay = remappable [Overlay] ToggleKey, INI-backed, Save/Reload/Reset Defaults.
+[OVERLAY] A26 verified swapchain creation: chain=000000129AE4A800 queue=00000000858C1F20 via=IDXGIFactory::CreateSwapChain
+[OVERLAY] A26 authoritative PRESENT queue bound: chain=000000129AE4A800 queue=00000000858C1F20 origin=IDXGIFactory::CreateSwapChain
+[OVERLAY] Init candidate: hwnd=0x0000000002E00578 buffers=2 format=24 size=3840x2160
+Overlay status: Q Protocol A26 verified DXGI presenting queue captured
+[OVERLAY] Init complete: shaders/PSO/font ready before first visible frame.
+Overlay status: Q Protocol A21 floating DX12 ImGui ready
+[OVERLAY] Resize begin: buffers=2 size=3840x2160 format=24 flags=0x802
+[OVERLAY] Resize complete; renderer will rebuild on the next Present.
+Overlay status: Q Protocol A26 verified DXGI presenting queue captured
+[OVERLAY] A26 authoritative PRESENT queue bound: chain=000000129AE4A800 queue=00000000858C1F20 origin=IDXGIFactory::CreateSwapChain
+[OVERLAY] Init candidate: hwnd=0x0000000002E00578 buffers=2 format=24 size=3840x2160
+[OVERLAY] Init complete: shaders/PSO/font ready before first visible frame.
+Overlay status: Q Protocol A21 floating DX12 ImGui ready
+[OVERLAY] Resize begin: buffers=2 size=3840x2160 format=24 flags=0x802
+[OVERLAY] Resize complete; renderer will rebuild on the next Present.
+Overlay status: Q Protocol A26 verified DXGI presenting queue captured
+[OVERLAY] A26 authoritative PRESENT queue bound: chain=000000129AE4A800 queue=00000000858C1F20 origin=IDXGIFactory::CreateSwapChain
+[OVERLAY] Init candidate: hwnd=0x0000000002E00578 buffers=2 format=24 size=3840x2160
+[OVERLAY] Init complete: shaders/PSO/font ready before first visible frame.
+Overlay status: Q Protocol A21 floating DX12 ImGui ready
+[OVERLAY] Resize begin: buffers=2 size=3840x2160 format=24 flags=0x802
+[OVERLAY] Resize complete; renderer will rebuild on the next Present.
+Overlay status: Q Protocol A26 verified DXGI presenting queue captured
+[OVERLAY] A26 authoritative PRESENT queue bound: chain=000000129AE4A800 queue=00000000858C1F20 origin=IDXGIFactory::CreateSwapChain
+[OVERLAY] Init candidate: hwnd=0x0000000002E00578 buffers=2 format=24 size=3840x2160
+[OVERLAY] Init complete: shaders/PSO/font ready before first visible frame.
+Overlay status: Q Protocol A21 floating DX12 ImGui ready
+[OVERLAY] A21 cursor clip released while the floating window is open.
+[OVERLAY] A21 FirstOpen requested: floating window, selective ImGui input capture.
+[OVERLAY] FirstOpen render begin.
+[OVERLAY] FirstOpen frame submitted successfully.
+[OVERLAY] A21 floating window closed with overlay toggle.
+[OVERLAY] A21 cursor clip released while the floating window is open.
+[OVERLAY] A21 floating window closed with overlay toggle.
+PLAYER READY loadout=0x000000002D770E80 playerId=201457664
+Weapon runtime reset: player identity changed/ready
+F1 License To Kill: native state OFF -> FORCE ON
+F3 MANUAL PACKAGE START playerId=201457664 QPistol=019973508A5E327B OneHanded=013F40B3AD756F14 TwoHanded=01E7EDCF4CA78A61
+A27 graph scan: anchor=000000002D770E80 maxUser=00007FFFFFFEFFFF local=000000002B770000..000000002F780000 fixed=0x2C000000..0x30000000 fixed{regions=8 readable=7 calls=448 failed=0 bytes=29360128} local{regions=111 readable=54 calls=65 failed=0 bytes=1421312}.
+A23 graph index: 41 linked graph(s), 42 item RID entry(s), 43 spawner(s), player loadout anchor=0x000000002D770E80.
+DISCOVERY runtime graph RID=0104F2D1C752B7A4
+DISCOVERY runtime graph RID=010ABE3F66032326
+DISCOVERY runtime graph RID=010D8295A99561AB
+DISCOVERY runtime graph RID=010DB0A3EB45A100
+DISCOVERY runtime graph RID=0110285AF7A95A01
+DISCOVERY runtime graph RID=01184198E788A09E
+DISCOVERY runtime graph RID=011B83C48DAC20CA
+DISCOVERY runtime graph RID=0126A975EC177851
+DISCOVERY runtime graph RID=013117D0145E0958
+DISCOVERY runtime graph RID=013BD1F27CC907FA
+DISCOVERY runtime graph RID=013F40B3AD756F14
+DISCOVERY runtime graph RID=01400A15903C9985
+DISCOVERY runtime graph RID=0142DF24DDF6819F
+DISCOVERY runtime graph RID=01453F3961FC0BB7
+DISCOVERY runtime graph RID=015314707AE716BF
+DISCOVERY runtime graph RID=01587BEED983569A
+DISCOVERY runtime graph RID=015E2DA84660F7D9
+DISCOVERY runtime graph RID=016886A4B599391C
+DISCOVERY runtime graph RID=016D12D89A0A658E
+DISCOVERY runtime graph RID=01702FE09FEA3596
+DISCOVERY runtime graph RID=017D301CA6D6BF4E
+DISCOVERY runtime graph RID=017D8BD5B237B333
+DISCOVERY runtime graph RID=01833561121578C4
+DISCOVERY runtime graph RID=018C90273080F785
+DISCOVERY runtime graph RID=018DCB210A8B048B
+DISCOVERY runtime graph RID=0198799A3CC4E437
+DISCOVERY runtime graph RID=01988D661ADF3BCE
+DISCOVERY runtime graph RID=019973508A5E327B
+DISCOVERY runtime graph RID=019CF34A2C59C76F
+DISCOVERY runtime graph RID=01A05C4FEBD7B301
+DISCOVERY runtime graph RID=01BA24E28342EA32
+DISCOVERY runtime graph RID=01BD00B144B74AC0
+DISCOVERY runtime graph RID=01BE2C45AA55200D
+DISCOVERY runtime graph RID=01C28E735A2283A0
+DISCOVERY runtime graph RID=01C315FC8C1AEF95
+DISCOVERY runtime graph RID=01D73DA578C4F423
+DISCOVERY runtime graph RID=01DC3790D6AFFEBD
+DISCOVERY runtime graph RID=01E011D9ABFE4AAB
+DISCOVERY runtime graph RID=01E7EDCF4CA78A61
+DISCOVERY runtime graph RID=01F59A0E72315C02
+DISCOVERY runtime graph RID=01F5D65A1232F9F3
+DIRECT graph prepared RID=019973508A5E327B item=0x000000002D3B9DF8 spawner=0x000000002D3B9D60
+F3 MANUAL package role QPistol armed RID=019973508A5E327B
+Native Spawn observation RID=019973508A5E327B valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=019973508A5E327B
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role QPistol COMPLETE RID=019973508A5E327B
+DIRECT graph prepared RID=013F40B3AD756F14 item=0x000000002D3B7158 spawner=0x000000002D3B70C0
+F3 MANUAL package role OneHanded armed RID=013F40B3AD756F14
+Native Spawn observation RID=013F40B3AD756F14 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=013F40B3AD756F14
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role OneHanded COMPLETE RID=013F40B3AD756F14
+DIRECT graph prepared RID=01E7EDCF4CA78A61 item=0x000000002D3B8AD8 spawner=0x000000002D3B8A40
+F3 MANUAL package role TwoHanded armed RID=01E7EDCF4CA78A61
+Native Spawn observation RID=01E7EDCF4CA78A61 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01E7EDCF4CA78A61
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role TwoHanded COMPLETE RID=01E7EDCF4CA78A61
+F3 MANUAL PACKAGE COMPLETE
+F4 Q-Pistol queued RID=01BE2C45AA55200D (pending=1, recent=1/12)
+DIRECT graph prepared RID=01BE2C45AA55200D item=0x000000002D3B5E38 spawner=0x000000002D3B5DA0
+Native Spawn observation RID=01BE2C45AA55200D valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01BE2C45AA55200D
+GiveWeapon queue cooldown = 500 ms
+F4 Q-Pistol queued RID=019973508A5E327B (pending=1, recent=2/12)
+DIRECT graph prepared RID=019973508A5E327B item=0x000000002D3B9DF8 spawner=0x000000002D3B9D60
+Native Spawn observation RID=019973508A5E327B valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=019973508A5E327B
+GiveWeapon queue cooldown = 500 ms
+F2 ManualAmmo queued for playerId=201457664.
+F2 ManualAmmo AddAmmo class=0 (Q-Pistol) amount=+10
+F2 ManualAmmo AddAmmo class=1 (SMG/MachinePistol) amount=+30
+F2 ManualAmmo AddAmmo class=2 (AssaultRifle) amount=+30
+F2 ManualAmmo AddAmmo class=5 (Shotgun) amount=+8
+F2 ManualAmmo AddAmmo class=6 (Sniper/Marksman) amount=+5
+F2 ManualAmmo AddAmmo class=7 (HeavyPistol50Cal) amount=+8
+F2 ManualAmmo PUBLISHED through native ammo event 0x1DE (6 class(es)).
+F2 ManualAmmo queued for playerId=201457664.
+F2 ManualAmmo AddAmmo class=0 (Q-Pistol) amount=+10
+F2 ManualAmmo AddAmmo class=1 (SMG/MachinePistol) amount=+30
+F2 ManualAmmo AddAmmo class=2 (AssaultRifle) amount=+30
+F2 ManualAmmo AddAmmo class=5 (Shotgun) amount=+8
+F2 ManualAmmo AddAmmo class=6 (Sniper/Marksman) amount=+5
+F2 ManualAmmo AddAmmo class=7 (HeavyPistol50Cal) amount=+8
+F2 ManualAmmo PUBLISHED through native ammo event 0x1DE (6 class(es)).
+F5 queued RID=016886A4B599391C (pending=1, recent=3/12)
+DIRECT graph prepared RID=016886A4B599391C item=0x000000002D3B9138 spawner=0x000000002D3B90A0
+Native Spawn observation RID=016886A4B599391C valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=016886A4B599391C
+GiveWeapon queue cooldown = 500 ms
+F6 queued RID=01702FE09FEA3596 (pending=1, recent=4/12)
+DIRECT graph prepared RID=01702FE09FEA3596 item=0x000000002D3B4B18 spawner=0x000000002D3B4A80
+Native Spawn observation RID=01702FE09FEA3596 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01702FE09FEA3596
+GiveWeapon queue cooldown = 500 ms
+F6 queued RID=01702FE09FEA3596 (pending=1, recent=5/12)
+DIRECT graph prepared RID=01702FE09FEA3596 item=0x000000002D3B4B18 spawner=0x000000002D3B4A80
+Native Spawn observation RID=01702FE09FEA3596 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01702FE09FEA3596
+GiveWeapon queue cooldown = 500 ms
+F7 queued RID=010D8295A99561AB (pending=1, recent=6/12)
+DIRECT graph prepared RID=010D8295A99561AB item=0x000000002D3B54A8 spawner=0x000000002D3B5410
+Native Spawn observation RID=010D8295A99561AB valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=010D8295A99561AB
+GiveWeapon queue cooldown = 500 ms
+F8 queued RID=013F40B3AD756F14 (pending=1, recent=7/12)
+DIRECT graph prepared RID=013F40B3AD756F14 item=0x000000002D3B7158 spawner=0x000000002D3B70C0
+Native Spawn observation RID=013F40B3AD756F14 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=013F40B3AD756F14
+GiveWeapon queue cooldown = 500 ms
+F9 queued RID=018C90273080F785 (pending=1, recent=8/12)
+DIRECT graph prepared RID=018C90273080F785 item=0x000000002D3B9798 spawner=0x000000002D3B9700
+Native Spawn observation RID=018C90273080F785 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=018C90273080F785
+GiveWeapon queue cooldown = 500 ms
+F10 queued RID=016D12D89A0A658E (pending=1, recent=9/12)
+DIRECT graph prepared RID=016D12D89A0A658E item=0x000000002D3B9468 spawner=0x000000002D3B93D0
+Native Spawn observation RID=016D12D89A0A658E valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=016D12D89A0A658E
+GiveWeapon queue cooldown = 500 ms
+F11 queued RID=01E7EDCF4CA78A61 (pending=1, recent=10/12)
+DIRECT graph prepared RID=01E7EDCF4CA78A61 item=0x000000002D3B8AD8 spawner=0x000000002D3B8A40
+Native Spawn observation RID=01E7EDCF4CA78A61 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01E7EDCF4CA78A61
+GiveWeapon queue cooldown = 500 ms
+F12 queued RID=013BD1F27CC907FA (pending=1, recent=11/12)
+DIRECT graph prepared RID=013BD1F27CC907FA item=0x000000002D3B7AE8 spawner=0x000000002D3B7A50
+Native Spawn observation RID=013BD1F27CC907FA valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=013BD1F27CC907FA
+GiveWeapon queue cooldown = 500 ms
+[OVERLAY] A21 cursor clip released while the floating window is open.
+[OVERLAY] A21 floating window closed with overlay toggle.
+[OVERLAY] A21 cursor clip released while the floating window is open.
+[OVERLAY] A21 floating window closed with overlay toggle.
+PLAYER NOT READY
+Weapon runtime reset: player not ready
+PLAYER READY loadout=0x000000002D6D9C38 playerId=201588736
+Weapon runtime reset: player identity changed/ready
+F1 License To Kill: native state ON -> FORCE OFF
+F1 License To Kill: native state OFF -> FORCE ON
+F3 MANUAL PACKAGE START playerId=201588736 QPistol=019973508A5E327B OneHanded=013F40B3AD756F14 TwoHanded=01E7EDCF4CA78A61
+A27 graph scan: anchor=000000002D6D9C38 maxUser=00007FFFFFFEFFFF local=000000002B6D0000..000000002F6E0000 fixed=0x2C000000..0x30000000 fixed{regions=8 readable=7 calls=448 failed=0 bytes=29360128} local{regions=111 readable=54 calls=75 failed=0 bytes=2076672}.
+A23 graph index: 41 linked graph(s), 42 item RID entry(s), 43 spawner(s), player loadout anchor=0x000000002D6D9C38.
+DIRECT graph prepared RID=019973508A5E327B item=0x000000002D3B9DF8 spawner=0x000000002D3B9D60
+F3 MANUAL package role QPistol armed RID=019973508A5E327B
+Native Spawn observation RID=019973508A5E327B valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=019973508A5E327B
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role QPistol COMPLETE RID=019973508A5E327B
+DIRECT graph prepared RID=013F40B3AD756F14 item=0x000000002D3B7158 spawner=0x000000002D3B70C0
+F3 MANUAL package role OneHanded armed RID=013F40B3AD756F14
+Native Spawn observation RID=013F40B3AD756F14 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=013F40B3AD756F14
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role OneHanded COMPLETE RID=013F40B3AD756F14
+DIRECT graph prepared RID=01E7EDCF4CA78A61 item=0x000000002D3B8AD8 spawner=0x000000002D3B8A40
+F3 MANUAL package role TwoHanded armed RID=01E7EDCF4CA78A61
+Native Spawn observation RID=01E7EDCF4CA78A61 valid=yes accepted=yes state=1 pending=yes
+DIRECT graph COMPLETE RID=01E7EDCF4CA78A61
+GiveWeapon queue cooldown = 500 ms
+F3 MANUAL package role TwoHanded COMPLETE RID=01E7EDCF4CA78A61
+F3 MANUAL PACKAGE COMPLETE
+F1 License To Kill: native state ON -> FORCE OFF
+F1 License To Kill: native state OFF -> FORCE ON
+F2 ManualAmmo queued for playerId=201588736.
+F2 ManualAmmo AddAmmo class=0 (Q-Pistol) amount=+10
+F2 ManualAmmo AddAmmo class=1 (SMG/MachinePistol) amount=+30
+F2 ManualAmmo AddAmmo class=2 (AssaultRifle) amount=+30
+F2 ManualAmmo AddAmmo class=5 (Shotgun) amount=+8
+F2 ManualAmmo AddAmmo class=6 (Sniper/Marksman) amount=+5
+F2 ManualAmmo AddAmmo class=7 (HeavyPistol50Cal) amount=+8
+F2 ManualAmmo PUBLISHED through native ammo event 0x1DE (6 class(es)).
+F4 Q-Pistol queued RID=01BE2C45AA55200D (pending=1, recent=1/12)
+DIRECT graph prepared RID=01BE2C45AA55200D item=0x000000002D3B5E38 spawner=0x000000002D3B5DA0
+Native Spawn observation RID=01BE2C45AA55200D valid=yes accepted=yes state=1 pending=yes

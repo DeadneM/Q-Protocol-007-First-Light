@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Overlay.h"
+#include "Updates.h"
 
 namespace qp {
 
@@ -1794,8 +1795,8 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.6 / A28 November Remap TEST");
-    Log("Scope: A28 TEST static native remap; A25/A26/A27 preserved; runtime validation pending.");
+    Log("Q Protocol v0.9.6 / A29 Updater and Menu TEST");
+    Log("Scope: A28 native core preserved; background updater and menu readability TEST.");
 
     if (!ValidateTargetExecutable()) {
         Log("Fresh Core disabled because executable validation failed.");
@@ -1803,7 +1804,12 @@ DWORD WINAPI WorkerThread(LPVOID) {
     }
 
     Log("Target executable accepted.");
+    if (!updates::EnsureDefaultIni(iniPath)) {
+        Log("[ERROR] Cannot create missing default INI; core not started.");
+        return 0;
+    }
     LoadConfig(iniPath);
+    updates::Initialize(iniPath);
 
     if (!InstallGameplayHook()) {
         Log("[ERROR] Fresh Core disabled: gameplay hook unavailable.");
@@ -2103,6 +2109,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         Log("[ERROR] LTK observe hook restore failed during DLL shutdown.");
     }
 
+    updates::Shutdown();
     OverlayShutdown();
     return 0;
 }
