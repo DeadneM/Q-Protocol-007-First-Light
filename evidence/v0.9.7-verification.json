@@ -1,0 +1,36 @@
+{
+  "release": "v0.9.7",
+  "pr": 8,
+  "source_main_commit": "8722000d859eb9785a8906cae82adc72d35ae1a2",
+  "pr_ci": 41479969385,
+  "main_ci": 41480287380,
+  "ci": "success",
+  "stable_latest": true,
+  "beta_default": false,
+  "startup_check_default": true,
+  "manifest": {
+    "schema": 1,
+    "build": 30,
+    "tag": "v0.9.7",
+    "exe_sha256": "6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1",
+    "package": "Q-Protocol_v0.9.7.zip",
+    "url": "https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.7/Q-Protocol_v0.9.7.zip",
+    "size": 584136,
+    "sha256": "9c7d30df6addd35d676f95566a2750606a4df233729d49a6b4a2fa5e192c8b4f",
+    "files": {
+      "dxgi.dll": {
+        "size": 138240,
+        "sha256": "b3c52b049648d5321aaff0002c29b0be18bfbf15d738160b17e4486759b9570c"
+      },
+      "QProtocol.asi": {
+        "size": 1008640,
+        "sha256": "cb8601f8311bbbcf4442c1ddbba939766be244a2fa2c5194b7c7ac5d7b8676c2"
+      }
+    }
+  },
+  "crc_two_binary_root_and_embedded_ini": "PASS",
+  "A29_stable_and_beta_channels_find_upgrade": "PASS",
+  "no_downgrade_or_reoffer": "PASS",
+  "game_files_changed": false,
+  "real_exit_update_cycle": "PENDING"
+}

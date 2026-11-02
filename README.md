@@ -8,62 +8,45 @@
 
 # Q Protocol — 007 First Light
 
-Q Protocol is an experimental PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
+Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 
 ## Current state
 
-**v0.9.7 stable promotion approved:** accepted A28/A29 native core, updater and
-readable menu. Beta updates are OFF by default; startup checks remain ON.
-Existing explicit updater preferences and personal INI are preserved.
-Package: only `dxgi.dll` and `QProtocol.asi`; README and defaults stay here.
-See [v0.9.7 release notes](packaging/RELEASE_NOTES_V0.9.7.md). Build/publication
-verification is pending; old releases remain archived unchanged.
+**Q Protocol v0.9.7** is the current stable public release, promoted from the
+maintainer-accepted A28/A29 on 2 November 2026 through
+[PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8).
 
-**A29 TEST development:** A28 was accepted on the maintainer system. A29 adds
-startup update checking, beta releases and explicit installation after exit,
-plus a clearer responsive menu. Native A28 gameplay/input/rendering stay frozen.
-See [A29 notebook](docs/A29_UPDATER_AND_MENU.md) and
-[release notes](packaging/RELEASE_NOTES_A29.md). [A29 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a29-updater-menu-test/Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip) is built and independently checked. A29 gameplay and the real post-exit update cycle are not yet validated.
+[Download v0.9.7](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.7/Q-Protocol_v0.9.7.zip)
+| [Release notes](packaging/RELEASE_NOTES_V0.9.7.md)
+| [Successful Windows release build](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41480287380)
 
-**New package policy (maintainer request, 2 November 2026):** from A29 onward,
-the ZIP contains only `dxgi.dll` and `QProtocol.asi`. An existing personal INI is
-kept; default settings are embedded and create an INI only when missing. README,
-default INI and release history remain on GitHub. Older ZIPs stay unchanged.
+- November-compatible native core for Steam build 26252352, with PE/native-map
+  compatibility checks retained. Older v0.9.6 targets the October executable.
+- In-menu updater: startup check ON, beta builds OFF by default, manual Check now,
+  confirmed Update on exit and cancellation. Existing explicit settings are kept.
+- Only newer compatible releases are offered. Download hashes and binary layout
+  are checked, loaded binaries are replaced after exit and backups are retained.
+- Clearer responsive menu with accessible Save / Reload / Defaults.
+- A26 authoritative DX12 queue capture, A27 bounded x64 graph scanner and A24
+  request guards; existing native gameplay, F1-F12 and AUTO preserved.
 
-**A28 TEST compatibility work:** the local Steam build 26252352 has been analyzed and individually remapped on `dev/nov2026-game-update-remap`. The new PE/native-map gate refuses mismatches before hooks. [A28 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a28-nov2026-remap-test/Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip) is built and package-checked; the maintainer reports A28 working locally. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md). Public v0.9.6 is unchanged.
+**ZIP: only `dxgi.dll` and `QProtocol.asi` at root.** README, configuration source
+and release history remain on GitHub. The ASI embeds default settings and the
+updater helper. A missing INI is created; an existing personal INI is preserved.
 
-**Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI** is the current public release.
+Install with the game closed after backing up the two mod binaries and INI.
+Extract beside `Retail/007FirstLight.exe`. A29 users can instead choose
+**Updates > Check now > Update on exit**, then close normally after staging.
+The actual post-exit installation cycle still awaits runtime confirmation;
+transaction fixtures and published discovery/download checks passed separately.
+The other configuration's GPU DEVICE_LOST incident remains open.
 
-> **November 2026 game-update notice:** A26 verified DXGI queue capture and A27 x64 weapon graph scanner are now integrated in `main` ([PR #7](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/7)). This is the source baseline, **not a public release validated for the newest game executable**. The public v0.9.6 ZIP targets the October 7, 2026 executable. The local updated executable has now been statically remapped for A28 TEST; gameplay acceptance is still pending. GPU `DEVICE_LOST` remains an open compatibility issue on some machines.
-
-- Updated for the October 7, 2026 game executable.
-- A25 enlarges the first-open floating overlay to 1000×850 ImGui units and keeps Save / Reload / Defaults accessible below a scrollable tab content area.
-- Public ZIP now includes our custom native 64-bit `dxgi.dll` proxy to load `QProtocol.asi` directly.
-- A24 received a positive in-game maintainer report and is promoted from TEST to public release.
-- First Debug / A21 harden the DX12 renderer and provide a movable, resizable ImGui overlay.
-- A22 improves click reliability and in-overlay mouse handling.
-- A23 dynamically locates native weapon graphs around the live player loadout; 41 linked graphs were recovered in the A23 runtime log.
-- A24 limits duplicate/repeated F4–F12 and Debug Spawn requests to 4 pending and 12 accepted in 30 seconds.
-- Player/loadout resolution is remapped for the new executable.
-- Weapon spawning now uses each weapon's native ItemEntry/Spawner graph directly.
-- The obsolete donor pair-clone path is no longer used.
-- Removed obsolete donor/pair-clone restoration code and dead overlay state.
-- Q Protocol's own `WriteProcessMemory` import is removed in A20J; `ReadProcessMemory` and `VirtualProtect` remain where required.
-- The Weapons tab provides configurable Weapon 1-8 slots for F5-F12.
-- The previous catalogue/spawn tools are kept under Debug.
-- F1 reads the game's native License To Kill state and forces the opposite state.
-- The A15 weapon catalogue audit is still enforced automatically by CI.
-- Experimental weapons remain in the catalogue but are hidden from Manual/Auto lists by default.
-- The overlay can expose Experimental entries when testing is desired.
-- A20J is the validated post-update Clean Core base; U74 remains a historical behavioral/reference library.
-- Gadget gameplay code remains removed from the active Q Protocol direction.
-
-> **Compatibility note:** the root cause of the earlier A23 crash is not proven by its log. A24 mitigates a possible spawn-request overload; wider hardware validation is ongoing. Previous [v0.9.4](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.4) remains available.
-
-[Download latest release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/latest)
+Previous v0.9.6, A28 and A29 releases are retained for history and compatible
+rollback. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md),
+[A29 notebook](docs/A29_UPDATER_AND_MENU.md) and [history](docs/HISTORY.md).
 
 ## Native DXGI and package history
 

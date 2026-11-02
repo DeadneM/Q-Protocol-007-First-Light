@@ -1,3 +1,30 @@
+## 2026-11-02 - v0.9.7 stable released on main
+
+Maintainer-authorized promotion completed via [PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8),
+merge/source `8722000d859eb9785a8906cae82adc72d35ae1a2`.
+PR Windows CI 41479969385 and main release CI
+[41480287380](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41480287380)
+both SUCCESS: default-beta/preservation audits, updater transaction tests, native
+DXGI smoke, embedded helper/default INI, ASI and actual CPU menu smoke all pass.
+
+**v0.9.7 is published non-prerelease and verified as GitHub Latest.**
+[Direct ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.7/Q-Protocol_v0.9.7.zip),
+584136 bytes, SHA-256
+`9c7d30df6addd35d676f95566a2750606a4df233729d49a6b4a2fa5e192c8b4f`.
+Downloaded and checked: CRC, exactly two AMD64 root binaries, all manifest hashes,
+stable build identity and embedded default INI unchanged. README remains on GitHub.
+
+Beta defaults OFF (including missing-key fallback); startup check ON. Explicit
+existing preferences are retained. A28/A29 native gameplay and menu preserved.
+The real updater engine finds v0.9.7 from A29 through stable and beta channels,
+downloads/verifies it, and does not reoffer it to build 30. Results and probe
+source are in `evidence/v0.9.7-verification.json` and `PublishedStableProbe.cs`.
+
+Old v0.9.6/A28/A29 tags/assets remain unchanged. A29 remains installed locally;
+no game launch or stable installation was performed during publication. Next:
+use A29 Updates > Check now > Update on exit for the first actual exit-cycle
+test. Keep the other system's GPU incident OPEN; it is not a universal fix.
+
 ## 2026-11-02 - v0.9.7 stable promotion authorized
 
 Maintainer accepts A29 and explicitly requests beta updates OFF by default,
