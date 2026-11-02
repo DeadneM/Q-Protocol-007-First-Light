@@ -19,15 +19,14 @@ Q Protocol is an experimental PC gameplay patch for **007 First Light** built ar
 startup update checking, beta releases and explicit installation after exit,
 plus a clearer responsive menu. Native A28 gameplay/input/rendering stay frozen.
 See [A29 notebook](docs/A29_UPDATER_AND_MENU.md) and
-[release notes](packaging/RELEASE_NOTES_A29.md). Build/package checks are pending;
-A29 gameplay and the real post-exit update cycle are not yet validated.
+[release notes](packaging/RELEASE_NOTES_A29.md). [A29 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a29-updater-menu-test/Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip) is built and independently checked. A29 gameplay and the real post-exit update cycle are not yet validated.
 
 **New package policy (maintainer request, 2 November 2026):** from A29 onward,
 the ZIP contains only `dxgi.dll` and `QProtocol.asi`. An existing personal INI is
 kept; default settings are embedded and create an INI only when missing. README,
 default INI and release history remain on GitHub. Older ZIPs stay unchanged.
 
-**A28 TEST compatibility work:** the local Steam build 26252352 has been analyzed and individually remapped on `dev/nov2026-game-update-remap`. The new PE/native-map gate refuses mismatches before hooks. [A28 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a28-nov2026-remap-test/Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip) is built and package-checked; gameplay acceptance is pending. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md). Public v0.9.6 is unchanged.
+**A28 TEST compatibility work:** the local Steam build 26252352 has been analyzed and individually remapped on `dev/nov2026-game-update-remap`. The new PE/native-map gate refuses mismatches before hooks. [A28 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a28-nov2026-remap-test/Q-Protocol_v0.9.6_A28_Nov2026_Remap_TEST.zip) is built and package-checked; the maintainer reports A28 working locally. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md). Public v0.9.6 is unchanged.
 
 **Q Protocol v0.9.6 / A25 Accessible Overlay + Native DXGI** is the current public release.
 

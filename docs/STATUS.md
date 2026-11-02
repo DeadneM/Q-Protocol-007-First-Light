@@ -1,3 +1,33 @@
+### A29 build and published-package verification - 2026-11-02
+
+**CONSTRUIT / CONTROLE / EXPERIMENTAL.** Windows CI
+[41436950246](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41436950246)
+SUCCESS on source `e04b7de7d7b529e0353ce241befe62a5be2e5504`: native DXGI export/
+forwarding smoke, preservation audits, 19 updater transaction checks, embedded
+helper/default-INI resource compile, ASI, actual ImGui CPU smoke at 3 viewport
+sizes and dependency/two-file package checks. The earlier CI attempt stopped at
+legacy CSC slash paths; correction was limited to the workflow, with no release
+from the failed attempt.
+
+[A29 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a29-updater-menu-test/Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip):
+584139 bytes; SHA-256
+`78bfaf255013c138020ffad4a4fcae93286797af023cf2ec20183e44a2448484`.
+Downloaded package independently checked: CRC, two exact root binaries, AMD64,
+individual hashes, A29 identity and embedded default INI identical to the baseline
+(`8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`).
+Updater helper is embedded; README and INI are absent from the ZIP as requested.
+
+The actual updater engine found the compatible A29 beta, downloaded/verified its
+published package, excluded it on stable and did not offer it again to build 29.
+This was a read-only public-network probe with extraction into the workspace,
+not a real game update. Probe source: `evidence/PublishedUpdateProbe.cs`; complete
+hashes/results: `evidence/a29-verification.json`.
+
+A28 remains installed and accepted locally. A29 was NOT installed or launched.
+Next: maintainer visual/startup/channel test, then an actual staged update after
+exit when a future compatible build exists. No stable promotion; GPU incident
+on the other system remains open. Old main/tag/release archives remain unchanged.
+
 ## 2026-11-02 - A28 accepted on maintainer system; A29 updater/menu TEST
 
 Maintainer reports "ok parfait tout a lair de marcher" after installing A28.
