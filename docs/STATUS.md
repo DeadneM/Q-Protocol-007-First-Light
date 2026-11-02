@@ -1,3 +1,71 @@
+## 2026-11-02 - v0.9.7 stable promotion authorized
+
+Maintainer accepts A29 and explicitly requests beta updates OFF by default,
+main integration and push/build release. Beta defaults are now false in native
+state and the missing-INI-key fallback; startup checks remain ON. Existing
+explicit preferences are preserved. Runtime updater/menu/native behavior is
+otherwise identical to accepted A29, checked by `tools/verify_release_scope.py`.
+
+Prepared stable v0.9.7 (updater build 30, newer than A29 build 29). The package
+remains the two binaries only, plus a separate updater manifest release asset.
+Release workflow is gated to main and refuses to overwrite an existing tag or
+release. PR checks precede merge; main then builds/publishes its own source SHA.
+Old v0.9.6/A28/A29 archives and personal installation are preserved.
+Validation/publication pending. Real post-exit update cycle remains unconfirmed.
+
+### A29 build and published-package verification - 2026-11-02
+
+**CONSTRUIT / CONTROLE / EXPERIMENTAL.** Windows CI
+[41436950246](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41436950246)
+SUCCESS on source `e04b7de7d7b529e0353ce241befe62a5be2e5504`: native DXGI export/
+forwarding smoke, preservation audits, 19 updater transaction checks, embedded
+helper/default-INI resource compile, ASI, actual ImGui CPU smoke at 3 viewport
+sizes and dependency/two-file package checks. The earlier CI attempt stopped at
+legacy CSC slash paths; correction was limited to the workflow, with no release
+from the failed attempt.
+
+[A29 TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a29-updater-menu-test/Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip):
+584139 bytes; SHA-256
+`78bfaf255013c138020ffad4a4fcae93286797af023cf2ec20183e44a2448484`.
+Downloaded package independently checked: CRC, two exact root binaries, AMD64,
+individual hashes, A29 identity and embedded default INI identical to the baseline
+(`8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022`).
+Updater helper is embedded; README and INI are absent from the ZIP as requested.
+
+The actual updater engine found the compatible A29 beta, downloaded/verified its
+published package, excluded it on stable and did not offer it again to build 29.
+This was a read-only public-network probe with extraction into the workspace,
+not a real game update. Probe source: `evidence/PublishedUpdateProbe.cs`; complete
+hashes/results: `evidence/a29-verification.json`.
+
+A28 remains installed and accepted locally. A29 was NOT installed or launched.
+Next: maintainer visual/startup/channel test, then an actual staged update after
+exit when a future compatible build exists. No stable promotion; GPU incident
+on the other system remains open. Old main/tag/release archives remain unchanged.
+
+## 2026-11-02 - A28 accepted on maintainer system; A29 updater/menu TEST
+
+Maintainer reports "ok parfait tout a lair de marcher" after installing A28.
+Fresh logs confirm READY, complete F3 loadout, F1 transitions and F2 native ammo
+publication for six classes. Evidence: `evidence/a28-runtime/`. A28 is the accepted
+local base; the other system's GPU incident remains open.
+
+User explicitly changes packaging: future ZIPs contain only `dxgi.dll` and
+`QProtocol.asi`; README/default INI remain on GitHub. Existing releases are kept.
+A29 embeds the updater helper and default INI, seeds a missing INI without
+overwriting one, adds startup check/beta/explicit Update on exit and a readable
+responsive menu. Reference: Darksiders Genesis Updates UI, inspected read-only.
+
+Branch `dev/a29-updater-menu`, separate from main and A28. Local preservation
+audit and 19 updater fixture checks PASS. Windows/native menu/package checks
+pending. No A29 install or game launch. See [A29 notebook](A29_UPDATER_AND_MENU.md).
+
+## A28 TEST ? 2026-11-01
+
+Static remap prepared for Steam build 26252352; native code/type gate retained.
+Windows CI 41357519256 SUCCESS; downloaded four-file ZIP, hashes and unchanged INI checked. Runtime validation pending. A26/A27 baseline preserved. GPU issue OPEN.
+See [A28 notebook](A28_NOV2026_NATIVE_REMAP.md).
+
 # Technical status
 
 ## First Debug — A21 first-open D3D12 device loss (2026-10-11)

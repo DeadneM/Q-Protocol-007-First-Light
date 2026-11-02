@@ -1,0 +1,231 @@
+{
+  "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\007 First Light\\Retail\\007FirstLight.exe",
+  "length": 65052552,
+  "sha256": "6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1",
+  "machine": "0x8664",
+  "timestamp": "0x6AE0DF3C",
+  "image_base": "0x140000000",
+  "size_of_image": "0x06D31000",
+  "sections": [
+    {
+      "name": ".text",
+      "virtual_size": 45202860,
+      "rva": 4096,
+      "raw_size": 45202944,
+      "offset": 1024,
+      "characteristics": 1610612768
+    },
+    {
+      "name": ".rdata",
+      "virtual_size": 9469510,
+      "rva": 45207552,
+      "raw_size": 9469952,
+      "offset": 45203968,
+      "characteristics": 1073741888
+    },
+    {
+      "name": ".data",
+      "virtual_size": 56411256,
+      "rva": 54677504,
+      "raw_size": 6971904,
+      "offset": 54673920,
+      "characteristics": 3221225536
+    },
+    {
+      "name": ".pdata",
+      "virtual_size": 2136216,
+      "rva": 111091712,
+      "raw_size": 2136576,
+      "offset": 61645824,
+      "characteristics": 1073741888
+    },
+    {
+      "name": "_RDATA",
+      "virtual_size": 80560,
+      "rva": 113229824,
+      "raw_size": 80896,
+      "offset": 63782400,
+      "characteristics": 1073741888
+    },
+    {
+      "name": ".rsrc",
+      "virtual_size": 278872,
+      "rva": 113311744,
+      "raw_size": 279040,
+      "offset": 63863296,
+      "characteristics": 1073741888
+    },
+    {
+      "name": ".reloc",
+      "virtual_size": 898284,
+      "rva": 113594368,
+      "raw_size": 898560,
+      "offset": 64142336,
+      "characteristics": 1107296320
+    }
+  ],
+  "source_sha256": "2ed24372bad382553330e13494b3021977969a6ffcc17e3b60f0a9a73e6d352b",
+  "old_mappings": {
+    "kPlayerResolverRva": {
+      "rva": "0x0171C2B0",
+      "section": ".text",
+      "bytes": "e8 fb 3b 93 fe 48 8b 0d 1c 7e 77 02 48 85 c9 75 0c e8 7a 4d 93 fe 48 8b 0d 0b 7e 77 02 48 8d 15",
+      "status": "UNVALIDATED"
+    },
+    "kPlayerRegistryHelperRva": {
+      "rva": "0x007D6E20",
+      "section": ".text",
+      "bytes": "48 89 47 08 48 8b c7 48 83 c4 20 5f c3 f7 c3 00 00 00 c0 75 11 48 8b 05 fc 4f d0 02 f0 ff 40 ec",
+      "status": "UNVALIDATED"
+    },
+    "kPlayerRegistryGlobalRva": {
+      "rva": "0x067925D8",
+      "section": ".data",
+      "bytes": "",
+      "status": "UNVALIDATED"
+    },
+    "kRuntimePlayerGlobalRva": {
+      "rva": "0x06452838",
+      "section": ".data",
+      "bytes": "",
+      "status": "UNVALIDATED"
+    },
+    "kAmmoOwnerGlobalRva": {
+      "rva": "0x06452820",
+      "section": ".data",
+      "bytes": "",
+      "status": "UNVALIDATED"
+    },
+    "kPlayerLoadoutVtableRva": {
+      "rva": "0x02EDD108",
+      "section": ".rdata",
+      "bytes": "50 b4 03 40 01 00 00 00 50 b4 03 40 01 00 00 00 50 b4 03 40 01 00 00 00 f0 1b 04 40 01 00 00 00",
+      "status": "UNVALIDATED"
+    },
+    "kLicenseToKillRva": {
+      "rva": "0x0191A6B4",
+      "section": ".text",
+      "bytes": "b8 10 00 00 00 48 8b ce 48 03 c8 41 80 3e 00 74 0c 49 8d 56 10 e8 32 5e eb ff c6 06 01 8b 87 40",
+      "status": "UNVALIDATED"
+    },
+    "kLicenseToKillNativeOnRva": {
+      "rva": "0x0191A71B",
+      "section": ".text",
+      "bytes": "53 56 57 41 54 41 55 41 56 41 57 48 81 ec c0 00 00 00 c5 f8 29 70 b8 c5 f8 29 78 a8 c5 78 29 40",
+      "status": "UNVALIDATED"
+    },
+    "kLtkObserveHookRva": {
+      "rva": "0x0191A6D8",
+      "section": ".text",
+      "bytes": "8b 6c 24 50 89 83 40 02 00 00 8b 87 44 02 00 00 89 83 44 02 00 00 8b 87 48 02 00 00 89 83 48 02",
+      "status": "UNVALIDATED"
+    },
+    "kLtkObserveTrueRva": {
+      "rva": "0x0191A6E7",
+      "section": ".text",
+      "bytes": "00 89 83 44 02 00 00 8b 87 48 02 00 00 89 83 48 02 00 00 48 8b c3 48 8b 5c 24 48 48 83 c4 20 41",
+      "status": "UNVALIDATED"
+    },
+    "kLtkObserveFalseRva": {
+      "rva": "0x0191A763",
+      "section": ".text",
+      "bytes": "45 8b e0 0f b7 fa 45 8b e8 c5 78 29 54 24 70 c5 78 10 15 46 d0 25 01 8b f2 8b c7 48 0f af 81 58",
+      "status": "UNVALIDATED"
+    },
+    "kItemEntryVtableRva": {
+      "rva": "0x02EC97C8",
+      "section": ".rdata",
+      "bytes": "02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 50 75 ec 42 01 00 00 00",
+      "status": "UNVALIDATED"
+    },
+    "kSpawnerVtableRva": {
+      "rva": "0x02EC9990",
+      "section": ".rdata",
+      "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 10 76 ec 42 01 00 00 00 3e bb 0a ec 00 00 00 00",
+      "status": "UNVALIDATED"
+    },
+    "kNativeSpawnRva": {
+      "rva": "0x016B4E80",
+      "section": ".text",
+      "bytes": "05 1b c2 07 02 c7 05 e5 c1 07 02 01 00 02 00 66 89 15 e2 c1 07 02 e8 f9 a4 3d 01 e9 05 fe ff ff",
+      "status": "UNVALIDATED"
+    },
+    "kNativeAmmoInsertRva": {
+      "rva": "0x00115820",
+      "section": ".text",
+      "bytes": "a9 00 00 00 4c 89 7c 24 68 e8 52 5f f2 ff 33 d2 4c 8d 4c 24 60 66 89 54 24 60 41 b8 04 00 00 00",
+      "status": "UNVALIDATED"
+    },
+    "kNativeAmmoNotifyRva": {
+      "rva": "0x012A7330",
+      "section": ".text",
+      "bytes": "50 49 8b 5b 40 49 8b 6b 48 49 8b e3 41 5f 41 5e 41 5c 5f 5e c3 cc cc cc cc cc cc cc cc cc cc cc",
+      "status": "UNVALIDATED"
+    },
+    "kGameplayHookRva": {
+      "rva": "0x0194BC01",
+      "section": ".text",
+      "bytes": "8d 4c 24 48 45 8b 43 04 48 8d 4c 24 40 41 8b 13 88 44 24 4c 41 8b 43 0c 89 44 24 48 c6 44 24 4e",
+      "status": "UNVALIDATED"
+    }
+  },
+  "preimages": {
+    "kLtkObserveHookPreimage": {
+      "pattern": "49 8b bb f0 06 00 00 4c 23 04 c7 84 d2 74 7c",
+      "old_site_matches": false,
+      "executable_section_candidates": [
+        "0x0191B6B8"
+      ],
+      "warning": "Byte matches alone do not establish native function identity or ABI."
+    },
+    "kGameplayHookPreimage": {
+      "pattern": "48 81 c4 00 01 00 00 41 5f 41 5e 41 5d",
+      "old_site_matches": false,
+      "executable_section_candidates": [
+        "0x002EDBCD",
+        "0x0039BCF6",
+        "0x0046735F",
+        "0x0060AB08",
+        "0x0097857B",
+        "0x00A0F1E4",
+        "0x00C13302",
+        "0x00F9D106",
+        "0x0107F14E",
+        "0x01140D9A",
+        "0x011D81D3",
+        "0x0194CBD1",
+        "0x0199101F",
+        "0x01AA0EEA",
+        "0x01DDBFF0",
+        "0x01DF0CFF",
+        "0x01EDAFF0",
+        "0x01F9A588",
+        "0x01FA53D1",
+        "0x01FD243C",
+        "0x01FDB1D7",
+        "0x02000CFF",
+        "0x0205D338",
+        "0x020B286B",
+        "0x020ECB1F",
+        "0x020FC8EF",
+        "0x0215B14B",
+        "0x0226F878",
+        "0x0227A731",
+        "0x022A777C",
+        "0x022B0537",
+        "0x022D5DAF",
+        "0x0230E268",
+        "0x0235EE5B",
+        "0x023999DF",
+        "0x024DABC8",
+        "0x0270A10A",
+        "0x027B02DB",
+        "0x0287D63A",
+        "0x02968026",
+        "0x0296825D"
+      ],
+      "warning": "Byte matches alone do not establish native function identity or ABI."
+    }
+  },
+  "verdict": "INVENTORY ONLY: no RVA or compatibility approval is implied."
+}

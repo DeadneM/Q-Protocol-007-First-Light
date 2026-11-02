@@ -1,0 +1,48 @@
+{
+  "ZKntPlayerLoadoutEntity": [
+    {
+      "rva": "0x02EDD240",
+      "offset": 24,
+      "methods": [
+        "0x177212c",
+        "0x1772180",
+        "0x11ff78",
+        "0x11ff78"
+      ]
+    },
+    {
+      "rva": "0x02EDD278",
+      "offset": 0,
+      "methods": [
+        "0x171bfa0",
+        "0x171bf50",
+        "0x41760",
+        "0x41760"
+      ]
+    }
+  ],
+  "ZDynamicGameplaySpawnerItemEntryEntity": [
+    {
+      "rva": "0x02ECA0A8",
+      "offset": 0,
+      "methods": [
+        "0x16b8810",
+        "0x16b87c0",
+        "0x41760",
+        "0x41760"
+      ]
+    }
+  ],
+  "ZDynamicGameplaySpawnerEntity": [
+    {
+      "rva": "0x02ECA270",
+      "offset": 0,
+      "methods": [
+        "0x16b6a30",
+        "0x16b69d0",
+        "0x41760",
+        "0x41760"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "source_commit": "e04b7de7d7b529e0353ce241befe62a5be2e5504",
+  "ci_run": 41436950246,
+  "ci_conclusion": "success",
+  "zip": {
+    "schema": 1,
+    "build": 29,
+    "tag": "a29-updater-menu-test",
+    "exe_sha256": "6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1",
+    "package": "Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip",
+    "url": "https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a29-updater-menu-test/Q-Protocol_v0.9.6_A29_UpdaterMenu_TEST.zip",
+    "size": 584139,
+    "sha256": "78bfaf255013c138020ffad4a4fcae93286797af023cf2ec20183e44a2448484",
+    "files": {
+      "dxgi.dll": {
+        "size": 138240,
+        "sha256": "10d89ec3fb4f14af9df098847c32971aa10147ad832b3eda40423aa92d6def70"
+      },
+      "QProtocol.asi": {
+        "size": 1008640,
+        "sha256": "38e014a0c9583f74aede13effaa25d44fe8d8d39d6d71f5d8bc1c2c066cfa9e6"
+      }
+    }
+  },
+  "crc_and_two_binary_root": "PASS",
+  "amd64_binaries": "PASS",
+  "embedded_default_ini_sha256": "8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022",
+  "embedded_helper_sha256": "83e0df35613603577be2130783be400c8b135a22cc6cbb4e637b2f11a312ee75",
+  "updater_fixture_checks": 19,
+  "real_imgui_cpu_smoke_viewports": 3,
+  "published_discovery_download_and_verification": "PASS",
+  "stable_excludes_beta": "PASS",
+  "current_A29_not_reoffered": "PASS",
+  "installed_core_still_A28": true,
+  "A29_installed": false,
+  "game_launched": false,
+  "real_post_exit_update_test": "PENDING"
+}
