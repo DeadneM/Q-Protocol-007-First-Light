@@ -110,4 +110,3 @@ A28 remains installed and accepted locally. A29 was NOT installed or launched.
 Next: maintainer visual/startup/channel test, then an actual staged update after
 exit when a future compatible build exists. No stable promotion; GPU incident
 on the other system remains open. Old main/tag/release archives remain unchanged.
-
