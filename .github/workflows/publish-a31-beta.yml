@@ -1,0 +1,46 @@
+name: Expose A31 diagnostic to the in-mod beta updater
+on:
+  workflow_dispatch:
+  push:
+    branches: [experiment/a31-operations-readiness]
+    paths: [".github/workflows/publish-a31-beta.yml"]
+permissions:
+  contents: write
+jobs:
+  publish-beta-manifest:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify existing A31 ZIP and generate updater manifest
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          gh release download a31-operations-readiness-diag --repo "${{ github.repository }}" --pattern Q-Protocol_A31_OperationsReadiness_DIAG.zip --dir dist
+          if ($LASTEXITCODE -ne 0) { throw "A31 ZIP download failed" }
+          @'
+          import hashlib,json,zipfile
+          from pathlib import Path
+          name='Q-Protocol_A31_OperationsReadiness_DIAG.zip'
+          p=Path('dist')/name
+          digest=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert digest=='0797c3c50215c743aa4cb080d0227b220441d4e83027924457b225db16a37c45'
+          with zipfile.ZipFile(p) as z:
+              assert z.namelist()==['dxgi.dll','QProtocol.asi'] and z.testzip() is None
+              files={n:{'size':len(z.read(n)),'sha256':hashlib.sha256(z.read(n)).hexdigest()} for n in z.namelist()}
+          tag='a31-operations-readiness-diag'
+          m={'schema':1,'build':31,'tag':tag,'exe_sha256':'6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1',
+             'package':name,'url':f'https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/{tag}/{name}',
+             'size':p.stat().st_size,'sha256':digest,'files':files}
+          Path('dist/QProtocol-update.json').write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(m,indent=2))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "A31 manifest verification failed" }
+      - name: Add beta manifest without replacing the ZIP or stable release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload a31-operations-readiness-diag dist/QProtocol-update.json --repo "${{ github.repository }}"
+          if ($LASTEXITCODE -ne 0) { throw "A31 manifest upload failed; existing assets are never overwritten" }
