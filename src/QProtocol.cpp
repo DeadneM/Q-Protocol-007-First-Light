@@ -380,7 +380,10 @@ bool ValidateTargetExecutable() {
     return true;
 }
 
+#include "PlayerReadinessDiagnostics.inl" // A31_DIAG
+
 bool ResolveNativeLoadout(void** outLoadout) {
+    g_readinessTrace = {}; g_readinessTrace.stage = "native resolver"; // A31_DIAG
     if (!outLoadout || !g_exeBase) {
         return false;
     }
@@ -394,7 +397,9 @@ bool ResolveNativeLoadout(void** outLoadout) {
 
     __try {
         resolve(0, handle);
+        g_readinessTrace.handle0 = handle[0]; g_readinessTrace.handle1 = handle[1]; // A31_DIAG
         if (handle[0] == 0) {
+            g_readinessTrace.stage = "native handle empty"; // A31_DIAG
             return false;
         }
 
@@ -403,10 +408,12 @@ bool ResolveNativeLoadout(void** outLoadout) {
             reinterpret_cast<void*>(g_exeBase + kPlayerRegistryGlobalRva));
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
+        g_readinessTrace.stage = "native resolver or registry exception"; g_readinessTrace.exception = GetExceptionCode(); // A31_DIAG
         *outLoadout = nullptr;
         return false;
     }
 
+    g_readinessTrace.loadout = reinterpret_cast<std::uintptr_t>(*outLoadout); g_readinessTrace.stage = "registry lookup empty"; // A31_DIAG
     return *outLoadout != nullptr;
 }
 
@@ -418,11 +425,13 @@ PlayerContext ResolvePlayer() {
         return result;
     }
 
+    g_readinessTrace.stage = "loadout vtable unreadable"; // A31_DIAG
     std::uintptr_t vtable = 0;
     if (!SafeRead(reinterpret_cast<std::uintptr_t>(loadout), vtable)) {
         return result;
     }
 
+    g_readinessTrace.vtable = vtable; g_readinessTrace.stage = "unexpected loadout type"; // A31_DIAG
     if (vtable != g_exeBase + kPlayerLoadoutVtableRva) {
         return result;
     }
@@ -431,16 +440,20 @@ PlayerContext ResolvePlayer() {
     std::uintptr_t node = 0;
     std::uint32_t playerId = 0;
 
+    g_readinessTrace.stage = "runtime root absent or unreadable"; // A31_DIAG
     if (!SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) || !root) {
         return result;
     }
+    g_readinessTrace.stage = "runtime node absent or unreadable"; // A31_DIAG
     if (!SafeRead(root + 0x10, node) || !node) {
         return result;
     }
+    g_readinessTrace.stage = "runtime player ID absent or unreadable"; // A31_DIAG
     if (!SafeRead(node + 0x30, playerId) || playerId == 0) {
         return result;
     }
 
+    g_readinessTrace.stage = "ready"; // A31_DIAG
     result.loadout = loadout;
     result.playerId = playerId;
     return result;
@@ -1795,7 +1808,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.7 / Updater and Readable Menu");
+    Log("Q Protocol A31 / Operations Readiness DIAGNOSTIC");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
@@ -1846,6 +1859,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
     while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
         const bool ready = static_cast<bool>(player);
+        ReportReadiness(ready); // A31_DIAG
         g_graphScanPlayerLoadout = ready
             ? reinterpret_cast<std::uintptr_t>(player.loadout)
             : 0;
