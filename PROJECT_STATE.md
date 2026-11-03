@@ -22,7 +22,8 @@ no guard is bypassed. UI, renderer, gameplay, updater and personal INI stay froz
 A32 is a functional candidate, not runtime-validated. It will be published with
 its beta updater manifest so the maintainer can install from inside the mod.
 
-Scope audit PASS; native getter guard fixtures and Windows build pending. No
+Scope audit, native getter fixtures and Windows CI 41654311692 PASS. A32 beta
+ZIP and real in-mod updater-engine discovery/download are independently checked. No
 installation/launch. Main and v0.9.7 remain unchanged. Next: one lobby-to-Tac-Sim
 acceptance test and actual F2/F3 outcomes. After this correction is accepted,
 perform the separately requested ASI audit using accumulated GitHub/conversation

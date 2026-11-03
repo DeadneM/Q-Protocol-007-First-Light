@@ -518,3 +518,19 @@ installation/launch. Main and v0.9.7 remain unchanged. Next: one lobby-to-Tac-Si
 acceptance test and actual F2/F3 outcomes. After this correction is accepted,
 perform the separately requested ASI audit using accumulated GitHub/conversation
 history; do not combine speculative cleanup with this native correction.
+
+### A32 delivery - 2026-11-03
+
+Windows CI 41654311692 SUCCESS on source 1d040508bff8ab269effed793735a2336c32e9c2:
+new native resolver fixtures (code mismatch, missing/changed identity, wrong type,
+null/false result, exception and no cached reuse), prior updater tests, actual CPU
+menu smoke, DXGI/dependencies and two-binary package checks all passed.
+A32 prerelease includes its updater manifest. Actual unchanged updater engine
+with current build 31 discovers/downloads/verifies A32 through beta; stable does
+not offer it and build 32 does not reoffer itself. ZIP 585489 bytes, SHA-256
+20712084cf238d2547775423543db2df6444c06f7f79390bf0504dc5b0816e33.
+Status BUILT / CHECKED / EXPERIMENTAL. Functional Tac Sim acceptance pending.
+No installation or launch by the agent; no raw session log uploaded. Main and
+stable v0.9.7 preserved. User path: Beta builds ON > Check now > Update on exit.
+After restart: check lobby, Tac Sim READY, then one F2/F3 and actual outcomes.
+Separate cumulative ASI audit starts only after this correction is accepted.
