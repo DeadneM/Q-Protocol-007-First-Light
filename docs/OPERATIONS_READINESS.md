@@ -1,3 +1,18 @@
+## Latest clarification - 2026-11-03
+
+The maintainer clarifies: player recognition works in the lobby but fails in all
+Tac Sim missions they tested. Reproduction does NOT require a preceding driving
+mission. Earlier driving/Operations context is retained below as history only.
+The READY/spawn lines in the saved session must not be cited as proof of Tac Sim
+mission functionality. Campaign/non-Tac-Sim mission behavior is not established
+by this clarification.
+
+Compare lobby READY with the NOT READY stage after entering any Tac Sim mission.
+The active-player/loadout resolution path is the investigation target, not a
+proven root cause. A31 remains observational; no new build or installation is
+needed merely to change this reproduction description. No game launch or file
+replacement has been authorized/performed for A31.
+
 ## 2026-11-03 - Operations readiness failure OPEN; A31 diagnostic isolated
 
 Maintainer reports NOT READY after loading Operations following a driving mission.
