@@ -283,6 +283,8 @@ bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
     return true;
 }
 
+#include "MissionLoadoutResolver.inl" // A32_CHANGE
+
 // A28 compatibility gate: verify native code and relocated type links before any hook.
 // This is a static-map check, not proof of runtime gameplay acceptance.
 bool ValidateNovemberNativeMap() {
@@ -375,17 +377,19 @@ bool ValidateTargetExecutable() {
     }
 
     if (!ValidateNovemberNativeMap()) return false;
+    if (!ValidateMissionResolverCode()) return false; // A32_CHANGE
 
     g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
 }
 
-bool ResolveNativeLoadout(void** outLoadout) {
+bool ResolveNativeLoadout(void** outLoadout, bool* emptyNativeHandle = nullptr) {
     if (!outLoadout || !g_exeBase) {
         return false;
     }
 
     *outLoadout = nullptr;
+    if (emptyNativeHandle) *emptyNativeHandle = false; // A32_CHANGE
 
     auto resolve = reinterpret_cast<ResolveLocalPlayerFn>(g_exeBase + kPlayerResolverRva);
     auto lookup = reinterpret_cast<LookupPlayerFn>(g_exeBase + kPlayerRegistryHelperRva);
@@ -395,6 +399,7 @@ bool ResolveNativeLoadout(void** outLoadout) {
     __try {
         resolve(0, handle);
         if (handle[0] == 0) {
+            if (emptyNativeHandle) *emptyNativeHandle = true; // A32_CHANGE
             return false;
         }
 
@@ -414,8 +419,12 @@ PlayerContext ResolvePlayer() {
     PlayerContext result{};
 
     void* loadout = nullptr;
-    if (!ResolveNativeLoadout(&loadout)) {
+    bool emptyNativeHandle = false; // A32_CHANGE
+    std::uint32_t missionPlayerId = 0; // A32_CHANGE
+    if (!ResolveNativeLoadout(&loadout, &emptyNativeHandle)) {
+        if (!emptyNativeHandle || !ResolveMissionLoadout(&loadout,missionPlayerId)) { // A32_CHANGE
         return result;
+        } // A32_CHANGE
     }
 
     std::uintptr_t vtable = 0;
@@ -441,6 +450,7 @@ PlayerContext ResolvePlayer() {
         return result;
     }
 
+    if (missionPlayerId && playerId != missionPlayerId) return result; // A32_CHANGE
     result.loadout = loadout;
     result.playerId = playerId;
     return result;
@@ -1795,7 +1805,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.7 / Updater and Readable Menu");
+    Log("Q Protocol A32 / Tac Sim Native Resolver TEST");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
