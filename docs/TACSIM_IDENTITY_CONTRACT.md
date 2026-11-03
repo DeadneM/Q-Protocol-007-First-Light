@@ -76,3 +76,13 @@ mauvais ID ; elles couvrent aussi changement du second ID et sentinel invalide.
 Tester A33 dans le jeu : READY, F3 et réception des armes, sans régression lobby.
 Le constat de registre ne prouve pas cette réception. La logique de sessions et
 le déclenchement AUTO restent à traiter après validation de la primitive manuelle.
+
+## Livraison A33 contrôlée
+
+- Source et tag : `5e2e721f3b83bf70ec9471cf5b073886c95bab91`.
+- [CI Windows réussie](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41675059911) : resolver 23 contrôles, updater 19 contrôles, menu/bootstrap, DXGI, dépendances et portée.
+- [ZIP direct](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a33-tacsim-identity-test/Q-Protocol_A33_TacSimIdentity_TEST.zip) : 585561 octets ; SHA-256 `04748249991ee95813216288f50e277e00b9b514938a3d0c53a549e09de4c2f5`.
+- `dxgi.dll` et `QProtocol.asi` seuls à la racine, tailles/hash conformes au manifeste public.
+- Updater réel : build 32 trouve 33 en bêta, stable exclut la candidate, 33 ne se repropose pas.
+- INI personnel inchangé ; aucune installation ni validation gameplay par l'agent.
+- Statut **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, validation utilisateur requise.

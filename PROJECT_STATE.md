@@ -11,6 +11,16 @@ Goal: Tac Sim typed-loadout readiness and actual F3 delivery, not full AUTO repa
 AUTO may remain latched from the lobby. Manual delivery must be validated first.
 Stable v0.9.7/main and personal INI remain unchanged. No installation by the agent.
 
+A33 delivery: source/tag `5e2e721f3b83bf70ec9471cf5b073886c95bab91`,
+Windows CI `41675059911` SUCCESS, prerelease `a33-tacsim-identity-test`.
+Resolver fixtures 23 checks, updater fixtures 19 checks, real menu/bootstrap,
+DXGI/dependencies, scope and two-binary package passed. Public updater probe:
+build 32 discovers 33 with beta ON; stable excludes it; 33 does not reoffer itself.
+ZIP 585561 bytes, SHA-256
+`04748249991ee95813216288f50e277e00b9b514938a3d0c53a549e09de4c2f5`.
+Status BUILT / CHECKED / EXPERIMENTAL, not user-validated. Personal INI hash
+unchanged; private captures remain outside Git. Main and latest v0.9.7 verified.
+
 ## 2026-11-03 - Audit before further repair
 
 User reports A32 still NOT READY in Tac Sim and no AUTO weapons received.

@@ -6,6 +6,11 @@ both-ID stability and invalid-sentinel rejection. See TACSIM_IDENTITY_CONTRACT.m
 Acceptance pending: READY and actual F3 weapon delivery in Tac Sim, lobby intact.
 AUTO/session/mailbox audit items remain open. Production base remains v0.9.7.
 
+Published beta `a33-tacsim-identity-test`, CI `41675059911` SUCCESS on
+`5e2e721f3b83bf70ec9471cf5b073886c95bab91`. Public updater discovery and ZIP
+integrity verified; not installed by the agent, not validated in game.
+Use Beta builds ON > Check now > Update on exit, then test Tac Sim READY/F3.
+
 ## 2026-11-03 - A32 failed; audit before repair
 
 A32 FAILED the user's Tac Sim test: player not ready, AUTO weapons not received.
