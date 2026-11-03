@@ -508,3 +508,8 @@ build pending. It is NOT a fix and will not be offered by automatic updating
 (no public update manifest). No installation or launch performed. Main/v0.9.7
 remain preserved. Test requires the same Operations case and a fresh log after
 15 seconds; do not repeatedly exercise disabled actions.
+
+2026-11-03 clarification: the readiness loss appears on the new Tac Sim mission
+loaded through Operations after a driving mission. Target that case for A31; do
+not infer the failed resolver gate before its diagnostic log. Session logs remain
+local and are excluded from the public branch.

@@ -3,10 +3,13 @@
 ## 2026-11-03 - Operations readiness failure OPEN; A31 diagnostic isolated
 
 Maintainer reports NOT READY after loading Operations following a driving mission.
+Further clarification: it appears specific to the new Tac Sim mission; this is
+the target reproduction case, not yet a proven cause or universal restriction.
 Saved v0.9.7 session was initially READY, completed F3 and multiple weapon spawns,
 then lost readiness and ignored F2-F12. Installed EXE/ASI/DXGI match published
 v0.9.7 and its supported executable; personal INI hash remains the baseline.
-Evidence is in `evidence/player-not-ready-20261103/`. No game process was present
+Session evidence is kept locally in `evidence/player-not-ready-20261103/`,
+not committed or uploaded. No game process was present
 at inspection, and the existing log does not identify the failed resolver gate.
 
 A31 DIAGNOSTIC on `experiment/a31-operations-readiness` adds bounded reason/handle/
