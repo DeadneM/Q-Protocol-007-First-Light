@@ -15,8 +15,8 @@ at inspection, and the existing log does not identify the failed resolver gate.
 A31 DIAGNOSTIC on `experiment/a31-operations-readiness` adds bounded reason/handle/
 type/runtime-identity logging only. Objective: identify the failing check in that
 Operations transition. Native behavior, all guards, UI, updater and INI stay
-unchanged; no forced READY or stale-pointer fallback. Scope audit PASS; Windows
-build pending. It is NOT a fix and will not be offered by automatic updating
+unchanged; no forced READY or stale-pointer fallback. Scope audit and Windows CI 41646734067 PASS; the downloaded manual-only
+A31 ZIP is checked (SHA-256 0797c3c50215c743aa4cb080d0227b220441d4e83027924457b225db16a37c45). It is NOT a fix and will not be offered by automatic updating
 (no public update manifest). No installation or launch performed. Main/v0.9.7
 remain preserved. Test requires the same Operations case and a fresh log after
 15 seconds; do not repeatedly exercise disabled actions.
