@@ -1,5 +1,22 @@
 # Q Protocol — Project State
 
+## 2026-11-03 - A34 playable-player core rebuild
+
+User REJECTS A33 detection and requests one shared playable-player gate for AUTO
+and manual actions. Start again from accepted v0.9.7/main; A32/A33 fallback code
+is not retained. Current branch: experiment/a34-playable-player-core.
+
+Read-only story/Tac Sim captures establish the native local-character binding,
+typed humanoid component, generation and owner association. New gameplay-thread
+observer uses that contract, native sequence/not-alive lists and fresh snapshots.
+Loadout is optional and cannot decide READY. Session/epoch/request-tagged mailboxes
+replace raw-pointer/flag dispatch, and AUTO waits for the ammo result.
+
+See [technical notebook and test plan](docs/PLAYABLE_PLAYER_CORE.md). Scope tests
+preserve native primitives, RIDs, spawn limits/timing, F1, UI/DX12, updater and INI.
+Status EXPERIMENTAL: compile/fixtures/package checks are not gameplay acceptance.
+Actual AUTO and manual receipt in both modes must be verified before promotion.
+
 ## 2026-11-02 - v0.9.7 stable released on main
 
 Maintainer-authorized promotion completed via [PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8),

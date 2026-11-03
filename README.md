@@ -10,6 +10,11 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
+**Experimental A34:** the [playable-player core rebuild](docs/PLAYABLE_PLAYER_CORE.md)
+replaces loadout-based readiness with a shared native-character/session gate for
+AUTO and manual actions. A33 was rejected by the maintainer. A34 requires gameplay
+acceptance in story and Tac Sim; v0.9.7 remains the accepted production base.
+
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 

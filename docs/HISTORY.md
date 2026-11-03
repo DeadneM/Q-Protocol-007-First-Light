@@ -3,6 +3,16 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-11-03 - A34 shared playable-player/session core
+
+The maintainer rejects A33 and requests availability from the controllable player,
+followed by shared AUTO/manual primitives. A34 starts from accepted v0.9.7, removes
+the experimental loadout fallbacks, and uses measured native local-character and
+owner references. Coherent session/request mailboxes replace split atomic flags;
+AUTO now awaits ammo processing. Existing native grant primitives and protected
+configuration/rendering/input/updater code are retained. See PLAYABLE_PLAYER_CORE.md.
+Build checks do not establish actual delivery; user gameplay acceptance is pending.
+
 ## 2026-10-05 — Q Protocol v0.9.1 / Fresh Core A19 release
 
 Fresh Core A19 Audit Hardening promoted to public release as `v0.9.1`.
