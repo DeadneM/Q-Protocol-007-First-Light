@@ -1,5 +1,16 @@
 # Q Protocol — Project State
 
+## 2026-11-03 - A33 identity-contract candidate
+
+Read-only lobby/Tac Sim comparison confirms the native player registry matches
+node+0x34 to ZPlayerSpawnerEntity+0x1AC, while node+0x30 is its other +0x1A8 ID.
+Both native callers of helper 015805D0 pass +0x34; A32 passed +0x30.
+A33 separates these IDs, preserves +0x30 for shared ammo/gameplay, and rejects
+unstable IDs or the native invalid sentinel. See docs/TACSIM_IDENTITY_CONTRACT.md.
+Goal: Tac Sim typed-loadout readiness and actual F3 delivery, not full AUTO repair.
+AUTO may remain latched from the lobby. Manual delivery must be validated first.
+Stable v0.9.7/main and personal INI remain unchanged. No installation by the agent.
+
 ## 2026-11-03 - Audit before further repair
 
 User reports A32 still NOT READY in Tac Sim and no AUTO weapons received.

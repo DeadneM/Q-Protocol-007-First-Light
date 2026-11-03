@@ -15,6 +15,9 @@ AUTO delivery in the user's test. Stable v0.9.7 remains the production base;
 see the [ASI audit and repair plan](docs/ASI_AUDIT_20261103.md) for findings,
 limitations and validation gates before any further promotion.
 
+A33 is an experimental correction of the [native identity contract](docs/TACSIM_IDENTITY_CONTRACT.md).
+It targets Tac Sim readiness and manual F3 delivery; full AUTO repair is still open.
+
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 

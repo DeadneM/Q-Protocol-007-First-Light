@@ -1,3 +1,11 @@
+## 2026-11-03 - A33 identity-contract candidate
+
+The measured native contract uses node+0x34 for loadout lookup, not the +0x30
+runtime/ammo ID sent by A32. A33 corrects only this resolver contract, with
+both-ID stability and invalid-sentinel rejection. See TACSIM_IDENTITY_CONTRACT.md.
+Acceptance pending: READY and actual F3 weapon delivery in Tac Sim, lobby intact.
+AUTO/session/mailbox audit items remain open. Production base remains v0.9.7.
+
 ## 2026-11-03 - A32 failed; audit before repair
 
 A32 FAILED the user's Tac Sim test: player not ready, AUTO weapons not received.

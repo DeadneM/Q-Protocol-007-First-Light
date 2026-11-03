@@ -54,9 +54,25 @@ processus externe. La lecture autorisée hors de cet environnement le voit et
 fonctionne : une absence dans ce premier inventaire ne prouve pas que le jeu
 était fermé. Aucune écriture dans le jeu n'a été nécessaire.
 
+## Résultat de la comparaison Tac Sim
+
+Mission contrôlable confirmée par l'utilisateur. Les trois échantillons montrent
+les deux IDs stables et distincts, une entrée native `ZPlayerSpawnerEntity`
+avec correspondance `node+0x34 == spawner+0x1AC`, et une référence
+`ZKntPlayerLoadoutEntity` à `+0x188` avec génération concordante.
+Les interfaces des deux contextes globaux ont changé depuis le lobby ; leurs
+références/interfaces imbriquées utilisées par les premiers chemins sont vides.
+Le loadout de l'entrée native conserve la même adresse entre ces deux captures :
+c'est une référence exposée par le registre actuel, pas la preuve d'un inventaire
+appartenant à l'acteur contrôlé ni d'une nouvelle génération de mission.
+
+Conclusion : A32 passe la mauvaise identité à son chemin de dernier recours.
+A33 corrige cet argument et préserve l'ID historique retourné aux munitions.
+Les fixtures utilisent désormais deux IDs différents et un mock refusant le
+mauvais ID ; elles couvrent aussi changement du second ID et sentinel invalide.
+
 ## Prochaine preuve requise
 
-Comparer la même chaîne en mission Tac Sim contrôlable. Vérifier si l'entrée
-native correspond à `+0x34` et si son loadout typé est actuel et stable malgré
-le retour vide A32. Ce résultat permettra de choisir un correctif de contrat
-d'identité ; il ne prouvera pas à lui seul la réception des armes ou AUTO.
+Tester A33 dans le jeu : READY, F3 et réception des armes, sans régression lobby.
+Le constat de registre ne prouve pas cette réception. La logique de sessions et
+le déclenchement AUTO restent à traiter après validation de la primitive manuelle.

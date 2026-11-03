@@ -52,7 +52,7 @@ bool ValidateMissionResolverCode() {
     BYTE current[sizeof(kMissionResolverPreimage)]{};
     if (!SafeRead(g_exeBase + kMissionLoadoutResolverRva,current) ||
         memcmp(current,kMissionResolverPreimage,sizeof(current)) != 0) {
-        Log("[ERROR] A32 mission resolver code mismatch; no hooks installed.");
+        Log("[ERROR] A33 mission resolver code mismatch; no hooks installed.");
         return false;
     }
     return true;
@@ -60,11 +60,16 @@ bool ValidateMissionResolverCode() {
 struct MissionIdentity {
     std::uintptr_t root = 0, node = 0;
     std::uint32_t playerId = 0;
+    std::uint32_t spawnerId = 0;
 };
 bool ReadMissionIdentity(MissionIdentity& identity) {
+    std::uint32_t invalidSpawnerId = 0;
     return SafeRead(g_exeBase + kRuntimePlayerGlobalRva,identity.root) && identity.root &&
         SafeRead(identity.root + 0x10,identity.node) && identity.node &&
-        SafeRead(identity.node + 0x30,identity.playerId) && identity.playerId;
+        SafeRead(identity.node + 0x30,identity.playerId) && identity.playerId &&
+        SafeRead(identity.node + 0x34,identity.spawnerId) &&
+        SafeRead(g_exeBase + 0x067032A0,invalidSpawnerId) &&
+        identity.spawnerId != invalidSpawnerId;
 }
 void ReportMissionResolver(const char* reason, std::uint32_t id) {
     static std::string previous;
@@ -72,7 +77,7 @@ void ReportMissionResolver(const char* reason, std::uint32_t id) {
     const auto now = GetTickCount64();
     if (previous == reason && now - last < 10000) return;
     previous = reason; last = now;
-    Log("[A32 mission resolver] %s playerId=%u",reason,id);
+    Log("[A33 mission resolver] %s playerId=%u",reason,id);
 }
 bool ResolveMissionLoadout(void** outLoadout, std::uint32_t& resolvedPlayerId) {
     *outLoadout = nullptr; resolvedPlayerId = 0;
@@ -85,7 +90,8 @@ bool ResolveMissionLoadout(void** outLoadout, std::uint32_t& resolvedPlayerId) {
     auto resolve = reinterpret_cast<NativeMissionResolveFn>(g_exeBase + kMissionLoadoutResolverRva);
     std::uint64_t reference[2]{};
     bool found = false;
-    __try { found = resolve(before.playerId,reference); }
+    // Both native callers pass node+34. Keep node+30 as the shared ammo ID.
+    __try { found = resolve(before.spawnerId,reference); }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         ReportMissionResolver("native helper exception; result rejected",before.playerId);
         return false;
@@ -95,7 +101,8 @@ bool ResolveMissionLoadout(void** outLoadout, std::uint32_t& resolvedPlayerId) {
         return false;
     }
     if (!ReadMissionIdentity(after) || before.root != after.root ||
-        before.node != after.node || before.playerId != after.playerId) {
+        before.node != after.node || before.playerId != after.playerId ||
+        before.spawnerId != after.spawnerId) {
         ReportMissionResolver("runtime identity changed during lookup; result rejected",before.playerId);
         return false;
     }
@@ -110,8 +117,8 @@ bool ResolveMissionLoadout(void** outLoadout, std::uint32_t& resolvedPlayerId) {
     static std::uintptr_t lastLoadout = 0;
     static std::uint32_t lastPlayer = 0;
     if (lastLoadout != reference[0] || lastPlayer != resolvedPlayerId) {
-        Log("[A32 mission resolver] current typed loadout accepted: playerId=%u loadout=%p generation=%016llX",
-            resolvedPlayerId,*outLoadout,static_cast<unsigned long long>(reference[1]));
+        Log("[A33 mission resolver] current typed loadout accepted: playerId=%u spawnerId=%u loadout=%p generation=%016llX; weapon delivery not verified",
+            resolvedPlayerId,before.spawnerId,*outLoadout,static_cast<unsigned long long>(reference[1]));
         lastLoadout = static_cast<std::uintptr_t>(reference[0]); lastPlayer = resolvedPlayerId;
     }
     return true;

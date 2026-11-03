@@ -3,6 +3,14 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-11-03 - A33 native identity-contract candidate
+
+Targeted read-only lobby/Tac Sim captures establish distinct runtime/ammo and
+spawner lookup IDs. A32 used the former for a helper whose native callers use
+the latter. A33 corrects the argument, retains compatibility gates and shared
+gameplay, and adds tests that reject the original ID confusion. Actual READY/F3
+delivery and lobby regression checks remain required; AUTO/session work is open.
+
 ## 2026-11-03 - ASI audit after A32 runtime failure
 
 The user requested the full audit before further repair. A32 does not fix Tac Sim.

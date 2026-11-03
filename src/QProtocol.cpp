@@ -1805,7 +1805,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol A32 / Tac Sim Native Resolver TEST");
+    Log("Q Protocol A33 / Tac Sim Identity Contract TEST");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
