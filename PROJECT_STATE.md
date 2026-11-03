@@ -1,6 +1,19 @@
 # Q Protocol — Project State
 
-## 2026-11-03 - A32 Tac Sim native resolver correction TEST
+## 2026-11-03 - Audit before further repair
+
+User reports A32 still NOT READY in Tac Sim and no AUTO weapons received.
+A32 is NOT retained as a successful correction. Stable v0.9.7 remains the
+accepted production base, with the Tac Sim defect explicitly open.
+
+See [ASI audit and repair plan](docs/ASI_AUDIT_20261103.md): context resolution,
+delivery confirmation, request/session correlation, ammo mailbox reset race,
+and AUTO failure handling. The exact native Tac Sim context remains unproven.
+No new gameplay build, installation or stable promotion during this audit.
+Next gate: prove the active mission actor/loadout and native thread contract;
+then repair shared primitives before reconnecting AUTO. Keep private logs local.
+
+## 2026-11-03 - A32 Tac Sim native resolver correction TEST (historical proposal; runtime failed)
 
 A31 runtime diagnosis identifies native-handle-empty while the independent runtime
 player ID remains valid in the reported Tac Sim case. Session logs are kept only

@@ -3,6 +3,13 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-11-03 - ASI audit after A32 runtime failure
+
+The user requested the full audit before further repair. A32 does not fix Tac Sim.
+Findings, evidence limits, preservation boundaries and staged acceptance criteria
+are recorded in [ASI_AUDIT_20261103.md](ASI_AUDIT_20261103.md).
+Documentation only; no gameplay change, installation or stable promotion.
+
 ## 2026-10-05 — Q Protocol v0.9.1 / Fresh Core A19 release
 
 Fresh Core A19 Audit Hardening promoted to public release as `v0.9.1`.

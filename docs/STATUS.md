@@ -1,4 +1,12 @@
-## 2026-11-03 - A32 Tac Sim native resolver correction TEST
+## 2026-11-03 - A32 failed; audit before repair
+
+A32 FAILED the user's Tac Sim test: player not ready, AUTO weapons not received.
+The [ASI audit](ASI_AUDIT_20261103.md) records confirmed code defects separately
+from native-context hypotheses. No new binary or runtime validation in the audit.
+Next: establish the actual mission context, correlate commands/results by session,
+then verify manual delivery before AUTO. Preserve stable v0.9.7 and personal INI.
+
+## 2026-11-03 - A32 Tac Sim native resolver correction TEST (historical)
 
 A31 runtime diagnosis identifies native-handle-empty while the independent runtime
 player ID remains valid in the reported Tac Sim case. Session logs are kept only

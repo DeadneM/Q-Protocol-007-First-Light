@@ -10,6 +10,11 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
+**Tac Sim known issue (2026-11-03):** A32 did not resolve player readiness or
+AUTO delivery in the user's test. Stable v0.9.7 remains the production base;
+see the [ASI audit and repair plan](docs/ASI_AUDIT_20261103.md) for findings,
+limitations and validation gates before any further promotion.
+
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 

@@ -1,3 +1,9 @@
+# Runtime verdict — 2026-11-03
+
+User test FAILED: NOT READY persists in Tac Sim; AUTO weapons were not received.
+The native helper returned no current loadout. Do not retain A32 as a fix.
+See [full ASI audit and repair gates](ASI_AUDIT_20261103.md).
+
 ## 2026-11-03 - A32 Tac Sim native resolver correction TEST
 
 A31 runtime diagnosis identifies native-handle-empty while the independent runtime
