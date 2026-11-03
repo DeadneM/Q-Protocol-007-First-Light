@@ -109,3 +109,13 @@ nouvelle session et mêmes fonctions. Vérifier ensuite mort/rechargement et ret
 lobby sans multiplication des packages. Conserver les logs localement.
 Statut avant ces essais : **EXPÉRIMENTAL**, jamais VALIDÉ par simple compilation.
 Main/v0.9.7 restent la base de retour ; ne pas promouvoir sans validation utilisateur.
+
+## Livraison contrôlée
+
+- Source et tag : `13a843ae576d082dfaae2d5bb1909b6442dc7da2`.
+- [CI Windows](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41728031516) réussie : 14 contrôles de lecture native, 38 de session/boîtes, 19 updater, menu/bootstrap réel, DXGI/dépendances et portée.
+- [ZIP direct](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a34-playable-player-core-test/Q-Protocol_A34_PlayablePlayerCore_TEST.zip) : 590569 octets, SHA-256 `2a8d9fae0e376f05e52f22e51ffaf3699b16eebdd1b7bc33b2e903d2516bd8ec`.
+- Manifeste public et tailles/hash des deux binaires vérifiés après téléchargement.
+- Updater réel : A33 trouve A34 en bêta ; le canal stable l'exclut ; A34 ne se repropose pas.
+- ASI installé toujours A33, hash inchangé depuis le début de la reprise ; aucune installation par l'agent.
+- Main et la dernière release stable v0.9.7 vérifiés inchangés. **Validation en jeu encore requise.**

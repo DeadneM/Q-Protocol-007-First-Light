@@ -17,6 +17,17 @@ preserve native primitives, RIDs, spawn limits/timing, F1, UI/DX12, updater and 
 Status EXPERIMENTAL: compile/fixtures/package checks are not gameplay acceptance.
 Actual AUTO and manual receipt in both modes must be verified before promotion.
 
+Delivery verified: source/tag `13a843ae576d082dfaae2d5bb1909b6442dc7da2`,
+CI `41728031516` SUCCESS; native read-contract 14 checks, lifecycle/mailbox 38,
+updater 19, menu/bootstrap and DXGI/dependencies passed. Prerelease
+`a34-playable-player-core-test` includes its in-mod updater manifest. Real unchanged
+updater engine: A33 discovers A34 with beta ON, stable excludes it, A34 does not
+reoffer itself. ZIP 590569 bytes, SHA-256
+`2a8d9fae0e376f05e52f22e51ffaf3699b16eebdd1b7bc33b2e903d2516bd8ec`.
+Only dxgi.dll/QProtocol.asi at root. Installed ASI remains A33; no installation or
+game launch performed. Main and latest stable v0.9.7 verified unchanged.
+Status BUILT / CHECKED / EXPERIMENTAL; user gameplay acceptance pending.
+
 ## 2026-11-02 - v0.9.7 stable released on main
 
 Maintainer-authorized promotion completed via [PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8),

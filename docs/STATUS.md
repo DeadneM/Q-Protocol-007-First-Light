@@ -6,6 +6,11 @@ work and correlate ammo acknowledgements. See PLAYABLE_PLAYER_CORE.md for the
 measured native contract, preservation checks, limits and gameplay acceptance.
 A34 remains EXPERIMENTAL pending actual story/Tac Sim AUTO/F2/F3 receipt tests.
 
+Published prerelease `a34-playable-player-core-test`, source
+`13a843ae576d082dfaae2d5bb1909b6442dc7da2`, CI `41728031516` SUCCESS.
+Public updater discovery, compatible package and two-binary ZIP hashes verified.
+No installation by the agent. Beta builds ON > Check now > Update on exit.
+
 ## 2026-11-02 - v0.9.7 stable released on main
 
 Maintainer-authorized promotion completed via [PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8),

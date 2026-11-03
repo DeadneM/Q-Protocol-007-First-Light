@@ -9,7 +9,7 @@
 - [x] Attendre un résultat munitions corrélé avant de terminer AUTO.
 - [x] Garder les E/S disque hors de la section critique native des munitions.
 - [x] Ajouter contrôles de portée et fixtures de session/lecture/reset/réponse tardive.
-- [ ] Compiler A34 et contrôler CI, paquet, manifeste et découverte réelle en bêta.
+- [x] Compiler A34 et contrôler CI, paquet, manifeste et découverte réelle en bêta.
 - [ ] Valider réception AUTO et F2/F3 en histoire puis Tac Sim.
 - [ ] Vérifier chargement, mort/rechargement, séquence et retour lobby sans doublons.
 - [ ] Confronter les éventuels blocages d'entrée propres aux missions à la définition de disponibilité.
