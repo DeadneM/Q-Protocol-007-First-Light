@@ -539,3 +539,16 @@ The active-player/loadout resolution path is the investigation target, not a
 proven root cause. A31 remains observational; no new build or installation is
 needed merely to change this reproduction description. No game launch or file
 replacement has been authorized/performed for A31.
+
+## 2026-11-03 - A31 available through the in-mod BETA channel
+
+User explicitly requires discovery/installation inside the mod with Beta builds
+checked. The previous manual-only publication was a misunderstanding and is
+superseded: the A31 prerelease now includes QProtocol-update.json, build 31.
+Existing ZIP unchanged: SHA-256
+0797c3c50215c743aa4cb080d0227b220441d4e83027924457b225db16a37c45.
+Publication workflow 41648373006 SUCCESS. The unchanged real updater engine,
+using current build 30, finds A31 with beta ON, downloads/verifies its package,
+excludes A31 on stable, and does not reoffer it to build 31. No game changes or
+launch performed. Main/v0.9.7 preserved. A31 remains diagnostic only.
+User path: Updates > Beta builds ON > Check now > Update on exit.

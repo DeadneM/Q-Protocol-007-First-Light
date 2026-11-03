@@ -21,6 +21,7 @@ the failure stage is identified, not that gameplay is repaired.
 
 ZIP contains only dxgi.dll and QProtocol.asi. Back up the two installed v0.9.7
 binaries with the game closed; preserve the existing INI. Restore that pair to
-roll back. README stays on GitHub. No QProtocol-update.json is published, so this
-diagnostic is never automatically offered to stable or beta updater users.
+roll back. README stays on GitHub. At the maintainer request, QProtocol-update.json is now published on the A31
+prerelease: enable Beta builds, Check now, then Update on exit in the mod menu.
+The stable channel does not offer A31. The ZIP itself is unchanged.
 Stable main/v0.9.7 stay unchanged. Build/runtime states are recorded separately.
