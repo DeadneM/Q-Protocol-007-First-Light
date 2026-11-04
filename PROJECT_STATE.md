@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-04 — A36 REJECTED: severe regression, rollback pending
+
+Maintainer reports no lobby Tac Sim AUTO, delayed manual delivery and silenced Q-Pistol still absent. Live logs confirm delivery timeouts for every AUTO/F3 role, F3 busy/rejected during those waits and AUTO failed before ammo. The A36 confirmation gate is not operationally valid; do not retain it as an acquired function or layer another candidate on top. CI/fixtures did not establish gameplay correctness. Withdraw A36 from beta discovery by preserving its release as draft; verify that action remotely.
+
+Game was running when rejection was investigated. Raw logs preserved privately, A34 backup pair hashes checked. Wait for game closure and maintainer confirmation before rollback; preserve current personal INI. A34 is the pre-A36 installation with known defects, not a newly validated stable base. Stable v0.9.7/main unchanged. No new test build until the rejected delta is isolated and the approach reconsidered.
+
 ## 2026-11-04 — A36 installed at maintainer request
 
 A36 `97cdf00` installed with game/updater closed after verified backup of the previous A34 binary pair, personal INI and logs. Both installed binaries match the published A36 hashes; personal INI SHA-256 is identical before/after. No game launch or gameplay validation by the agent. Rollback pair and private installation record are retained locally. Current installation is A36; earlier installation statements below are historical. Stable/main unchanged. Next: player tests F3/F4 and AUTO in Tac Sim/story, then inspect the new logs.

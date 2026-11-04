@@ -1,0 +1,19 @@
+name: Withdraw rejected A36 from beta discovery
+on:
+  push:
+    branches: [experiment/a36-native-delivery]
+    paths: [".github/workflows/withdraw-a36-beta.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  withdraw:
+    if: github.ref == 'refs/heads/experiment/a36-native-delivery'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve release as draft so updater no longer offers it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit a36-native-delivery-test --repo '${{ github.repository }}' --draft --title 'REJECTED - Q Protocol A36 Native Delivery TEST'
+          gh api repos/${{ github.repository }}/releases/tags/a36-native-delivery-test --jq '.draft' | grep -x true
