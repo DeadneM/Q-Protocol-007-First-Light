@@ -16,3 +16,9 @@
 - [ ] Établir une confirmation d'inventaire native ; un spawner au repos ne prouve pas la réception.
 - [ ] Reprendre séparément les points DX12/durée de vie, defaults INI partiels et concurrence updater de l'audit.
 - [ ] Promouvoir seulement après validation explicite de la candidate.
+# 2026-11-04 — suite du double audit
+
+- A35 source `a73f0a0` : build complète et contrôles CI réussis, ZIP contrôlé localement. Voir [état détaillé](A35_SESSION_REPAIR.md). A35 non installée/non validée, stable conservée.
+- Vérifier ensuite en jeu la cadence indépendante du menu et le réarmement AUTO après mort ; reload sans changement d'identité reste ouvert.
+- Q-Pistol silencieux : les graphes ciblés lus en Tac Sim sont cohérents, mais la livraison n'est pas prouvée. Attendre le résultat F3 réel et établir la preuve de possession ; ne pas changer arbitrairement le RID.
+- Garder séparés les travaux transactionnels, UI/GPU et updater du double audit ; aucune promotion main.
