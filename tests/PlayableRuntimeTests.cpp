@@ -103,6 +103,35 @@ int main() {
     const auto dispatched=delayed.TryTake(RevalidateDispatch(observed,active,10000));
     Require(dispatched && dispatched->ticket==queued,"same queued command survives a long menu interval without retry");
     Require(delayed.Complete(*dispatched,observed,true),"delayed request completes exactly once in the same session");
+    PlayableSession lifecycle;
+    auto life=lifecycle.Observe(active,100);
+    const auto originalSession=life.session;
+    Require(lifecycle.BeginAuto(life.session,true,100),"initial lifecycle AUTO");
+    lifecycle.WeaponsProcessed(life.session,true);
+    lifecycle.AmmoSubmitted(life.session);
+    lifecycle.AmmoProcessed(life.session,true);
+    lifecycle.Observe(blocked,110);
+    lifecycle.Observe({},120);
+    life=lifecycle.Observe(active,130);
+    Require(life.session==originalSession && !lifecycle.BeginAuto(life.session,true,130),
+        "sequence and missing reads cannot rearm a processed AUTO");
+    auto dead=blocked; dead.confirmedDead=true;
+    life=lifecycle.Observe(dead,140);
+    Require(!life.playable && life.session==originalSession,"confirmed death closes gate without early rearm");
+    lifecycle.Observe({},150);
+    lifecycle.Observe(blocked,160);
+    life=lifecycle.Observe(active,170);
+    Require(life.session==originalSession+1 && lifecycle.BeginAuto(life.session,true,170),
+        "same native identity rearms once after positively observed death");
+    life=lifecycle.Observe(active,180);
+    Require(life.session==originalSession+1 && !lifecycle.BeginAuto(life.session,true,180),
+        "continued playable frames do not repeat respawn AUTO");
+    auto replacementAfterDeath=active; ++replacementAfterDeath.identity.incarnation;
+    lifecycle.Observe(dead,190);
+    life=lifecycle.Observe(replacementAfterDeath,200);
+    Require(life.session==originalSession+2,"replacement after death creates one session, not two");
+    life=lifecycle.Observe(replacementAfterDeath,210);
+    Require(life.session==originalSession+2,"death latch cleared for replacement identity");
     std::printf("Playable runtime tests PASS: %d checks. Lifecycle/mailbox fixtures only; native playability and delivery require game validation.\n", checks);
     return 0;
 }

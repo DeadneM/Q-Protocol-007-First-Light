@@ -133,6 +133,7 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
     out.observation.identity = {playerId, spawnerId, binding.reference.key};
     out.observation.locallyControlled = true;
     out.observation.gameplayAllowed = alive && !inSequence;
+    out.observation.confirmedDead = !alive;
     out.reason = !alive ? "local player not alive" : inSequence ? "local player in native sequence" : "local character available";
     EntityReference loadout{};
     if (read(owner.pointer + 0x188, loadout) && valid(loadout) &&

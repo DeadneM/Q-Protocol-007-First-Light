@@ -1,0 +1,28 @@
+name: A35 session repair checks (no release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [experiment/a35-session-repair]
+    paths: ["src/**", "tests/**", ".github/workflows/check-a35-session.yml"]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run synthetic native/session contracts
+        shell: cmd
+        run: |
+          mkdir checks
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\NativePlayerTests.cpp /Fe:checks\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          checks\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\PlayableRuntimeTests.cpp /Fe:checks\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1
+          checks\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1

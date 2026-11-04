@@ -17,6 +17,8 @@ struct PlayerObservation {
     CharacterIdentity identity{};
     bool locallyControlled = false;
     bool gameplayAllowed = false;
+    // Positive native evidence only. Missing reads, menus and sequences are not death.
+    bool confirmedDead = false;
 };
 
 struct PlayerSnapshot {
@@ -50,14 +52,18 @@ public:
         const bool hasIdentity = static_cast<bool>(observation.identity);
         const bool changed = hasIdentity && observation.identity != state_.identity;
         const bool playable = hasIdentity && observation.locallyControlled && observation.gameplayAllowed;
-        if (changed) {
+        const bool respawn = !changed && playable && deathObserved_;
+        if (changed || respawn) {
             state_.identity = observation.identity;
             ++state_.session;
             autoStage_ = AutoStage::Waiting;
+            deathObserved_ = false;
         }
-        if (changed || playable != state_.playable) {
+        if (hasIdentity && observation.locallyControlled && observation.confirmedDead)
+            deathObserved_ = true;
+        if (changed || respawn || playable != state_.playable) {
             ++state_.epoch; // Retire all pending/in-flight tickets on either edge.
-            if (!changed && !playable &&
+            if (!changed && !respawn && !playable &&
                 (autoStage_ == AutoStage::Weapons || autoStage_ == AutoStage::Ammo)) {
                 autoStage_ = AutoStage::Failed; // Never repeat a partly applied package blindly.
             }
@@ -99,6 +105,7 @@ public:
 private:
     PlayerSnapshot state_{};
     AutoStage autoStage_ = AutoStage::Waiting;
+    bool deathObserved_ = false;
 };
 
 struct Ticket {

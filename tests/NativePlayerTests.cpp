@@ -76,12 +76,12 @@ int main() {
     Require(!ReadNativePlayer(m,base,0xFFFFFFFF).observation.locallyControlled,"ambiguous owner is not guessed");
     m=Good();m.Put(0x60010040,std::array<std::uintptr_t,2>{0x60020000,0x60020004});m.Put<std::uint32_t>(0x60020000,77);
     p=ReadNativePlayer(m,base,0xFFFFFFFF);
-    Require(p.observation.locallyControlled && !p.observation.gameplayAllowed,"native sequence closes the action gate");
+    Require(p.observation.locallyControlled && !p.observation.gameplayAllowed && !p.observation.confirmedDead,"native sequence closes the action gate without declaring death");
     m=Good();m.Put(0x60010040,std::array<std::uintptr_t,2>{0x60020000,0x60020004});m.Put<std::uint32_t>(0x60020000,123);
     Require(ReadNativePlayer(m,base,0xFFFFFFFF).observation.gameplayAllowed,"another character's sequence does not block the local player");
     m=Good();m.Put(0x60030048,std::array<std::uintptr_t,2>{0x60040000,0x60040004});m.Put<std::uint32_t>(0x60040000,77);
     p=ReadNativePlayer(m,base,0xFFFFFFFF);
-    Require(p.observation.locallyControlled && !p.observation.gameplayAllowed,"native not-alive membership closes the gate");
+    Require(p.observation.locallyControlled && !p.observation.gameplayAllowed && p.observation.confirmedDead,"native not-alive membership closes the gate and records positive death evidence");
     m=Good();m.Put<std::uintptr_t>(0x60000108,0);
     Require(!ReadNativePlayer(m,base,0xFFFFFFFF).observation.locallyControlled,"unknown control context is not asserted playable");
     m=Good();m.changeBinding=true;
