@@ -1,0 +1,535 @@
+name: A36 native delivery full build (artifact only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [experiment/a36-native-delivery]
+    paths: ["src/**", "tools/**", "tests/**", ".github/workflows/build-a36-delivery.yml"]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Generate real DXGI exports, ordinal map, and x64 thunks
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $systemDxgi = Join-Path $env:WINDIR "System32\dxgi.dll"
+          if (-not (Test-Path $systemDxgi)) { throw "Windows System32 dxgi.dll absent" }
+          dumpbin /nologo /exports $systemDxgi | Set-Content -Encoding utf8 dist\dxgi_system_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "dumpbin failed for system DXGI" }
+          python tools/generate_dxgi_proxy.py --dump dist/dxgi_system_exports.txt --out dist
+          if ($LASTEXITCODE -ne 0) { throw "DXGI generation failed" }
+
+      - name: Build local dxgi.dll proxy and DXGI ABI smoke test
+        shell: cmd
+        run: |
+          ml64 /nologo /c /Fo dist\dxgi_proxy_exports.obj dist\dxgi_proxy_exports.asm
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE /I dist src\dxgi_proxy\ProxyDxgi.cpp dist\dxgi_proxy_exports.obj kernel32.lib /link /DEF:dist\dxgi_proxy.def /OUT:dist\dxgi.dll
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /DUNICODE /D_UNICODE src\dxgi_proxy\DxgiSmoke.cpp /Fe:dist\DxgiSmoke.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Audit exact DXGI system exports and standalone dependencies
+        shell: pwsh
+        run: |
+          dumpbin /nologo /exports dist\dxgi.dll | Set-Content -Encoding utf8 dist\dxgi_proxy_actual_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "dumpbin failed for compiled proxy" }
+          python tools/generate_dxgi_proxy.py --dump dist/dxgi_system_exports.txt --out dist --verify dist/dxgi_proxy_actual_exports.txt
+          if ($LASTEXITCODE -ne 0) { throw "DXGI ABI mismatch" }
+          dumpbin /nologo /dependents dist\dxgi.dll | Set-Content -Encoding utf8 dist\dxgi_proxy_dependents.txt
+          if ($LASTEXITCODE -ne 0) { throw "DXGI dependency audit failed" }
+          $deps = Get-Content dist\dxgi_proxy_dependents.txt -Raw
+          if ($deps -match "VCRUNTIME\d*\.dll|MSVCP\d*\.dll|ucrtbase\.dll|D3DCompiler_47.dll") {
+            throw "Unexpected external runtime dependency"
+          }
+          if ($deps -notmatch "KERNEL32.dll") { throw "Expected Kernel32 dependency missing" }
+          Write-Host "Custom x64 DXGI proxy import/ABI checks PASS."
+
+      - name: Run native CreateDXGIFactory1 smoke test
+        shell: pwsh
+        run: |
+          $env:QPROTOCOL_DXGI_NO_ASI = "1"
+          Push-Location dist
+          try {
+            .\DxgiSmoke.exe
+            if ($LASTEXITCODE -ne 0) { throw "Native CreateDXGIFactory1 proxy call failed: $LASTEXITCODE" }
+            $smoke = Get-Content QProtocolDXGI.log -Raw
+            if ($smoke -notmatch "Real System32 DXGI loaded: yes") {
+              throw "Proxy failed to locate System32 DXGI"
+            }
+            if ($smoke -notmatch "QProtocol.asi: skipped for CI smoke check") {
+              throw "Unexpected ASI behavior during CI smoke"
+            }
+            Write-Host "Custom DXGI proxy native forwarding smoke PASS."
+          }
+          finally {
+            Pop-Location
+            Remove-Item Env:QPROTOCOL_DXGI_NO_ASI -ErrorAction SilentlyContinue
+          }
+
+      - name: Fetch pinned overlay dependencies
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch v1.91.5 https://github.com/ocornut/imgui.git _deps/imgui
+          git clone --depth 1 --branch v1.3.4 https://github.com/TsudaKageyu/minhook.git _deps/minhook
+
+      - name: Validate weapon catalog consistency
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+
+          path = Path("config/QProtocol.ini")
+          lines = path.read_text(encoding="utf-8").splitlines()
+
+          sections = {}
+          current = None
+          for line_no, raw in enumerate(lines, 1):
+              line = raw.strip()
+              if not line or line.startswith(";"):
+                  continue
+              if line.startswith("[") and line.endswith("]"):
+                  current = line[1:-1]
+                  sections.setdefault(current, [])
+                  continue
+              if current and "=" in line:
+                  key, value = line.split("=", 1)
+                  sections[current].append((key.strip(), value.strip(), line_no))
+
+          def table(name):
+              rows = sections.get(name, [])
+              out = {}
+              for key, value, line_no in rows:
+                  if key in out:
+                      raise SystemExit(f"Duplicate alias in [{name}]: {key} at line {line_no}")
+                  out[key] = value
+              return out
+
+          weapons = table("WeaponCatalog")
+          roles = table("WeaponRole")
+          statuses = table("WeaponValidation")
+          runtime = table("RuntimeCatalog")
+          previous = table("WeaponPreviousRid")
+
+          rid_owner = {}
+          for alias, rid in weapons.items():
+              rid_u = rid.upper()
+              if rid_u in rid_owner:
+                  raise SystemExit(
+                      f"Duplicate WeaponCatalog RID {rid_u}: "
+                      f"{rid_owner[rid_u]} and {alias}"
+                  )
+              rid_owner[rid_u] = alias
+
+          runtime_rids = {}
+          for alias, rid in runtime.items():
+              rid_u = rid.upper()
+              if rid_u in runtime_rids:
+                  raise SystemExit(
+                      f"Duplicate RuntimeCatalog RID {rid_u}: "
+                      f"{runtime_rids[rid_u]} and {alias}"
+                  )
+              runtime_rids[rid_u] = alias
+
+          overlap = sorted(set(rid_owner) & set(runtime_rids))
+          if overlap:
+              raise SystemExit(
+                  "WeaponCatalog / RuntimeCatalog RID overlap: " +
+                  ", ".join(overlap)
+              )
+
+          current_vs_previous = sorted(
+              set(rid_owner) &
+              {v.upper() for v in previous.values()}
+          )
+          if current_vs_previous:
+              raise SystemExit(
+                  "Current weapon reuses archived stale RID: " +
+                  ", ".join(current_vs_previous)
+              )
+
+          weapon_aliases = set(weapons)
+          if set(roles) != weapon_aliases:
+              missing = sorted(weapon_aliases - set(roles))
+              extra = sorted(set(roles) - weapon_aliases)
+              raise SystemExit(
+                  f"WeaponRole mismatch missing={missing} extra={extra}"
+              )
+
+          if set(statuses) != weapon_aliases:
+              missing = sorted(weapon_aliases - set(statuses))
+              extra = sorted(set(statuses) - weapon_aliases)
+              raise SystemExit(
+                  f"WeaponValidation mismatch missing={missing} extra={extra}"
+              )
+
+          valid_roles = {"QPistol", "OneHanded", "TwoHanded", "Any"}
+          bad_roles = {
+              alias: role
+              for alias, role in roles.items()
+              if role not in valid_roles
+          }
+          if bad_roles:
+              raise SystemExit(f"Invalid WeaponRole values: {bad_roles}")
+
+          valid_status = {"Validated", "Not Working", "Experimental"}
+          bad_status = {
+              alias: status
+              for alias, status in statuses.items()
+              if status not in valid_status
+          }
+          if bad_status:
+              raise SystemExit(f"Invalid WeaponValidation values: {bad_status}")
+
+          def require_alias(section, key, allow_none=False):
+              values = table(section)
+              value = values.get(key, "")
+              if allow_none and value in {"None", "Off"}:
+                  return
+              if value and value not in weapons:
+                  raise SystemExit(
+                      f"[{section}] {key} references unknown weapon alias: {value}"
+                  )
+
+          require_alias("Hotkey_F4", "ModeA")
+          require_alias("Hotkey_F4", "ModeB")
+          for n in range(5, 13):
+              require_alias(f"Hotkey_F{n}", "Weapon")
+          for sec in ("ManualLoadout", "AutoLoadout"):
+              require_alias(sec, "QPistol", allow_none=True)
+              require_alias(sec, "OneHanded", allow_none=True)
+              require_alias(sec, "TwoHanded", allow_none=True)
+
+          rid_pattern = re.compile(r"^[0-9A-Fa-f]{16}$")
+          for section_name, mapping in (
+              ("WeaponCatalog", weapons),
+              ("RuntimeCatalog", runtime),
+              ("WeaponPreviousRid", previous),
+          ):
+              for alias, rid in mapping.items():
+                  if not rid_pattern.fullmatch(rid):
+                      raise SystemExit(
+                          f"[{section_name}] invalid 16-hex RID for {alias}: {rid}"
+                      )
+
+          runtime_categories = table("RuntimeCategory")
+          if set(runtime_categories) != set(runtime):
+              missing = sorted(set(runtime) - set(runtime_categories))
+              extra = sorted(set(runtime_categories) - set(runtime))
+              raise SystemExit(
+                  f"RuntimeCategory mismatch missing={missing} extra={extra}"
+              )
+
+          if len(set(v.upper() for v in previous.values())) != len(previous):
+              raise SystemExit("Duplicate RID inside [WeaponPreviousRid]")
+
+          if not set(previous).issubset(set(weapons)):
+              raise SystemExit(
+                  "WeaponPreviousRid contains alias absent from WeaponCatalog"
+              )
+
+          auto = table("Auto")
+          if auto.get("Enabled") not in {"0", "1"}:
+              raise SystemExit("[Auto] Enabled must be 0 or 1")
+
+          overlay = table("Overlay")
+          if not overlay.get("ToggleKey", "").strip():
+              raise SystemExit("[Overlay] ToggleKey must be present and non-empty")
+
+          ammo_keys = {
+              "QPistol", "SMG", "AssaultRifle",
+              "Shotgun", "Sniper", "HeavyPistol"
+          }
+          for section_name in ("ManualAmmo", "AutoAmmo"):
+              ammo = table(section_name)
+              if set(ammo) != ammo_keys:
+                  missing = sorted(ammo_keys - set(ammo))
+                  extra = sorted(set(ammo) - ammo_keys)
+                  raise SystemExit(
+                      f"[{section_name}] keys mismatch missing={missing} extra={extra}"
+                  )
+              for key, value in ammo.items():
+                  if not value.isdigit():
+                      raise SystemExit(
+                          f"[{section_name}] {key} is not an integer: {value}"
+                      )
+                  amount = int(value)
+                  if amount < 0 or amount > 100000:
+                      raise SystemExit(
+                          f"[{section_name}] {key} out of range: {amount}"
+                      )
+
+          print(
+              f"Full config audit PASS: {len(weapons)} weapons, "
+              f"{len(runtime)} runtime-only items, strict RID/category/default checks OK."
+          )
+          '@ | python -
+
+      - name: Verify A20J gameplay invariants
+        shell: pwsh
+        run: |
+          $protected = @(
+            "src/GameplayHook.asm",
+            "src/Overlay.h",
+            "config/QProtocol.ini"
+          )
+
+          git diff --exit-code v0.9.4 -- $protected
+          if ($LASTEXITCODE -ne 0) {
+            throw "A24 must not change validated A20J gameplay/config files."
+          }
+
+          Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
+
+      - name: Verify A36 native resolver scope and fail-closed conditions
+        shell: pwsh
+        run: |
+          python tools/verify_a36_scope.py
+          if ($LASTEXITCODE -ne 0) { throw "A34 scope audit failed" }
+
+      - name: Test native player read contract and shared playable session
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT tests\NativePlayerTests.cpp /Fe:dist\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          dist\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT tests\PlayableRuntimeTests.cpp /Fe:dist\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1
+          dist\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\NativeInventoryTests.cpp /Fe:dist\NativeInventoryTests.exe
+          if errorlevel 1 exit /b 1
+          dist\NativeInventoryTests.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Build embedded updater and run transaction tests
+        shell: pwsh
+        run: |
+          $csc = Join-Path $env:WINDIR "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
+          & $csc /nologo /target:winexe /out:dist\QProtocolUpdater.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs
+          if ($LASTEXITCODE -ne 0) { throw "Updater helper compilation failed" }
+          & $csc /nologo /target:exe /main:UpdaterTests /out:dist\UpdaterTests.exe /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll updater\UpdateEngine.cs tests\UpdaterTests.cs
+          if ($LASTEXITCODE -ne 0) { throw "Updater tests compilation failed" }
+          ./dist\UpdaterTests.exe
+          if ($LASTEXITCODE -ne 0) { throw "Updater transaction tests failed" }
+          rc /nologo /fo dist\QProtocolResources.res src\QProtocolResources.rc
+          if ($LASTEXITCODE -ne 0) { throw "Updater/default-INI resource compilation failed" }
+
+      - name: Audit A25 overlay compatibility architecture
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          src = Path("src/OverlayA19.cpp").read_text(encoding="utf-8")
+
+          forbidden = [
+              "ImGuiWindowFlags_NoTitleBar",
+              "ImGuiWindowFlags_NoResize",
+              "ImGuiWindowFlags_NoMove",
+              "ImGuiCond_Always"
+          ]
+
+          for token in forbidden:
+              if token in src:
+                  raise SystemExit(f"A25 fixed-window regression: {token}")
+
+          required = [
+              "ImGuiCond_FirstUseEver",
+              "ImGui::SetNextWindowSizeConstraints",
+              "A22 ImGui mouse-down received",
+              "msg == WM_INPUT",
+              "io.WantCaptureKeyboard",
+              "IsMouseInputMessage",
+              "IsKeyboardInputMessage",
+              "AcquireOverlayCursorClip",
+              "ReleaseOverlayCursorClip",
+              "A26 authoritative DXGI queue capture"
+          ]
+
+          for token in required:
+              if token not in src:
+                  raise SystemExit(f"A25 compatibility invariant missing: {token}")
+
+          if "IsInputMessage(msg)" in src:
+              raise SystemExit("A25 regression: blanket input swallowing returned.")
+
+          if "std::try_to_lock" in src:
+              raise SystemExit("A25 regression: input can be dropped on render-lock contention.")
+          if "IsMouseInputMessage(msg) &&" in src:
+              raise SystemExit("A25 regression: frame-stale mouse capture gate returned.")
+
+          print("A25 mouse input audit PASS: modal mouse ownership, no lossy try-lock, raw input cleanup, A21 floating UI retained.")
+          '@ | python -
+
+      - name: Compile A24 ImGui shaders
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/shaders | Out-Null
+
+          $fxc = Get-Command fxc.exe -ErrorAction SilentlyContinue
+          if (-not $fxc) {
+            $candidates = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\fxc.exe" -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending
+            $fxc = $candidates | Select-Object -First 1
+          }
+
+          if (-not $fxc) {
+            throw "fxc.exe not found in Windows SDK."
+          }
+
+          $fxcPath = if ($fxc.Source) { $fxc.Source } else { $fxc.FullName }
+          Write-Host "Using FXC: $fxcPath"
+
+          & $fxcPath /nologo /T vs_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiVS.h /Vn g_FirstDebugImGuiVS src/first_debug/imgui_vs.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Vertex shader compilation failed." }
+
+          & $fxcPath /nologo /T ps_5_0 /E main /O3 /Fh dist/shaders/FirstDebugImGuiPS.h /Vn g_FirstDebugImGuiPS src/first_debug/imgui_ps.hlsl
+          if ($LASTEXITCODE -ne 0) { throw "Pixel shader compilation failed." }
+
+          if (-not (Test-Path dist/shaders/FirstDebugImGuiVS.h) -or
+              -not (Test-Path dist/shaders/FirstDebugImGuiPS.h)) {
+            throw "Embedded shader headers were not generated."
+          }
+
+          Write-Host "Build-time shader compilation PASS."
+
+      - name: Build QProtocol.asi
+        shell: cmd
+        run: |
+          if not exist dist mkdir dist
+          ml64 /nologo /c /Fo dist\GameplayHook.obj src\GameplayHook.asm
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE ^
+            /I _deps\imgui ^
+            /I _deps\imgui\backends ^
+            /I _deps\minhook\include ^
+            /I _deps\minhook\src ^
+            /I dist\shaders ^
+            src\QProtocol.cpp src\OverlayA19.cpp src\Updates.cpp ^
+            _deps\imgui\imgui.cpp ^
+            _deps\imgui\imgui_draw.cpp ^
+            _deps\imgui\imgui_tables.cpp ^
+            _deps\imgui\imgui_widgets.cpp ^
+            _deps\imgui\backends\imgui_impl_win32.cpp ^
+            src\first_debug\imgui_impl_dx12_first_debug.cpp ^
+            _deps\minhook\src\buffer.c ^
+            _deps\minhook\src\hook.c ^
+            _deps\minhook\src\trampoline.c ^
+            _deps\minhook\src\hde\hde64.c ^
+            dist\GameplayHook.obj dist\QProtocolResources.res ^
+            user32.lib kernel32.lib d3d12.lib dxgi.lib ^
+            /link /OUT:dist\QProtocol.asi
+
+      - name: Exercise real menu layouts and fresh-INI bootstrap without a game
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /DUNICODE /D_UNICODE ^
+            /I _deps\imgui ^
+            /I _deps\imgui\backends ^
+            /I _deps\minhook\include ^
+            /I _deps\minhook\src ^
+            /I dist\shaders ^
+            tests\MenuSmoke.cpp src\Updates.cpp ^
+            _deps\imgui\imgui.cpp ^
+            _deps\imgui\imgui_draw.cpp ^
+            _deps\imgui\imgui_tables.cpp ^
+            _deps\imgui\imgui_widgets.cpp ^
+            _deps\imgui\backends\imgui_impl_win32.cpp ^
+            src\first_debug\imgui_impl_dx12_first_debug.cpp ^
+            _deps\minhook\src\buffer.c ^
+            _deps\minhook\src\hook.c ^
+            _deps\minhook\src\trampoline.c ^
+            _deps\minhook\src\hde\hde64.c ^
+            dist\QProtocolResources.res ^
+            user32.lib kernel32.lib d3d12.lib dxgi.lib ^
+            /Fe:dist\MenuSmoke.exe
+          if errorlevel 1 exit /b 1
+          dist\MenuSmoke.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Audit A24 PE dependencies
+        shell: pwsh
+        run: |
+          dumpbin /imports dist\QProtocol.asi | Tee-Object -FilePath dist\A24_IMPORTS.txt
+          dumpbin /dependents dist\QProtocol.asi | Tee-Object -FilePath dist\A24_DEPENDENTS.txt
+
+          $imports = Get-Content dist\A24_IMPORTS.txt -Raw
+          $deps = Get-Content dist\A24_DEPENDENTS.txt -Raw
+
+          if ($imports -match "WriteProcessMemory") {
+            throw "A24 regression: WriteProcessMemory is imported."
+          }
+
+          if ($imports -notmatch "ReadProcessMemory") {
+            throw "A24 audit mismatch: expected ReadProcessMemory import not found."
+          }
+
+          if ($imports -notmatch "VirtualProtect") {
+            throw "A24 audit mismatch: expected VirtualProtect import not found."
+          }
+
+          if ($deps -match "D3DCompiler_47\.dll") {
+            throw "A24 regression: runtime D3DCompiler_47 dependency still present."
+          }
+
+          if ($deps -match "VCRUNTIME\d*\.dll" -or
+              $deps -match "MSVCP\d*\.dll" -or
+              $deps -match "ucrtbase\.dll") {
+            throw "A24 regression: dynamic MSVC/UCRT runtime dependency detected."
+          }
+
+          foreach ($required in @("D3D12.dll", "DXGI.dll", "USER32.dll", "KERNEL32.dll")) {
+            if ($deps -notmatch [regex]::Escape($required)) {
+              throw "Expected Windows system dependency missing from PE audit: $required"
+            }
+          }
+
+          if (Select-String -Path src\first_debug\imgui_impl_dx12_first_debug.cpp -Pattern "^[^/\r\n]*\bD3DCompile\s*\(" -Quiet) {
+            throw "Runtime D3DCompile call found in hardened backend source."
+          }
+
+          $asi = Get-Item dist\QProtocol.asi
+          $sha = (Get-FileHash dist\QProtocol.asi -Algorithm SHA256).Hash
+          Write-Host ("A24 ASI size: {0} bytes" -f $asi.Length)
+          Write-Host ("A24 ASI SHA-256: {0}" -f $sha)
+          Write-Host "A24 dependency audit PASS."
+          Write-Host "No separate ImGui, MinHook, D3DCompiler or VC++ runtime installation is required by this build."
+
+      - name: Upload A24 dependency audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Q-Protocol_A24_DependencyAudit
+          path: |
+            dist/A24_IMPORTS.txt
+            dist/A24_DEPENDENTS.txt
+          if-no-files-found: error
+
+      - name: Package A36 binaries (no release or updater manifest)
+        shell: pwsh
+        run: |
+          python tools/package_a36.py
+          if ($LASTEXITCODE -ne 0) { throw "A36 package verification failed" }
+
+      - name: Upload A36 candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Q-Protocol_A36_NativeDelivery_TEST
+          path: |
+            dist/Q-Protocol_A36_NativeDelivery_TEST.zip
+            dist/A36-package-checks.json
+          if-no-files-found: error

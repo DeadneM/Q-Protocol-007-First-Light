@@ -3,6 +3,7 @@
 #include <intrin.h>
 #include <mutex>
 #include "runtime/NativePlayer.h"
+#include "runtime/NativeInventory.h"
 #include "runtime/GameplayMailbox.h"
 
 #include <algorithm>
@@ -82,6 +83,8 @@ struct PlayerContext {
 };
 struct SpawnResult {
     bool triggered = false, exception = false, valid = false, accepted = false, pending = false;
+    bool invoked = false;
+    runtime::SpawnToken token{};
     unsigned int state = 0xFFFFFFFF;
     ULONGLONG at = 0;
 };
@@ -98,6 +101,10 @@ struct ActiveWeapon {
     bool dispatchDeferredLogged = false;
     runtime::Ticket ticket{};
     SpawnResult result{};
+    runtime::EntityReference created{};
+    runtime::Ticket pickupTicket{};
+    bool pickupSubmitted = false;
+    ULONGLONG pickupAcknowledgedAt = 0;
     std::uint64_t requestedRid = 0;
     std::uintptr_t spawner = 0;
     ULONGLONG setupAt = 0;
@@ -127,6 +134,12 @@ struct PendingAmmoRequest {
     std::uint32_t playerId = 0;
     const char* source = nullptr;
 };
+struct PendingPickupRequest {
+    runtime::NativeItem item{};
+    std::uint32_t playerId = 0;
+};
+struct NativePickupInput { std::uint32_t playerId = 0, itemId = 0, mode = 0; };
+static_assert(sizeof(NativePickupInput) == 12);
 
 enum class BeginWeaponResult {
     Started,
@@ -158,6 +171,7 @@ bool g_ltkObserveHookInstalled = false;
 struct SpawnPayload { std::uint64_t rid = 0; WeaponGraph graph{}; };
 runtime::GameplayMailbox<SpawnPayload, SpawnResult> g_spawnMailbox;
 runtime::GameplayMailbox<PendingAmmoRequest, bool> g_ammoMailbox;
+runtime::GameplayMailbox<PendingPickupRequest, bool> g_pickupMailbox;
 std::mutex g_playerMutex;
 runtime::PlayableSession g_playerSession;
 PlayerContext g_publishedPlayer{}, g_workerPlayer{}, g_tickPlayer{};
@@ -211,6 +225,7 @@ struct LoadoutPackage {
     bool active = false;
     bool justCompleted = false;
     bool justFailed = false;
+    bool hadFailure = false;
     LoadoutSource source = LoadoutSource::None;
     LoadoutProfile profile{};
     std::uint32_t playerId = 0;
@@ -296,6 +311,7 @@ bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
 // A28 compatibility gate: verify native code and relocated type links before any hook.
 // This is a static-map check, not proof of runtime gameplay acceptance.
 #include "NativePlayerGuards.inl"
+#include "NativeDeliveryGuards.inl"
 
 bool ValidateNovemberNativeMap() {
     auto code = [](const char* name, std::uintptr_t rva, const BYTE* expected, SIZE_T size) {
@@ -386,7 +402,7 @@ bool ValidateTargetExecutable() {
         return false;
     }
 
-    if (!ValidateNovemberNativeMap() || !ValidateNativePlayerMap()) return false;
+    if (!ValidateNovemberNativeMap() || !ValidateNativePlayerMap() || !ValidateNativeDeliveryMap()) return false;
 
     g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
@@ -425,7 +441,7 @@ PlayerContext ObserveWorkerPlayer() {
         changed = player.snapshot.epoch != before.epoch;
         g_publishedPlayer = player;
     }
-    if (changed) { g_spawnMailbox.Cancel(); g_ammoMailbox.Cancel(); }
+    if (changed) { g_spawnMailbox.Cancel(); g_ammoMailbox.Cancel(); g_pickupMailbox.Cancel(); }
     return player;
 }
 PlayerContext ResolvePlayer() {
@@ -1095,6 +1111,7 @@ bool IsSpawnerIdle(std::uintptr_t spawner, bool& idle) {
 void ResetActiveWeaponState() {
     g_activeWeapon = {};
     g_spawnMailbox.Cancel();
+    g_pickupMailbox.Cancel();
 }
 
 BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwned) {
@@ -1212,7 +1229,8 @@ void AdvanceLoadoutPackage() {
         return;
     }
 
-    FinishLoadoutPackage(true, nullptr);
+    FinishLoadoutPackage(!g_loadoutPackage.hadFailure,
+        g_loadoutPackage.hadFailure ? "one or more roles unconfirmed; no blind replay" : nullptr);
 }
 
 bool StartLoadoutPackage(
@@ -1310,6 +1328,7 @@ void FailActiveWeapon(const char* reason) {
 
     const bool packageOwned = g_activeWeapon.packageOwned;
     const std::uint64_t rid = g_activeWeapon.requestedRid;
+    const bool nativeEntered = g_activeWeapon.result.invoked || g_activeWeapon.pickupSubmitted;
 
     Log(
         "[ERROR] GiveWeapon attempt FAILED RID=%016llX: %s",
@@ -1318,6 +1337,21 @@ void FailActiveWeapon(const char* reason) {
 
     ResetActiveWeaponState();
 
+    if (nativeEntered) {
+        // Exceptions, unreadable post-state and timeouts do not undo a native
+        // effect. Preserve later roles, but never spawn this role again blindly.
+        g_nextWeaponAllowedAt = GetTickCount64() + kWeaponInterRequestDelayMs;
+        if (packageOwned) {
+            g_loadoutPackage.hadFailure = true;
+            AdvanceLoadoutPackage();
+        } else {
+            if (!g_weaponQueue.empty() && g_weaponQueue.front() == rid) g_weaponQueue.pop_front();
+            g_unitaryRetryCount = 0; g_unitaryRetryAt = 0;
+        }
+        Log("Weapon outcome unconfirmed; native effect not replayed RID=%016llX.",
+            static_cast<unsigned long long>(RotateRid(rid)));
+        return;
+    }
     if (packageOwned) {
         RetryLoadoutPackage(reason);
     } else {
@@ -1335,7 +1369,7 @@ void CompleteActiveWeapon() {
     const ULONGLONG now = GetTickCount64();
 
     Log(
-        "DIRECT graph COMPLETE RID=%016llX",
+        "DELIVERY CONFIRMED in current player attachment list RID=%016llX",
         static_cast<unsigned long long>(RotateRid(rid)));
 
     g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
@@ -1420,23 +1454,58 @@ void ProcessWeaponQueue() {
             return;
         }
 
+        NativeMemoryReader read;
+        std::uint32_t mask = 0;
+        if (!g_activeWeapon.created.pointer) {
+            auto created = result.token.output;
+            if (ReadNativeThreadMask(mask) && runtime::LiveEntity(read, g_exeBase, mask, result.token.source)) {
+                if (!runtime::LiveEntity(read, g_exeBase, mask, created))
+                    created = runtime::ReadSpawnOutput(read, g_activeWeapon.spawner, result.token);
+                if (runtime::LiveEntity(read, g_exeBase, mask, created)) g_activeWeapon.created = created;
+            }
+        }
         bool idle = false;
         if (!IsSpawnerIdle(g_activeWeapon.spawner, idle)) {
             FailActiveWeapon("spawner became unreadable");
             return;
         }
 
-        if (idle) {
-            CompleteActiveWeapon();
-            return;
+        if (idle && ReadNativeThreadMask(mask)) {
+            const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, g_activeWeapon.created);
+            const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, g_workerPlayer.playerId, item);
+            if (attachment == runtime::Attachment::Present) {
+                CompleteActiveWeapon();
+                return;
+            }
+            if (g_activeWeapon.pickupTicket) {
+                if (const auto published = g_pickupMailbox.TakeReply(g_activeWeapon.pickupTicket)) {
+                    Log("Native pickup publication %s RID=%016llX; waiting for attachment confirmation.",
+                        *published ? "processed" : "not confirmed",
+                        static_cast<unsigned long long>(RotateRid(g_activeWeapon.requestedRid)));
+                    g_activeWeapon.pickupTicket = {};
+                    g_activeWeapon.pickupAcknowledgedAt = now;
+                }
+            }
+            if (attachment == runtime::Attachment::Absent && !g_activeWeapon.pickupSubmitted) {
+                g_activeWeapon.pickupTicket = g_pickupMailbox.Submit(g_workerPlayer.snapshot,
+                    PendingPickupRequest{item, g_workerPlayer.playerId}, now);
+                if (g_activeWeapon.pickupTicket) {
+                    g_activeWeapon.pickupSubmitted = true;
+                    Log("Created item absent from player; native pickup queued once RID=%016llX itemId=%u request=%llu.",
+                        static_cast<unsigned long long>(RotateRid(g_activeWeapon.requestedRid)), item.id,
+                        g_activeWeapon.pickupTicket.request);
+                    return;
+                }
+            }
         }
 
         const ULONGLONG triggeredAt =
-            result.at;
+            g_activeWeapon.pickupAcknowledgedAt ? g_activeWeapon.pickupAcknowledgedAt : result.at;
         const ULONGLONG elapsed = triggeredAt ? now - triggeredAt : 0;
 
+        if (g_activeWeapon.pickupTicket && g_pickupMailbox.Busy()) return;
         if (elapsed > 5000) {
-            FailActiveWeapon("completion timeout");
+            FailActiveWeapon("delivery timeout: attachment not confirmed");
         }
 
         return;
@@ -1717,6 +1786,7 @@ void ResetWeaponRuntime(const char* reason) {
     g_loadoutPackage = {};
     g_spawnMailbox.Cancel();
     g_ammoMailbox.Cancel();
+    g_pickupMailbox.Cancel();
     g_lastAmmoTicket = {}; g_autoAmmoTicket = {};
     {
         std::lock_guard<std::mutex> lock(g_playerMutex);
@@ -1744,7 +1814,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol A35 / Session Repair TEST");
+    Log("Q Protocol A36 / Native Delivery TEST");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
@@ -2080,7 +2150,12 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
     if (!g_nativeSpawn || !ValidateGraph(payload.rid, payload.graph)) return result;
     __try {
         const auto spawner = payload.graph.spawner;
+        bool idle = false;
+        if (!IsSpawnerIdle(spawner, idle) || !idle) return result;
+        result.invoked = true;
         g_nativeSpawn(reinterpret_cast<void*>(spawner));
+        NativeMemoryReader read;
+        result.token = runtime::CaptureSpawnToken(read, spawner, payload.graph.itemEntry);
         std::uintptr_t begin = 0, end = 0; BYTE state = 0xFF;
         result.valid = SafeRead(spawner + 0x38, begin) && SafeRead(spawner + 0x40, end) && SafeRead(spawner + 0x50, state);
         result.pending = result.valid && begin != end;
@@ -2089,6 +2164,37 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
         result.triggered = true; result.at = GetTickCount64();
     } __except (EXCEPTION_EXECUTE_HANDLER) { result.exception = true; }
     return result;
+}
+
+bool PublishPickupGameplayThread(const PendingPickupRequest& request) {
+    if (!RuntimePlayerMatches(request.playerId)) return false;
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    if (!ReadNativeThreadMask(mask)) return false;
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, request.item.created);
+    if (!item || item.id != request.item.id || item.interfacePointer != request.item.interfacePointer) return false;
+    const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, request.playerId, item);
+    if (attachment == runtime::Attachment::Present) return true;
+    if (attachment != runtime::Attachment::Absent) return false;
+    std::uintptr_t owner = 0;
+    if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) return false;
+    using InsertPickupFn = void(__fastcall*)(void*, const NativePickupInput*);
+    const auto insert = reinterpret_cast<InsertPickupFn>(g_exeBase + kNativeAmmoInsertRva);
+    const auto notify = reinterpret_cast<NativeAmmoNotifyFn>(g_exeBase + kNativeAmmoNotifyRva);
+    auto* criticalSection = reinterpret_cast<LPCRITICAL_SECTION>(owner + kAmmoLockOffset);
+    const NativePickupInput input{request.playerId, item.id, 0}; // Native default pickup mode.
+    bool locked = false, ok = true;
+    __try {
+        EnterCriticalSection(criticalSection);
+        locked = true;
+        insert(reinterpret_cast<void*>(owner + 0x10A68), &input);
+        notify(reinterpret_cast<void*>(owner), 0xF3, reinterpret_cast<void*>(owner + 0x109C8));
+    } __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+    if (locked) {
+        __try { LeaveCriticalSection(criticalSection); }
+        __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+    }
+    return ok; // Publication only; worker still requires native attachment proof.
 }
 }
 extern "C" void QpGameplayTick() {
@@ -2099,6 +2205,11 @@ extern "C" void QpGameplayTick() {
         const auto result = qp::ExecuteSpawn(command->payload);
         qp::g_tickPlayer = qp::ReadDispatchPlayer();
         qp::g_spawnMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
+    }
+    if (const auto command = qp::g_pickupMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
+        const bool result = qp::PublishPickupGameplayThread(command->payload);
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
+        qp::g_pickupMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
     }
     if (const auto command = qp::g_ammoMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
         const bool result = qp::PublishAmmoProfileGameplayThread(command->payload);
