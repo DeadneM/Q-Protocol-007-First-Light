@@ -10,7 +10,9 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**Experimental A34:** the [playable-player core rebuild](docs/PLAYABLE_PLAYER_CORE.md)
+**Latest experimental candidate: [A36 Native Delivery TEST](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a36-native-delivery-test).** Full build, synthetic contracts, package and real beta-updater discovery verified. A36 confirms attachment of its created item and queues a single native pickup when missing; includes A35 session observation. **Not gameplay-validated.** [Scope, remaining limits and rollback](docs/A36_NATIVE_DELIVERY.md). The stable v0.9.7/main remains unchanged; no automatic installation. [All 31 resource identities checked against installed packages](docs/audits/20261104/WEAPON_IDENTITIES.md).
+
+**Previous experimental A34:** the [playable-player core rebuild](docs/PLAYABLE_PLAYER_CORE.md)
 replaces loadout-based readiness with a shared native-character/session gate for
 AUTO and manual actions. A33 was rejected by the maintainer. A34 requires gameplay
 acceptance in story and Tac Sim; v0.9.7 remains the accepted production base.

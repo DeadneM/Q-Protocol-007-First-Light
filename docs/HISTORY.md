@@ -505,3 +505,9 @@ test. Keep the other system's GPU incident OPEN; it is not a universal fix.
 Suite : [contrôle des 31 identités d'armes](audits/20261104/WEAPON_IDENTITIES.md). Les catalogues public et installé correspondent aux 31 ressources TEMP présentes et aux chemins Bond-Hashes dont les hashes ont été recalculés. Aucun RID remplacé. F3/F4 en Tac Sim isolent un défaut de livraison, pas une preuve de joueur absent ; les résultats natifs conservés montrent un cas d'objet vivant non rattaché, avec limite de provenance explicitée. A35 compilée/contrôlée reste séparée de cette réparation.
 
 Deux passes sur la source A34 figée, comparaison et plan de correction : [rapport](audits/20261104/README.md). Détection/session, confirmation de livraison, retries, concurrence UI et durée de vie GPU restent à corriger. AUTO confirmé : une fois à l'arrivée et après mort/rechargement, jamais pour menu/pause. Aucun nouveau binaire ni promotion stable. A35 WIP isolé, non validé.
+
+## 2026-11-04 — A35 construite puis A36 livraison native TEST
+
+A35 `a73f0a0` compilée et contrôlée, non installée. A36 `97cdf00` ajoute le suivi du résultat propre à la requête, la confirmation de rattachement au joueur et un ramassage natif unique si absent ; aucun changement arbitraire de RID, nouveau hook ou appel natif worker. Les effets entrés dans le natif ne sont plus rejoués aveuglément ; les rôles suivants restent traités et un paquet partiel reste explicitement en échec. Les contrôles de compatibilité sont renforcés. Limites et critères dans [A36_NATIVE_DELIVERY.md](A36_NATIVE_DELIVERY.md).
+
+CI complète `41894755836` et publication `41895495682` réussies. Tag `a36-native-delivery-test` sur source `97cdf00`, paquet immuable vérifié, moteur updater réel : découverte beta et paquet public conformes, pas d'offre au canal stable ni à la même build. A34 reste installée, pas de lancement/installation ni promotion main. Statut CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL ; essai réel requis.

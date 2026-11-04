@@ -300,3 +300,8 @@ Confirmed working:
 A2 is now the canonical fresh-core base.
 
 Next: corrected F3 ManualLoadout with exactly QPistol + OneHanded + TwoHanded, implemented only as a thin caller of the validated GiveWeapon queue.
+## 2026-11-04 — A36 Native Delivery TEST built and published
+
+Source `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`, build CI `41894755836`, publication CI `41895495682`: success. Tag `a36-native-delivery-test` points to that exact source and is a prerelease. ZIP, AMD64 binaries and real updater discovery/download/extraction verified without installing. Stable main remains `62f7521`; A34 is still installed locally. Status **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, not gameplay-validated.
+
+See [A36 contract, tests, package hashes and limitations](A36_NATIVE_DELIVERY.md) and [resource identity audit](audits/20261104/WEAPON_IDENTITIES.md). No arbitrary RID remap; no historical-capacity output adoption; no blind native replay. Partial package AUTO Ammo and identity-preserving reloads remain limitations. Other double-audit issues remain open.

@@ -1,5 +1,15 @@
 # Q Protocol — Project State
 
+## 2026-11-04 — current candidate A36, stable preserved
+
+Current branch: `experiment/a36-native-delivery`. Frozen binary source `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`. Full build `41894755836` and beta publication `41895495682` succeeded. [A36 TEST release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a36-native-delivery-test) and manifest verified; the real updater engine discovers/downloads/checks it with beta ON, excludes it on stable and does not reoffer it to build 36. ZIP 598404 bytes, SHA-256 `41cbf51c9945d01cbbe14a32f21bb7dc2bbebaabb87b497d72b7214c7b843796`, two AMD64 root binaries only.
+
+Status **BUILT / CHECKED / EXPERIMENTAL**, not user gameplay-validated. A34 remains installed (ASI `88af6995…`); no installation/game launch by the agent. Main `62f7521` and accepted v0.9.7 unchanged. No A33 fallback restored. Personal INI/defaults/bindings preserved.
+
+The double audit and subsequent [31-resource identity audit](docs/audits/20261104/WEAPON_IDENTITIES.md) distinguish correct RIDs from receipt. F3 in Tac Sim gives other profile arms but not the silenced Q-Pistol; F4 alone gives normal only, and other missing weapons are reported. Created-object references versus native attachment membership motivate the shared delivery correction, not a guessed RID remap or weapon-specific patch.
+
+A36 includes A35 polling/dispatch separation and confirmed-death session handling. It correlates the new native spawn batch, requires current-player attachment for completion, and queues one default native pickup if the created item is absent. Unknown state/expired generation cannot authorize pickup; native effects are not blindly replayed. [Contract, checks and remaining limits](docs/A36_NATIVE_DELIVERY.md), [release instructions](packaging/README_A36.md). Reload without observed death/identity change, brief missed outputs, partial-package AUTO Ammo, and UI/GPU/updater audit findings remain open. Next: authorized install or in-mod beta update, then targeted story/Tac Sim receipt/AUTO test; no main promotion before explicit acceptance.
+
 ## 2026-11-03 - A34 playable-player core rebuild
 
 User REJECTS A33 detection and requests one shared playable-player gate for AUTO

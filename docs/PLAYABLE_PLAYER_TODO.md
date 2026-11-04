@@ -18,6 +18,11 @@
 - [ ] Promouvoir seulement après validation explicite de la candidate.
 # 2026-11-04 — suite du double audit
 
+- [x] Contrôler les 31 RIDs dans les fichiers installés et recalculer leurs hashes depuis les chemins nommés ; aucun remap arbitraire.
+- [x] Construire A36, contrôler les contrats d'inventaire et publier la beta/manifeste accessible depuis l'updater ; paquet public vérifié.
+- [ ] Installer avec rollback/préservation INI, puis valider réception et AUTO histoire/Tac Sim ; A36 reste EXPÉRIMENTALE.
+- [ ] Traiter les limites de résultat trop bref, de copie fusionnée/remplacée et d'AUTO Ammo après paquet partiel. Conserver ouverts reload sans changement d'identité et les autres constats du double audit.
+
 - A35 source `a73f0a0` : build complète et contrôles CI réussis, ZIP contrôlé localement. Voir [état détaillé](A35_SESSION_REPAIR.md). A35 non installée/non validée, stable conservée.
 - Vérifier ensuite en jeu la cadence indépendante du menu et le réarmement AUTO après mort ; reload sans changement d'identité reste ouvert.
 - Q-Pistol silencieux : les graphes ciblés lus en Tac Sim sont cohérents, mais la livraison n'est pas prouvée. Attendre le résultat F3 réel et établir la preuve de possession ; ne pas changer arbitrairement le RID.

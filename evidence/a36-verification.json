@@ -1,0 +1,32 @@
+{
+  "build": 36,
+  "status": "experimental; not game-validated",
+  "files": {
+    "dxgi.dll": {
+      "size": 138240,
+      "sha256": "9ec6c22c8c307f90e9e25c0b1e48e7a60fc7ca5b6c03bb3e0f9d0b5e58344340"
+    },
+    "QProtocol.asi": {
+      "size": 1037312,
+      "sha256": "9a5d711aff3bef3b3534073f10e348528b74a76b4ee6c333aeb4799352b6a6b4"
+    }
+  },
+  "package": "Q-Protocol_A36_NativeDelivery_TEST.zip",
+  "size": 598404,
+  "sha256": "41cbf51c9945d01cbbe14a32f21bb7dc2bbebaabb87b497d72b7214c7b843796",
+  "source": "97cdf00f1ee4ebcf0004749104bb1a2cee46ef43",
+  "run": 41894755836,
+  "localZipAndPEVerification": true,
+  "installed": false,
+  "runtimeValidated": false,
+  "tag": "a36-native-delivery-test",
+  "artifact": 13356025040,
+  "publicationRun": 41895495682,
+  "releasePrerelease": true,
+  "compatibleBetaFound": true,
+  "publishedPackageVerified": true,
+  "currentBuildNotReoffered": true,
+  "stableExcludesBeta": true,
+  "gameStarted": false,
+  "gameFilesModified": false
+}

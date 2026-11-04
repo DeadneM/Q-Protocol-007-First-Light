@@ -42,3 +42,16 @@ Limites connues : un résultat asynchrone trop bref pour être capturé pendant 
 ## Livraison et rollback
 
 ZIP candidat : uniquement dxgi.dll + QProtocol.asi à la racine, sans INI/README ; documentation ici. En l'absence de validation en jeu, aucune promotion main. Conserver A34/A35 et les deux binaires installés pour retour arrière ; préserver l'INI personnel. L'autorisation d'installation est distincte de cette compilation.
+
+## Résultats contrôlés
+
+Source figée `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`. [Compilation complète 41894755836](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41894755836), job `126801189202` : succès. 14 contrôles de lecture du joueur, 56 session/mailbox, 25 inventaire, 19 updater ; menu/bootstrap sur trois dimensions, proxy DXGI natif, dépendances, configuration et périmètre contrôlés. La première tentative `41894510452` a été arrêtée par un avertissement traité en erreur dans les fixtures, corrigé sans changer la logique de livraison.
+
+[Publication 41895495682](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41895495682) : succès, sans reconstruction ; le paquet testé est republié à l'identique. [Prerelease A36](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a36-native-delivery-test), tag pointant sur la source figée, stable/main inchangées. Le véritable moteur d'updater trouve A36 depuis build 34 avec beta activée, télécharge et contrôle le paquet public, ne le réoffre pas à build 36 et l'exclut du canal stable. Extraction dans le workspace uniquement : aucun lancement, installation ou test de sortie du jeu.
+
+[ZIP direct](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/a36-native-delivery-test/Q-Protocol_A36_NativeDelivery_TEST.zip), 598404 octets, SHA-256 `41cbf51c9945d01cbbe14a32f21bb7dc2bbebaabb87b497d72b7214c7b843796`.
+
+- QProtocol.asi : 1037312 octets, SHA-256 `9a5d711aff3bef3b3534073f10e348528b74a76b4ee6c333aeb4799352b6a6b4`.
+- dxgi.dll : 138240 octets, SHA-256 `9ec6c22c8c307f90e9e25c0b1e48e7a60fc7ca5b6c03bb3e0f9d0b5e58344340`.
+
+ZIP téléchargé, CRC/racine exacte et PE AMD64 contrôlés localement ; empreintes identiques à la CI et au paquet public. A34 reste installée (ASI `88af6995…`). Statut **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, pas encore VALIDÉ par l'utilisateur. Essai ciblé et rollback prêt nécessaires avant de conclure.
