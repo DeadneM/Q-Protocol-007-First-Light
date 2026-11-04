@@ -23,7 +23,7 @@ struct Memory {
         return true;
     }
 };
-constexpr std::uintptr_t base=0x140000000, entityManager=0x40000000, inventory=0x50000000;
+constexpr std::uintptr_t base=0x140000000, entityManager=0x40000000, inventoryAddress=0x50000000;
 constexpr std::uintptr_t itemPointer=0x30010000, attachedSlot=0x51000030, attachedBegin=0x52000000;
 constexpr std::uint32_t itemId=0x9010004, playerId=0xC010002;
 constexpr EntityReference output{itemPointer+8,0x100000005}, source{0x2D000180,0x100000006};
@@ -53,8 +53,8 @@ static Memory Good() {
     Table(m,entityManager+0x90,0x41000000,0x42000000);
     m.Put(0x41000040,EntityReference{itemPointer,output.key});
     m.Put<std::uintptr_t>(base+0x6452BF8,0x53000000);
-    m.Put(0x53000038,inventory);
-    Table(m,inventory+0x1A0,0x51000000,0x54000000);
+    m.Put(0x53000038,inventoryAddress);
+    Table(m,inventoryAddress+0x1A0,0x51000000,0x54000000);
     m.Put(attachedSlot,NativeRange{attachedBegin,attachedBegin+4});
     m.Put(attachedBegin,itemId);
     m.Put(spawner+0x38,SpawnBatch{recordAddress,recordAddress+56,recordAddress+56});
