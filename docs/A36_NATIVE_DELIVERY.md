@@ -1,5 +1,7 @@
 # A36 — livraison native commune (expérimental)
 
+**REJETÉE par le mainteneur après essai réel.** Régression sévère : AUTO lobby Tac Sim absent, manuel retardé et silencieux toujours absent. Les logs confirment les timeouts de confirmation sur chaque rôle, le blocage F3 pendant le paquet et AUTO sans munitions. Les sections de conception et contrôles ci-dessous sont historiques ; elles ne décrivent pas une fonctionnalité validée. Retrait du canal beta et rollback A34 préparé, jeu fermé/confirmation requis. Ne pas conserver le nouveau gate comme acquis.
+
 Base de source : A35 `a73f0a0`, compile et contrats contrôlés ; A35 n'est pas validée en jeu. Base stable conservée : v0.9.7. Contrôle des 31 RIDs : audit `66c91ec`, aucun remplacement d'identifiant. Branche `experiment/a36-native-delivery`. Pas d'installation automatique.
 
 ## Objectif

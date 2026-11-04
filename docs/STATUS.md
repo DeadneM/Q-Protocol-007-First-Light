@@ -305,3 +305,6 @@ Next: corrected F3 ManualLoadout with exactly QPistol + OneHanded + TwoHanded, i
 Source `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`, build CI `41894755836`, publication CI `41895495682`: success. Tag `a36-native-delivery-test` points to that exact source and is a prerelease. ZIP, AMD64 binaries and real updater discovery/download/extraction verified without installing. Stable main remains `62f7521`; A34 is still installed locally. Status **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, not gameplay-validated.
 
 See [A36 contract, tests, package hashes and limitations](A36_NATIVE_DELIVERY.md) and [resource identity audit](audits/20261104/WEAPON_IDENTITIES.md). No arbitrary RID remap; no historical-capacity output adoption; no blind native replay. Partial package AUTO Ammo and identity-preserving reloads remain limitations. Other double-audit issues remain open.
+## 2026-11-04 — A36 rejected in actual play
+
+Severe maintainer-reported regression confirmed by logs: repeated delivery timeouts, busy manual package, failed AUTO before ammo, silenced Q-Pistol still absent. A36 is REJECTED, not a usable improvement. Release withdrawal to draft is being verified. Game running at investigation; A34 rollback backup verified, awaiting closure/confirmation, current INI preserved. See PROJECT_STATE.md for latest state. No new build queued.

@@ -15,5 +15,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release edit a36-native-delivery-test --repo '${{ github.repository }}' --draft --title 'REJECTED - Q Protocol A36 Native Delivery TEST'
-          gh api repos/${{ github.repository }}/releases/tags/a36-native-delivery-test --jq '.draft' | grep -x true
+          release_id=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.tag_name == "a36-native-delivery-test" or .name == "REJECTED - Q Protocol A36 Native Delivery TEST") | .id')
+          test -n "$release_id"
+          test "$(printf '%s\n' "$release_id" | wc -l)" -eq 1
+          gh api --method PATCH repos/${{ github.repository }}/releases/"$release_id" -F draft=true -f name='REJECTED - Q Protocol A36 Native Delivery TEST'
+          gh api repos/${{ github.repository }}/releases/"$release_id" --jq '.draft' | grep -x true
