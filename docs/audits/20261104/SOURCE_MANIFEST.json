@@ -1,0 +1,125 @@
+{
+  "commit": "13a843ae576d082dfaae2d5bb1909b6442dc7da2",
+  "files": [
+    {
+      "path": "src/QProtocol.cpp",
+      "sha256": "0c1fe50a8f0cfd15e6cf5819435bef579405048e2980b9bdfe541942574ef7d1",
+      "lines": 2111
+    },
+    {
+      "path": "src/NativePlayerGuards.inl",
+      "sha256": "4924c99f7b7863658009206b1e381d71e1bcd1154eb278b28f2c214e3cb3e866",
+      "lines": 24
+    },
+    {
+      "path": "src/runtime/NativePlayer.h",
+      "sha256": "b8d2eb90056445fc8fe0433853af371a23a572c2d8c55f5191eb20d2910ecfce",
+      "lines": 142
+    },
+    {
+      "path": "src/runtime/PlayableSession.h",
+      "sha256": "fbceea02076096a817596c1f3e0bc395d5bdb2e906b66a49b68f9ba38feb31d2",
+      "lines": 107
+    },
+    {
+      "path": "src/runtime/GameplayMailbox.h",
+      "sha256": "e0e2ed3f9608cff604e13dc86678cdb6721e4a55aa73488e47c7c6ee416f4549",
+      "lines": 74
+    },
+    {
+      "path": "src/OverlayA19.cpp",
+      "sha256": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+      "lines": 5402
+    },
+    {
+      "path": "src/Overlay.h",
+      "sha256": "a15a691b8b88fa5b7a4e2574f174ba2431f8923d99c3c53b4a65f1406c145355",
+      "lines": 20
+    },
+    {
+      "path": "src/GameplayHook.asm",
+      "sha256": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+      "lines": 61
+    },
+    {
+      "path": "src/Updates.cpp",
+      "sha256": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+      "lines": 185
+    },
+    {
+      "path": "src/Updates.h",
+      "sha256": "732d90012b0128bff91f1b19acb6e13b66a93eea30ecadd995c46fb5994bfc6b",
+      "lines": 22
+    },
+    {
+      "path": "src/dxgi_proxy/ProxyDxgi.cpp",
+      "sha256": "0a88bd4e9aa4ad781bc572a90bb67e5af12ea1b0fc5194b848a85f68a6d82329",
+      "lines": 149
+    },
+    {
+      "path": "src/first_debug/imgui_impl_dx12_first_debug.cpp",
+      "sha256": "6b96bda88418000a4a545e6dba08376187a96f08689811f741046eb74c0d7c75",
+      "lines": 922
+    },
+    {
+      "path": "src/first_debug/imgui_vs.hlsl",
+      "sha256": "b67948def028d1a0cd5a11d4cba442fd327cb6e8722a1c659fdeb46d43a9e230",
+      "lines": 27
+    },
+    {
+      "path": "src/first_debug/imgui_ps.hlsl",
+      "sha256": "469d6e4ff95420cb56e632840701a3a5c2326feec03d29c3c9b61bf0652ae485",
+      "lines": 14
+    },
+    {
+      "path": "src/QProtocolResources.rc",
+      "sha256": "6bc952d428e28c9edfd142dd20750c8986be4efe84cf109529fec4922d852ba1",
+      "lines": 2
+    },
+    {
+      "path": "updater/UpdateEngine.cs",
+      "sha256": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+      "lines": 220
+    },
+    {
+      "path": ".github/workflows/build-a34-playable.yml",
+      "sha256": "dc17372b2a8e86e51facb9792a2c23f6921f3bc4bb1adb2035e855d51c23e826",
+      "lines": 545
+    },
+    {
+      "path": "tests/NativePlayerTests.cpp",
+      "sha256": "49694986a2af57b2216a7564451e8e66a3a1870b685f223a34f0d5e018ed8d25",
+      "lines": 91
+    },
+    {
+      "path": "tests/PlayableRuntimeTests.cpp",
+      "sha256": "441ffcf6dd49883a7fba8d2eeef3019a4e2f3c409a251aa74d6f77c8ac960498",
+      "lines": 82
+    },
+    {
+      "path": "tests/UpdaterTests.cs",
+      "sha256": "ecc722140a4841812576cc6449cc5bd1998b7567e6b0771bd3c0939da661f6f2",
+      "lines": 87
+    },
+    {
+      "path": "tests/MenuSmoke.cpp",
+      "sha256": "283c5cec2309c97a84a0298c418e4ba6ace85304c1a0e7ad7fa3c06e68bf3e2f",
+      "lines": 44
+    },
+    {
+      "path": "tools/verify_a34_scope.py",
+      "sha256": "49289cd16e684fa193d459626747901d3a623645a187e4fc790c04b3cda78d2a",
+      "lines": 56
+    },
+    {
+      "path": "tools/package_a34.py",
+      "sha256": "126d265cda1fae7f8b786271459d2fc94e40fd3b5893a39e780d6578f5e4060b",
+      "lines": 21
+    },
+    {
+      "path": "tools/generate_dxgi_proxy.py",
+      "sha256": "4abc211a90769f07f22b5c0d4951b22c19b2e51283c1173fda7b4dc4baffff01",
+      "lines": 132
+    }
+  ]
+}

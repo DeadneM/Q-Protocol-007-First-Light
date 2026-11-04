@@ -1,0 +1,28 @@
+{
+  "scope": "13a843ae576d082dfaae2d5bb1909b6442dc7da2",
+  "limits": "Source-anchored logical models only; no runtime or GPU proof.",
+  "stale_observer": {
+    "last_observed_ms": 1000,
+    "worker_read_ms": 1501,
+    "same_character": true,
+    "fresh": false,
+    "interpretation": "A34 can reset with no new native loss of control."
+  },
+  "timeout_after_acceptance": {
+    "native_accepted": true,
+    "idle_at_5001_ms": false,
+    "path": "completion timeout -> FailActiveWeapon -> retry",
+    "interpretation": "No cancellation/inventory check proves a repeat is safe."
+  },
+  "ring_index_suspicion": {
+    "sequences_checked": 32768,
+    "buffers": [
+      2,
+      3
+    ],
+    "presents_per_sequence": 14,
+    "counterexample_found": false,
+    "assumptions": "Equal pool/backbuffer count, one backend call per submitted visible frame, successful monotonic fences, rendering stops on failures.",
+    "interpretation": "Different indices alone do not establish unsafe reuse; exclude this suspicion from confirmed findings."
+  }
+}
