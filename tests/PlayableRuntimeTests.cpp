@@ -116,6 +116,9 @@ int main() {
     Require(life.session==originalSession && !lifecycle.BeginAuto(life.session,true,130),
         "sequence and missing reads cannot rearm a processed AUTO");
     auto dead=blocked; dead.confirmedDead=true;
+    auto contradictory=active; contradictory.confirmedDead=true;
+    Require(!RevalidateDispatch(life,contradictory,130).playable,
+        "positive death evidence overrides inconsistent playable flags at dispatch");
     life=lifecycle.Observe(dead,140);
     Require(!life.playable && life.session==originalSession,"confirmed death closes gate without early rearm");
     lifecycle.Observe({},150);

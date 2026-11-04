@@ -38,7 +38,7 @@ struct PlayerSnapshot {
 inline PlayerSnapshot RevalidateDispatch(PlayerSnapshot published,
     const PlayerObservation& native, std::uint64_t now) {
     published.playable = published.Fresh(now) && native.locallyControlled &&
-        native.gameplayAllowed && static_cast<bool>(native.identity) && native.identity == published.identity;
+        native.gameplayAllowed && !native.confirmedDead && static_cast<bool>(native.identity) && native.identity == published.identity;
     return published;
 }
 
@@ -51,7 +51,7 @@ public:
     PlayerSnapshot Observe(const PlayerObservation& observation, std::uint64_t now) {
         const bool hasIdentity = static_cast<bool>(observation.identity);
         const bool changed = hasIdentity && observation.identity != state_.identity;
-        const bool playable = hasIdentity && observation.locallyControlled && observation.gameplayAllowed;
+        const bool playable = hasIdentity && observation.locallyControlled && observation.gameplayAllowed && !observation.confirmedDead;
         const bool respawn = !changed && playable && deathObserved_;
         if (changed || respawn) {
             state_.identity = observation.identity;
