@@ -1,0 +1,76 @@
+name: Publish verified A36 beta artifact
+on:
+  workflow_dispatch:
+  push:
+    branches: [experiment/a36-native-delivery]
+    paths: [".github/workflows/publish-a36-beta.yml"]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/experiment/a36-native-delivery'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check frozen source and successful full build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $source = '97cdf00f1ee4ebcf0004749104bb1a2cee46ef43'
+          git diff --exit-code $source HEAD -- src config updater tests tools/package_a36.py tools/verify_a36_scope.py .github/workflows/build-a36-delivery.yml
+          if ($LASTEXITCODE -ne 0) { throw 'Source changed after reviewed build' }
+          $run = gh api repos/${{ github.repository }}/actions/runs/41894755836 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.head_sha -ne $source -or $run.conclusion -ne 'success' -or $run.status -ne 'completed') {
+            throw 'Frozen A36 full build not verified successful'
+          }
+      - uses: actions/download-artifact@v4
+        with:
+          name: Q-Protocol_A36_NativeDelivery_TEST
+          run-id: 41894755836
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Verify ZIP and write compatible beta manifest
+        shell: pwsh
+        run: |
+          @'
+          import hashlib,json,struct,zipfile
+          from pathlib import Path
+          root=Path('candidate')
+          name='Q-Protocol_A36_NativeDelivery_TEST.zip'
+          data=(root/name).read_bytes()
+          assert len(data)==598404 and hashlib.sha256(data).hexdigest()=='41cbf51c9945d01cbbe14a32f21bb7dc2bbebaabb87b497d72b7214c7b843796'
+          expected={'dxgi.dll':(138240,'9ec6c22c8c307f90e9e25c0b1e48e7a60fc7ca5b6c03bb3e0f9d0b5e58344340'),
+                    'QProtocol.asi':(1037312,'9a5d711aff3bef3b3534073f10e348528b74a76b4ee6c333aeb4799352b6a6b4')}
+          with zipfile.ZipFile(root/name) as archive:
+              assert archive.namelist()==list(expected) and archive.testzip() is None
+              for file,(size,sha) in expected.items():
+                  value=archive.read(file)
+                  assert len(value)==size and hashlib.sha256(value).hexdigest()==sha
+                  assert value[:2]==b'MZ'
+                  pe=struct.unpack_from('<I',value,0x3c)[0]
+                  assert value[pe:pe+4]==b'PE\0\0' and struct.unpack_from('<H',value,pe+4)[0]==0x8664
+          tag='a36-native-delivery-test'
+          manifest={'schema':1,'build':36,'tag':tag,'exe_sha256':'6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1',
+                    'package':name,'url':f'https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/{tag}/{name}',
+                    'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),
+                    'files':{file:{'size':size,'sha256':sha} for file,(size,sha) in expected.items()}}
+          (root/'QProtocol-update.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+          print('Verified frozen A36 ZIP and compatible beta manifest; no rebuild.')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'A36 package/manifest verification failed' }
+      - name: Publish immutable prerelease from frozen source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'a36-native-delivery-test'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'A36 release exists; refusing overwrite' }
+          git ls-remote --exit-code --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 2) { throw 'Tag exists or remote check failed; refusing publication' }
+          gh release create $tag candidate/Q-Protocol_A36_NativeDelivery_TEST.zip candidate/QProtocol-update.json --repo '${{ github.repository }}' --target '97cdf00f1ee4ebcf0004749104bb1a2cee46ef43' --prerelease --title 'Q Protocol A36 - Native Delivery TEST' --notes-file packaging/README_A36.md
+          if ($LASTEXITCODE -ne 0) { throw 'A36 beta publication failed' }
