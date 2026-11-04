@@ -14,7 +14,7 @@ La présence confirmée du propriétaire dans la liste native not-alive arme un 
 
 Fixtures ajoutées : absence prolongée du callback, dispatch retardé avec le même ticket, refus d'identité différente et d'observation périmée, séquence/lecture absente sans nouvel AUTO, mort puis même identité, remplacement après mort sans double session. Le lecteur natif distingue désormais séquence et preuve not-alive. Workflow dédié aux tests, sans publication de release.
 
-**État initial : code écrit, compilation/tests CI à vérifier.** Aucun compilateur C++ local trouvé. Ce document ne vaut ni build ASI ni validation en jeu.
+**État : CONTRÔLÉ pour les deux exécutables de tests synthétiques.** CI [41832406109](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41832406109), source `57316365ba5a2d19a659fc6850ce2b23f68c9e09` : compilation MSVC et exécution des contrats natifs/session réussies, job `126582613475`. Aucun compilateur C++ local trouvé. Ce contrôle ne vaut ni compilation complète de l'ASI ni validation en jeu.
 
 Restent ouverts : reload conservant l'identité sans mort observée, mort trop brève pour le polling, preuve exhaustive de contrôle effectif, possession du Q-Pistol, contexte des spawners, timeout après acceptation, GUI/session, profil complet AUTO, UI/GPU et updater. Ne pas prétendre que tout le contrat AUTO est déjà couvert : il manque un événement natif fiable pour les reloads non distinguables par ces observations.
 
