@@ -55,3 +55,7 @@ Source figée `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`. [Compilation complète
 - dxgi.dll : 138240 octets, SHA-256 `9ec6c22c8c307f90e9e25c0b1e48e7a60fc7ca5b6c03bb3e0f9d0b5e58344340`.
 
 ZIP téléchargé, CRC/racine exacte et PE AMD64 contrôlés localement ; empreintes identiques à la CI et au paquet public. A34 reste installée (ASI `88af6995…`). Statut **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, pas encore VALIDÉ par l'utilisateur. Essai ciblé et rollback prêt nécessaires avant de conclure.
+
+## Installation demandée — 4 novembre 2026
+
+A36 installée après confirmation explicite du mainteneur et contrôle jeu/updater fermés. Ancienne paire A34, INI personnel et logs sauvegardés et vérifiés localement avant remplacement. Les hashes des deux binaires installés correspondent exactement à la release A36 ; le hash de l'INI est identique avant/après. Aucun lancement du jeu ni validation en jeu effectués. Le relevé privé conserve le chemin de rollback ; la mention A34 ci-dessus décrit l'état avant cette installation.

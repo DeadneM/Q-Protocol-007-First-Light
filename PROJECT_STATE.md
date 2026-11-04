@@ -1,5 +1,9 @@
 # Q Protocol — Project State
 
+## 2026-11-04 — A36 installed at maintainer request
+
+A36 `97cdf00` installed with game/updater closed after verified backup of the previous A34 binary pair, personal INI and logs. Both installed binaries match the published A36 hashes; personal INI SHA-256 is identical before/after. No game launch or gameplay validation by the agent. Rollback pair and private installation record are retained locally. Current installation is A36; earlier installation statements below are historical. Stable/main unchanged. Next: player tests F3/F4 and AUTO in Tac Sim/story, then inspect the new logs.
+
 ## 2026-11-04 — current candidate A36, stable preserved
 
 Current branch: `experiment/a36-native-delivery`. Frozen binary source `97cdf00f1ee4ebcf0004749104bb1a2cee46ef43`. Full build `41894755836` and beta publication `41895495682` succeeded. [A36 TEST release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a36-native-delivery-test) and manifest verified; the real updater engine discovers/downloads/checks it with beta ON, excludes it on stable and does not reoffer it to build 36. ZIP 598404 bytes, SHA-256 `41cbf51c9945d01cbbe14a32f21bb7dc2bbebaabb87b497d72b7214c7b843796`, two AMD64 root binaries only.
