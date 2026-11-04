@@ -95,6 +95,7 @@ struct ActiveWeapon {
     bool active = false;
     bool packageOwned = false;
     bool observationLogged = false;
+    bool dispatchDeferredLogged = false;
     runtime::Ticket ticket{};
     SpawnResult result{};
     std::uint64_t requestedRid = 0;
@@ -401,12 +402,16 @@ bool ReadNativeThreadMask(std::uint32_t& mask) {
         return tls && SafeRead(tls, slot) && slot && SafeRead(slot + 0x1AC, mask) && mask != 0;
     } __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
-PlayerContext ObserveGameplayPlayer() {
+runtime::NativePlayer ReadCurrentNativePlayer() {
     NativeMemoryReader read;
     std::uint32_t mask = 0;
     runtime::NativePlayer native{};
     if (ReadNativeThreadMask(mask)) native = runtime::ReadNativePlayer(read, g_exeBase, mask);
-    else native.reason = "native gameplay TLS unavailable";
+    else native.reason = "native observer TLS unavailable";
+    return native;
+}
+PlayerContext ObserveWorkerPlayer() {
+    const auto native = ReadCurrentNativePlayer();
     PlayerContext player{};
     player.character = reinterpret_cast<void*>(native.character);
     player.loadout = reinterpret_cast<void*>(native.loadout);
@@ -424,8 +429,15 @@ PlayerContext ObserveGameplayPlayer() {
     return player;
 }
 PlayerContext ResolvePlayer() {
+    return ObserveWorkerPlayer();
+}
+PlayerContext ReadDispatchPlayer() {
+    const auto native = ReadCurrentNativePlayer();
     std::lock_guard<std::mutex> lock(g_playerMutex);
-    return g_publishedPlayer;
+    auto player = g_publishedPlayer;
+    player.snapshot = runtime::RevalidateDispatch(player.snapshot, native.observation, GetTickCount64());
+    if (!player.snapshot.playable) player.reason = native.reason;
+    return player;
 }
 runtime::AutoStage AutoStage() {
     std::lock_guard<std::mutex> lock(g_playerMutex);
@@ -1368,8 +1380,10 @@ void ProcessWeaponQueue() {
         const bool triggered = result.triggered;
 
         if (!triggered) {
-            if (now - g_activeWeapon.setupAt > 2000) {
-                FailActiveWeapon("gameplay trigger timeout");
+            if (!g_activeWeapon.dispatchDeferredLogged && now - g_activeWeapon.setupAt > 2000) {
+                Log("Weapon request=%llu session=%llu waiting for safe gameplay dispatch; no native call repeated.",
+                    g_activeWeapon.ticket.request, g_activeWeapon.ticket.session);
+                g_activeWeapon.dispatchDeferredLogged = true;
             }
             return;
         }
@@ -2079,16 +2093,16 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
 }
 extern "C" void QpGameplayTick() {
     if (qp::g_tickBusy.test_and_set(std::memory_order_acquire)) return;
-    qp::g_tickPlayer = qp::ObserveGameplayPlayer();
+    qp::g_tickPlayer = qp::ReadDispatchPlayer();
     const auto state = qp::g_tickPlayer.snapshot;
     if (const auto command = qp::g_spawnMailbox.TryTake(state)) {
         const auto result = qp::ExecuteSpawn(command->payload);
-        qp::g_tickPlayer = qp::ObserveGameplayPlayer();
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
         qp::g_spawnMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
     }
     if (const auto command = qp::g_ammoMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
         const bool result = qp::PublishAmmoProfileGameplayThread(command->payload);
-        qp::g_tickPlayer = qp::ObserveGameplayPlayer();
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
         qp::g_ammoMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
     }
     qp::g_tickBusy.clear(std::memory_order_release);

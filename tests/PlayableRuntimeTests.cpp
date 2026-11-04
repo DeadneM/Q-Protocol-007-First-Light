@@ -77,6 +77,32 @@ int main() {
     session.Observe({}, 180);
     Require(session.Stage() == AutoStage::Failed, "interrupted partial AUTO is explicit, never silently repeated");
     Require(!session.AmmoSubmitted(replacement.session), "interrupted AUTO cannot publish late ammo");
+    // Regression from A34: there may be no dispatch callback for seconds while
+    // a menu is open. Continuous read-only observation must retain the session.
+    PlayableSession polling;
+    auto observed = polling.Observe(active, 1000);
+    const auto stableSession = observed.session;
+    const auto stableEpoch = observed.epoch;
+    Require(polling.BeginAuto(stableSession,true,1000),"AUTO starts independently of dispatch cadence");
+    for(std::uint64_t now=1016;now<6000;now+=16) observed=polling.Observe(active,now);
+    Require(observed.Fresh(6000) && observed.session==stableSession && observed.epoch==stableEpoch,
+        "long absence of dispatch does not manufacture READY edges");
+    Require(polling.Stage()==AutoStage::Weapons,"no false reset of AUTO during menu interval");
+    Require(RevalidateDispatch(observed,active,6000).playable,"late dispatch revalidates the continuously observed player");
+    auto foreign=active; ++foreign.identity.incarnation;
+    const auto refused=RevalidateDispatch(observed,foreign,6000);
+    Require(!refused.playable && refused.session==stableSession && refused.epoch==stableEpoch,
+        "dispatch rejects a new native identity without publishing an out-of-order session");
+    Require(!RevalidateDispatch(observed,blocked,6000).playable,"native loss of control still closes dispatch");
+    Require(!RevalidateDispatch(observed,active,7000).playable,"worker failure still expires authorizations");
+    GameplayMailbox<Payload,bool> delayed;
+    auto earliest=polling.Snapshot();
+    const auto queued=delayed.Submit(earliest,profile,5992);
+    Require(static_cast<bool>(queued),"safe dispatch request is queued independently of callback cadence");
+    for(std::uint64_t now=6008;now<10000;now+=16) observed=polling.Observe(active,now);
+    const auto dispatched=delayed.TryTake(RevalidateDispatch(observed,active,10000));
+    Require(dispatched && dispatched->ticket==queued,"same queued command survives a long menu interval without retry");
+    Require(delayed.Complete(*dispatched,observed,true),"delayed request completes exactly once in the same session");
     std::printf("Playable runtime tests PASS: %d checks. Lifecycle/mailbox fixtures only; native playability and delivery require game validation.\n", checks);
     return 0;
 }

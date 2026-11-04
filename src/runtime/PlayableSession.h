@@ -31,6 +31,15 @@ struct PlayerSnapshot {
     }
 };
 
+// Dispatch may close a cached authorization, but must never publish an
+// observation or manufacture another session. Only the polling producer does so.
+inline PlayerSnapshot RevalidateDispatch(PlayerSnapshot published,
+    const PlayerObservation& native, std::uint64_t now) {
+    published.playable = published.Fresh(now) && native.locallyControlled &&
+        native.gameplayAllowed && static_cast<bool>(native.identity) && native.identity == published.identity;
+    return published;
+}
+
 enum class AutoStage { Waiting, Weapons, NeedAmmo, Ammo, Processed, Failed };
 
 // Only the native gameplay observer changes availability. Loadout refreshes,
