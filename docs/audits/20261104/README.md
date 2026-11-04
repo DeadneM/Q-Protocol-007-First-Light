@@ -5,6 +5,7 @@
 - [Première passe : buts et fonctions](PASS_1.md)
 - [Seconde passe : invariants et contre-exemples](PASS_2.md)
 - [Manifeste de source](SOURCE_MANIFEST.json), [index de navigation](FUNCTION_INDEX.csv), [résultats des modèles](AUDIT_MODELS.json)
+- [Contrôle ultérieur des 31 RIDs, RPKG installés et historique](WEAPON_IDENTITIES.md) : identités vérifiées, livraison distincte et toujours à réparer.
 
 ## Comparaison
 

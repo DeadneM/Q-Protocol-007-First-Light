@@ -1,0 +1,535 @@
+{
+  "reference": {
+    "repository": "glacier-modding/Bond-Hashes",
+    "commit": "94767af01ce524975acbb254e4cd98e28a04d061",
+    "TEMPBlob": "ab3a42fe3635dc703d5dc634f05229b6032c0af7",
+    "sha256": "6cb49252c668ccf95d72eaf9616c59d690dba2ab2924cbc8dec1b3f5e59b4e23"
+  },
+  "catalogSha256": "8f644b75ff5059efd1acae410c85e9963e847872f0d410ec28d73194a2d27022",
+  "packages": [
+    {
+      "name": "chunk0.rpkg",
+      "resources": 347348,
+      "metadataEntrySize": 20,
+      "indexSha256": "feeb28737a2d23b59458d19970065451d23c9af5e3f8d09027f894438833baa3"
+    },
+    {
+      "name": "chunk0patch272.rpkg",
+      "resources": 2,
+      "metadataEntrySize": 20,
+      "indexSha256": "a7f39939489b506d683568eb0d325ea1dd430e9c841512a1b9eb4dd4fea1606c"
+    },
+    {
+      "name": "chunk0patch30.rpkg",
+      "resources": 1,
+      "metadataEntrySize": 20,
+      "indexSha256": "e86876865e03beccfd5649ddd5c80e5bc3684ed60d11eb66b35d7cee97ba32a9"
+    },
+    {
+      "name": "chunk1.rpkg",
+      "resources": 406864,
+      "metadataEntrySize": 20,
+      "indexSha256": "d46f9802664792ba1c643fbbb77e51e97197082398eb39b98cca187cabd9c8a4"
+    }
+  ],
+  "entries": [
+    {
+      "alias": "QPistolSilenced",
+      "rid": "019973508A5E327B",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_qpistol_silenced.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4243890907,
+          "storedSize": 5929
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "QPistolUnsilenced",
+      "rid": "01BE2C45AA55200D",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_qpistol.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3350001583,
+          "storedSize": 5661
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "LightPistol",
+      "rid": "0126A975EC177851",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_lightpistol_9mm_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3397401137,
+          "storedSize": 7681
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "SMGFastFire",
+      "rid": "01DC3790D6AFFEBD",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_smg_fastfire_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3642856561,
+          "storedSize": 3743
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "Revolver",
+      "rid": "01E011D9ABFE4AAB",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_revolver_6shot_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3429892708,
+          "storedSize": 5513
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "HeavyPistol50Cal",
+      "rid": "010D8295A99561AB",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_heavypistol_50cal_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3190997259,
+          "storedSize": 6426
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "SMGSilenced",
+      "rid": "01C28E735A2283A0",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_smg_silenced_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3650996299,
+          "storedSize": 7199
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ARMilitary",
+      "rid": "013BD1F27CC907FA",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_ar_military_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3737413577,
+          "storedSize": 4140
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ShotgunPump",
+      "rid": "01F59A0E72315C02",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_shotgun_pumpaction_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4014484970,
+          "storedSize": 5747
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "BoltActionRifle",
+      "rid": "013117D0145E0958",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_boltactionrifle_military_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3253205018,
+          "storedSize": 8269
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "AgencyFocusGun",
+      "rid": "0198799A3CC4E437",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_waltherppk_agentfocus.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3037788808,
+          "storedSize": 1997
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "Taser",
+      "rid": "01702FE09FEA3596",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_taser.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3044536109,
+          "storedSize": 8722
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "AssassinHandcannon",
+      "rid": "017D8BD5B237B333",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_handcannon_assassin.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3078052841,
+          "storedSize": 2835
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ShotgunStandard",
+      "rid": "01BD00B144B74AC0",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_shotgun_template.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3134502761,
+          "storedSize": 7444
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "AssaultRiflePirate",
+      "rid": "0110285AF7A95A01",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_ar_pirate_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3346506731,
+          "storedSize": 6840
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "SocomPistol",
+      "rid": "01D73DA578C4F423",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_lightpistol_socomsilenced_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3429878731,
+          "storedSize": 4746
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "LightPistolLargeMag",
+      "rid": "010ABE3F66032326",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_lightpistol_largemag_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3464205878,
+          "storedSize": 5997
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "SMGMilitary",
+      "rid": "010DB0A3EB45A100",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_smg_military_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3464211875,
+          "storedSize": 5510
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "MachinePistolHighRecoil",
+      "rid": "013F40B3AD756F14",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_machinepistol_highrecoil_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3552203399,
+          "storedSize": 3754
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ARBurst",
+      "rid": "01184198E788A09E",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_ar_burst_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3822518094,
+          "storedSize": 7072
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ARExotic",
+      "rid": "01587BEED983569A",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_ar_exotic_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3920842412,
+          "storedSize": 4118
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "MarksmanRifle",
+      "rid": "01F5D65A1232F9F3",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_marksmanrifle_military_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 3978090117,
+          "storedSize": 4147
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ShotgunSemiAuto",
+      "rid": "01E7EDCF4CA78A61",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_shotgun_semiauto_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4053444343,
+          "storedSize": 5666
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ShotgunCompact",
+      "rid": "01833561121578C4",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_shotgun_compact_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4086611103,
+          "storedSize": 5174
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ShotgunCompactOneHanded",
+      "rid": "018DCB210A8B048B",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_shotgun_sawnoff_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4271993053,
+          "storedSize": 5147
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "AssassinRifle",
+      "rid": "0142DF24DDF6819F",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_exotic_harpoon_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4272009583,
+          "storedSize": 6130
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "LightPistolNonLethal",
+      "rid": "016886A4B599391C",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_lightpistol_9mm_nonelethal.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4109265018,
+          "storedSize": 3628
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "AssaultRifleNonLethal",
+      "rid": "016D12D89A0A658E",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_assaultrifle_military_nonlethal.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4149785354,
+          "storedSize": 2606
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "SMGNonLethal",
+      "rid": "018C90273080F785",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_smg_military_nonlethal.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4172073657,
+          "storedSize": 2588
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "BurstPistol",
+      "rid": "015E2DA84660F7D9",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_burstpistol_3round_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4240952020,
+          "storedSize": 4027
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    },
+    {
+      "alias": "ServicePistol",
+      "rid": "01988D661ADF3BCE",
+      "path": "[assembly:/_knt/items/templates/firearms/firearms.template?/firearm_instance_servicepistol_a.entitytemplate].entitytemplate",
+      "pathHashMatches": true,
+      "occurrences": [
+        {
+          "package": "chunk0.rpkg",
+          "type": "TEMP",
+          "offset": 4244134231,
+          "storedSize": 4964
+        }
+      ],
+      "patchDeletions": [],
+      "presentAsTEMP": true
+    }
+  ],
+  "limits": "Resource identity/presence only, not acquisition or gameplay validation. Unknown package layouts fail closed; load order is not inferred.",
+  "source": "203c63c79941fcf449b1e1cc5d82acf8c138060b"
+}

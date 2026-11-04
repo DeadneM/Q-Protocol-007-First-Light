@@ -502,4 +502,6 @@ use A29 Updates > Check now > Update on exit for the first actual exit-cycle
 test. Keep the other system's GPU incident OPEN; it is not a universal fix.
 # 2026-11-04 — double audit A34
 
+Suite : [contrôle des 31 identités d'armes](audits/20261104/WEAPON_IDENTITIES.md). Les catalogues public et installé correspondent aux 31 ressources TEMP présentes et aux chemins Bond-Hashes dont les hashes ont été recalculés. Aucun RID remplacé. F3/F4 en Tac Sim isolent un défaut de livraison, pas une preuve de joueur absent ; les résultats natifs conservés montrent un cas d'objet vivant non rattaché, avec limite de provenance explicitée. A35 compilée/contrôlée reste séparée de cette réparation.
+
 Deux passes sur la source A34 figée, comparaison et plan de correction : [rapport](audits/20261104/README.md). Détection/session, confirmation de livraison, retries, concurrence UI et durée de vie GPU restent à corriger. AUTO confirmé : une fois à l'arrivée et après mort/rechargement, jamais pour menu/pause. Aucun nouveau binaire ni promotion stable. A35 WIP isolé, non validé.
