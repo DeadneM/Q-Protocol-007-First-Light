@@ -1,0 +1,257 @@
+{
+  "basis": "Git objects read locally; accepted state and runtime proof are documented separately.",
+  "versions": [
+    {
+      "version": "A28",
+      "commit": "580e57cb1e240df04e1a3f8cdc0fb0b46067fcc2",
+      "parent": "65098968228bc829ca5b83a9869a16a02d3512d5",
+      "files": {
+        "src/QProtocol.cpp": "b66005c9245fca92179a4d1ddab60cb2cf76bd2481acaaee997da6599904395d",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "b74a96f9411608b71ee0655d696e4693ce1660ac8c2d636e0cb1d402429cf53f",
+        "src/Updates.cpp": null,
+        "updater/UpdateEngine.cs": null,
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a28-remap.yml",
+        "PROJECT_STATE.md",
+        "README.md",
+        "docs/A28_NOV2026_NATIVE_REMAP.md",
+        "docs/HISTORY.md",
+        "docs/NOV2026_GAME_UPDATE_REMAP.md",
+        "docs/STATUS.md",
+        "evidence/nov2026/a28-native-map.json",
+        "evidence/nov2026/executable-audit.json",
+        "evidence/nov2026/final-static-checks.txt",
+        "evidence/nov2026/focused-traces.txt",
+        "evidence/nov2026/native-disassembly.txt",
+        "evidence/nov2026/primitive-traces.txt",
+        "evidence/nov2026/rtti-candidates.json",
+        "evidence/nov2026/type-metadata.txt",
+        "packaging/README_A28.txt",
+        "packaging/RELEASE_NOTES_A28.md",
+        "src/QProtocol.cpp",
+        "tools/audit_game_executable.py",
+        "tools/verify_a28_scope.py"
+      ]
+    },
+    {
+      "version": "A29",
+      "commit": "17d70a4c5c5a12fa251b75e3066a43b33dda6663",
+      "parent": "80287e64827991a23380ac61acf4e5661cef8cd4",
+      "files": {
+        "src/QProtocol.cpp": "1ef64757efc5dc61afcc340c91adc87940d81355b9f88c0bded40c59a9f88834",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "ca891ac29c9e3238db398abbdf11d9a303da299853a83c77c7220d8353fe03ae",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a29-updater.yml",
+        "PROJECT_STATE.md",
+        "README.md",
+        "docs/A29_UPDATER_AND_MENU.md",
+        "docs/DXGI_PACKAGING_POLICY.md",
+        "docs/HISTORY.md",
+        "docs/STATUS.md",
+        "evidence/a28-runtime/QProtocol.log",
+        "evidence/a28-runtime/QProtocolDXGI.log",
+        "packaging/RELEASE_NOTES_A29.md",
+        "src/OverlayA19.cpp",
+        "src/QProtocol.cpp",
+        "src/QProtocolResources.rc",
+        "src/Updates.cpp",
+        "src/Updates.h",
+        "tests/MenuSmoke.cpp",
+        "tests/UpdaterTests.cs",
+        "tools/package_a29.py",
+        "tools/verify_a29_scope.py",
+        "updater/UpdateEngine.cs"
+      ]
+    },
+    {
+      "version": "v0.9.7",
+      "commit": "8722000d859eb9785a8906cae82adc72d35ae1a2",
+      "parent": "fa2be3287de582698c7df7d8d2b5677e81deb088",
+      "files": {
+        "src/QProtocol.cpp": "a32fbfb4985c101dd897c9784016a62585ce67bc834749a67f13b9e45056c291",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": []
+    },
+    {
+      "version": "A31 core",
+      "commit": "7cd008ceff6ea3f020588705198105f66e345894",
+      "parent": "62f75211256c498562a1727a966c27d551dccfb9",
+      "files": {
+        "src/QProtocol.cpp": "702cd24faa8f88b63da506aa0249581ac0c7295d88b3a8d7cd4593126dfd69a2",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a31-diagnostic.yml",
+        "PROJECT_STATE.md",
+        "docs/HISTORY.md",
+        "docs/OPERATIONS_READINESS.md",
+        "packaging/README_A31_DIAG.md",
+        "src/PlayerReadinessDiagnostics.inl",
+        "src/QProtocol.cpp",
+        "src/Updates.h",
+        "tools/package_a31.py",
+        "tools/verify_a31_scope.py"
+      ]
+    },
+    {
+      "version": "A31 publication",
+      "commit": "33f3dde9059931ee70d1a78a6b351636c3775e66",
+      "parent": "26e828442dc2d624611cd38031f93ddd964e4570",
+      "files": {
+        "src/QProtocol.cpp": "702cd24faa8f88b63da506aa0249581ac0c7295d88b3a8d7cd4593126dfd69a2",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/publish-a31-beta.yml"
+      ]
+    },
+    {
+      "version": "A32",
+      "commit": "1d040508bff8ab269effed793735a2336c32e9c2",
+      "parent": "62f75211256c498562a1727a966c27d551dccfb9",
+      "files": {
+        "src/QProtocol.cpp": "3b90cc417810f6429684f1b691bef4b5272cbff5ba472889a9419b9143aff479",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a32-tacsim.yml",
+        "PROJECT_STATE.md",
+        "docs/A32_TACSIM_RESOLVER.md",
+        "docs/HISTORY.md",
+        "docs/STATUS.md",
+        "packaging/README_A32.md",
+        "src/MissionLoadoutResolver.inl",
+        "src/QProtocol.cpp",
+        "src/Updates.h",
+        "tests/MissionResolverTests.cpp",
+        "tools/package_a32.py",
+        "tools/verify_a32_scope.py"
+      ]
+    },
+    {
+      "version": "A33",
+      "commit": "5e2e721f3b83bf70ec9471cf5b073886c95bab91",
+      "parent": "43b18a31f292d5d1a22e64df8bcbc959fa4b4c79",
+      "files": {
+        "src/QProtocol.cpp": "49115ca691a57cf75a90e29346b04c6aaaea6114930858ec743f3cae256da545",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a33-tacsim.yml",
+        "PROJECT_STATE.md",
+        "README.md",
+        "docs/HISTORY.md",
+        "docs/STATUS.md",
+        "docs/TACSIM_IDENTITY_CONTRACT.md",
+        "packaging/README_A33.md",
+        "src/MissionLoadoutResolver.inl",
+        "src/QProtocol.cpp",
+        "src/Updates.h",
+        "tests/MissionResolverTests.cpp",
+        "tools/package_a33.py",
+        "tools/verify_a33_scope.py"
+      ]
+    },
+    {
+      "version": "A34",
+      "commit": "13a843ae576d082dfaae2d5bb1909b6442dc7da2",
+      "parent": "62f75211256c498562a1727a966c27d551dccfb9",
+      "files": {
+        "src/QProtocol.cpp": "0c1fe50a8f0cfd15e6cf5819435bef579405048e2980b9bdfe541942574ef7d1",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a34-playable.yml",
+        "PROJECT_STATE.md",
+        "README.md",
+        "docs/ASI_AUDIT_20261103.md",
+        "docs/HISTORY.md",
+        "docs/PLAYABLE_PLAYER_CORE.md",
+        "docs/PLAYABLE_PLAYER_TODO.md",
+        "docs/STATUS.md",
+        "docs/TACSIM_IDENTITY_CONTRACT.md",
+        "packaging/README_A34.md",
+        "src/NativePlayerGuards.inl",
+        "src/QProtocol.cpp",
+        "src/Updates.h",
+        "src/runtime/GameplayMailbox.h",
+        "src/runtime/NativePlayer.h",
+        "src/runtime/PlayableSession.h",
+        "tests/NativePlayerTests.cpp",
+        "tests/PlayableRuntimeTests.cpp",
+        "tools/package_a34.py",
+        "tools/read_mission_context.py",
+        "tools/verify_a34_scope.py"
+      ]
+    },
+    {
+      "version": "A35",
+      "commit": "a73f0a066632a8c43904f51d965a88c78a7ebeb1",
+      "parent": "1c63c51c52070f994a019bd0eab0cd62a3fe29ea",
+      "files": {
+        "src/QProtocol.cpp": "014125a5229c6a184b08e533d5e59a40cf73cb71821444063d68884cc2cceafa",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        ".github/workflows/build-a35-session.yml",
+        "src/QProtocol.cpp",
+        "src/Updates.h",
+        "tools/package_a35.py",
+        "tools/verify_a35_scope.py"
+      ]
+    },
+    {
+      "version": "A36 REJECTED",
+      "commit": "97cdf00f1ee4ebcf0004749104bb1a2cee46ef43",
+      "parent": "124fa756df989a8f3b224f42851ce880be9a35ce",
+      "files": {
+        "src/QProtocol.cpp": "9fe90a77fc11abf7b6a5fa1fb1f53a41f3031b61fa1fcfdbe06ca851a3cdd698",
+        "src/GameplayHook.asm": "6a916334f5fef03d14802ce316967458640fa92fc4a54bae67fa711681f12b77",
+        "src/OverlayA19.cpp": "8953cce754444b396c43d5491cc114482f0a470136ffda6392a083b5089c0059",
+        "src/Updates.cpp": "00bb57fa3a843fde3e0461f050d2e36d323dcb0a19a0925959109fae2a953004",
+        "updater/UpdateEngine.cs": "767f3097b52e702ca627062abc77ce64a1c27d0420c3604fcfdc0325b16eb4d2",
+        "config/QProtocol.ini": "dd297f1cfe46a1e693974f5ba8d380887fd1de40f2990946b3a25667c72ce0bd"
+      },
+      "changedFilesFromParent": [
+        "tests/NativeInventoryTests.cpp"
+      ]
+    }
+  ]
+}

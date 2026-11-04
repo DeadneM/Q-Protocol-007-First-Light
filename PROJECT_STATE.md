@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-04 — latest instruction: NO rollback, establish the mod's common thread
+
+Maintainer explicitly says the game is closed and **do not restore anything for now**; continue the repair after reviewing commits from a version where the lobby worked. A36 remains installed and REJECTED. No rollback executed. Do not run the prepared rollback script without a new instruction. A36 release quarantine is verified: workflow `41906266428` success; actual updater probe no longer offers it. Stable/main unchanged.
+
+Current audit branch `audit/lobby-lineage-20261104`. Read [FIL_ROUGE_MOD.md](docs/FIL_ROUGE_MOD.md): source/reference table from accepted v0.9.7 (`8722000`), actual branch parents, function contracts, proven regression versus hypotheses, and next-session plan. A31/A32/A34 independently start at `62f7521`; A34 does not inherit A32/A33's resolver. No new gameplay code/build/installation during this review. User explicitly requested a continuity-memory note for this Work conversation. Preserve useful functions, personal INI, and private traces; repair rather than reinstall an earlier build without consent.
+
 ## 2026-11-04 — A36 REJECTED: severe regression, rollback pending
 
 Maintainer reports no lobby Tac Sim AUTO, delayed manual delivery and silenced Q-Pistol still absent. Live logs confirm delivery timeouts for every AUTO/F3 role, F3 busy/rejected during those waits and AUTO failed before ammo. The A36 confirmation gate is not operationally valid; do not retain it as an acquired function or layer another candidate on top. CI/fixtures did not establish gameplay correctness. Withdraw A36 from beta discovery by preserving its release as draft; verify that action remotely.

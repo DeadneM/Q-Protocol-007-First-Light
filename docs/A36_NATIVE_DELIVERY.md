@@ -2,6 +2,8 @@
 
 **REJETÉE par le mainteneur après essai réel.** Régression sévère : AUTO lobby Tac Sim absent, manuel retardé et silencieux toujours absent. Les logs confirment les timeouts de confirmation sur chaque rôle, le blocage F3 pendant le paquet et AUTO sans munitions. Les sections de conception et contrôles ci-dessous sont historiques ; elles ne décrivent pas une fonctionnalité validée. Retrait du canal beta et rollback A34 préparé, jeu fermé/confirmation requis. Ne pas conserver le nouveau gate comme acquis.
 
+**Instruction ultérieure prioritaire : aucun rollback pour l'instant, même jeu fermé.** Le mainteneur demande une remise à plat des commits/fonctions puis correction ; voir [FIL_ROUGE_MOD.md](FIL_ROUGE_MOD.md). A36 reste physiquement installée sur sa demande, sans être considérée acquise. Retrait beta vérifié, pas de nouvelle build.
+
 Base de source : A35 `a73f0a0`, compile et contrats contrôlés ; A35 n'est pas validée en jeu. Base stable conservée : v0.9.7. Contrôle des 31 RIDs : audit `66c91ec`, aucun remplacement d'identifiant. Branche `experiment/a36-native-delivery`. Pas d'installation automatique.
 
 ## Objectif

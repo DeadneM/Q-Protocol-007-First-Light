@@ -10,7 +10,7 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**A36 REJECTED after gameplay regression. Do not install it.** The new delivery confirmation gate adds repeated five-second waits, blocks manual requests and fails AUTO without fixing the silenced Q-Pistol. Its release is being withdrawn from beta discovery; rollback is tracked in [PROJECT_STATE.md](PROJECT_STATE.md). Compilation/package tests had passed but did not validate gameplay. Stable v0.9.7/main is unchanged. [Resource identity audit](docs/audits/20261104/WEAPON_IDENTITIES.md) remains distinct from delivery proof.
+**A36 REJECTED after gameplay regression. Do not install it.** The new delivery confirmation gate adds repeated five-second waits, blocks manual requests and fails AUTO without fixing the silenced Q-Pistol. Its release is withdrawn from beta discovery. Maintainer requests **no rollback for now**, and a commit/function review from the lobby-working reference: [fil rouge](docs/FIL_ROUGE_MOD.md), [current state](PROJECT_STATE.md). Compilation/package tests had passed but did not validate gameplay. Stable v0.9.7/main is unchanged. [Resource identity audit](docs/audits/20261104/WEAPON_IDENTITIES.md) remains distinct from delivery proof.
 
 **Previous experimental A34:** the [playable-player core rebuild](docs/PLAYABLE_PLAYER_CORE.md)
 replaces loadout-based readiness with a shared native-character/session gate for
