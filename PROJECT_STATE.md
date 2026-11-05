@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — A37 Weapon Cadence TEST
+
+Isolated branch `experiment/a37-weapon-cadence`. Behavior reference v0.9.7 (`8722000`); source branch starts before the A36 delivery experiment at `66c91ec`, with A35's experimental player/session handling and the catalog audit. Restore the accepted-spawn-to-idle queue progression and 500 ms inter-weapon cooldown. Native effects with uncertain outcomes are retired without automatic replay. [Test contract and remaining limits](docs/A37_WEAPON_CADENCE.md).
+
+The installed A36 remains rejected. No installation or rollback as part of preparing this test build.
+
 ## 2026-11-03 - A34 playable-player core rebuild
 
 User REJECTS A33 detection and requests one shared playable-player gate for AUTO

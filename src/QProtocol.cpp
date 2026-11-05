@@ -82,6 +82,7 @@ struct PlayerContext {
 };
 struct SpawnResult {
     bool triggered = false, exception = false, valid = false, accepted = false, pending = false;
+    bool invoked = false;
     unsigned int state = 0xFFFFFFFF;
     ULONGLONG at = 0;
 };
@@ -211,6 +212,7 @@ struct LoadoutPackage {
     bool active = false;
     bool justCompleted = false;
     bool justFailed = false;
+    bool hadUnconfirmedRole = false;
     LoadoutSource source = LoadoutSource::None;
     LoadoutProfile profile{};
     std::uint32_t playerId = 0;
@@ -1189,7 +1191,7 @@ void FinishLoadoutPackage(bool success, const char* reason) {
     Log(
         "%s PACKAGE %s%s%s",
         source,
-        success ? "COMPLETE" : "FAILED",
+        success ? (g_loadoutPackage.hadUnconfirmedRole ? "PROCESSED WITH WARNINGS" : "PROCESSED") : "FAILED",
         reason ? ": " : "",
         reason ? reason : "");
 }
@@ -1303,6 +1305,8 @@ void RetryUnitaryWeapon(const char* reason) {
         reason ? reason : "unknown failure");
 }
 
+void FinishActiveWeapon(bool processed);
+
 void FailActiveWeapon(const char* reason) {
     if (!g_activeWeapon.active) {
         return;
@@ -1316,6 +1320,13 @@ void FailActiveWeapon(const char* reason) {
         static_cast<unsigned long long>(RotateRid(rid)),
         reason ? reason : "unknown failure");
 
+    // A failed observation cannot undo a native call. Retire the role so the
+    // remaining roles and ammo can proceed for the same session.
+    if (g_activeWeapon.result.invoked) {
+        FinishActiveWeapon(false);
+        return;
+    }
+
     ResetActiveWeaponState();
 
     if (packageOwned) {
@@ -1325,7 +1336,7 @@ void FailActiveWeapon(const char* reason) {
     }
 }
 
-void CompleteActiveWeapon() {
+void FinishActiveWeapon(bool processed) {
     if (!g_activeWeapon.active) {
         return;
     }
@@ -1335,7 +1346,8 @@ void CompleteActiveWeapon() {
     const ULONGLONG now = GetTickCount64();
 
     Log(
-        "DIRECT graph COMPLETE RID=%016llX",
+        "DIRECT graph %s RID=%016llX",
+        processed ? "SPAWNER IDLE" : "OUTCOME UNCONFIRMED; no native replay",
         static_cast<unsigned long long>(RotateRid(rid)));
 
     g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
@@ -1346,10 +1358,12 @@ void CompleteActiveWeapon() {
     ResetActiveWeaponState();
 
     if (packageOwned) {
+        g_loadoutPackage.hadUnconfirmedRole |= !processed;
         Log(
-            "%s package role %s COMPLETE RID=%016llX",
+            "%s package role %s %s RID=%016llX",
             LoadoutSourceName(g_loadoutPackage.source),
             LoadoutPhaseName(g_loadoutPackage.phase),
+            processed ? "PROCESSED" : "UNCONFIRMED",
             static_cast<unsigned long long>(RotateRid(rid)));
         AdvanceLoadoutPackage();
         return;
@@ -1427,7 +1441,7 @@ void ProcessWeaponQueue() {
         }
 
         if (idle) {
-            CompleteActiveWeapon();
+            FinishActiveWeapon(true);
             return;
         }
 
@@ -1436,7 +1450,7 @@ void ProcessWeaponQueue() {
         const ULONGLONG elapsed = triggeredAt ? now - triggeredAt : 0;
 
         if (elapsed > 5000) {
-            FailActiveWeapon("completion timeout");
+            FailActiveWeapon("spawner still busy after timeout");
         }
 
         return;
@@ -1744,7 +1758,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol A35 / Session Repair TEST");
+    Log("Q Protocol A37 / Weapon Cadence TEST");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
@@ -2080,6 +2094,7 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
     if (!g_nativeSpawn || !ValidateGraph(payload.rid, payload.graph)) return result;
     __try {
         const auto spawner = payload.graph.spawner;
+        result.invoked = true;
         g_nativeSpawn(reinterpret_cast<void*>(spawner));
         std::uintptr_t begin = 0, end = 0; BYTE state = 0xFF;
         result.valid = SafeRead(spawner + 0x38, begin) && SafeRead(spawner + 0x40, end) && SafeRead(spawner + 0x50, state);

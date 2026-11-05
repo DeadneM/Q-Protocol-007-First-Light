@@ -1,14 +1,17 @@
-name: A35 session repair full build (artifact only)
+name: Q Protocol experimental full build
 on:
   workflow_dispatch:
   push:
-    branches: [experiment/a35-session-repair]
+    branches: [experiment/a35-session-repair, experiment/a37-weapon-cadence]
     paths: ["src/**", "tools/**", "tests/**", ".github/workflows/build-a35-session.yml"]
 permissions:
   contents: read
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      QP_BUILD: ${{ github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
+      QP_ARTIFACT: ${{ github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
 
     steps:
       - name: Check out repository
@@ -295,11 +298,11 @@ jobs:
 
           Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
 
-      - name: Verify A35 native resolver scope and fail-closed conditions
+      - name: Verify native resolver scope and fail-closed conditions
         shell: pwsh
         run: |
-          python tools/verify_a35_scope.py
-          if ($LASTEXITCODE -ne 0) { throw "A34 scope audit failed" }
+          python tools/verify_a35_scope.py $env:QP_BUILD
+          if ($LASTEXITCODE -ne 0) { throw "Scope audit failed" }
 
       - name: Test native player read contract and shared playable session
         shell: cmd
@@ -515,17 +518,17 @@ jobs:
             dist/A24_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Package A35 binaries (no release or updater manifest)
+      - name: Package candidate binaries
         shell: pwsh
         run: |
-          python tools/package_a35.py
-          if ($LASTEXITCODE -ne 0) { throw "A35 package verification failed" }
+          python tools/package_a35.py $env:QP_BUILD $env:QP_ARTIFACT
+          if ($LASTEXITCODE -ne 0) { throw "Package verification failed" }
 
-      - name: Upload A35 candidate
+      - name: Upload candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_A35_SessionRepair_TEST
+          name: ${{ env.QP_ARTIFACT }}
           path: |
-            dist/Q-Protocol_A35_SessionRepair_TEST.zip
-            dist/A35-package-checks.json
+            dist/${{ env.QP_ARTIFACT }}.zip
+            dist/A${{ env.QP_BUILD }}-package-checks.json
           if-no-files-found: error

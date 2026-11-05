@@ -160,6 +160,10 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 - Map native functions by full semantic evidence, not guessed RVA deltas.
 - Do not build another numbered compatibility release until the required primitives are understood.
 
+## Experimental builds
+
+[A37 test and gameplay checklist](docs/A37_WEAPON_CADENCE.md)
+
 ## Disclaimer
 
 Q Protocol is an unofficial community modification and is not affiliated with or endorsed by the game publisher, developer, or rights holders.

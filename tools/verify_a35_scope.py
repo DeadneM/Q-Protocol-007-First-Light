@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 BASE = '8722000d859eb9785a8906cae82adc72d35ae1a2'
 def old(path):
@@ -52,8 +53,9 @@ assert 'out.loadout = loadout.pointer' in provider
 assert 'read(binding.component + 0x200, spawnerId)' in provider
 assert 'identity.player' not in function(core,'PublishAmmoProfileGameplayThread')
 header=Path('src/Updates.h').read_text(encoding='utf-8')
-assert header.replace('Build = 35','Build = 30').replace('"A35 TEST"','"v0.9.7"')==old('src/Updates.h')
-print('A35 scope PASS: stable primitives/RIDs/config/UI/DX12/updater preserved; shared native-character/session/mailbox lifecycle replaces loadout readiness.')
+build=int(sys.argv[1]) if len(sys.argv)>1 else 35
+assert header.replace(f'Build = {build}','Build = 30').replace(f'"A{build} TEST"','"v0.9.7"')==old('src/Updates.h')
+print(f'A{build} scope PASS: stable primitives/RIDs/config/UI/DX12/updater preserved; shared native-character/session/mailbox lifecycle replaces loadout readiness.')
 
 assert 'return ObserveWorkerPlayer();' in function(core,'ResolvePlayer')
 assert 'ObserveWorkerPlayer' not in core[core.index('extern "C" void QpGameplayTick() {'):]
