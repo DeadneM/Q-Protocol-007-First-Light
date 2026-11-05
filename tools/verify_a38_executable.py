@@ -25,15 +25,18 @@ def read(rva, count):
 
 core = Path('src/QProtocol.cpp').read_text(encoding='utf-8')
 player = Path('src/NativePlayerGuards.inl').read_text(encoding='utf-8')
+delivery_path = Path('src/NativeDeliveryGuards.inl')
+delivery = delivery_path.read_text(encoding='utf-8') if delivery_path.exists() else ''
 checks = 0
 for source, pattern in [
     (core, r'const BYTE expected\d+\[\] = \{([^}]+)\};\n    if \(!code\("[^"]+", (0x[0-9A-F]+),'),
-    (player, r'const BYTE expected\d+\[\] = \{([^}]+)\};\n[^\n]+\n    if \(!SafeRead\(g_exeBase \+ (0x[0-9A-F]+),')]:
+    (player + delivery, r'const BYTE expected\d+\[\] = \{([^}]+)\};\n[^\n]+\n    if \(!SafeRead\(g_exeBase \+ (0x[0-9A-F]+),')]:
     for raw, rva in re.findall(pattern, source):
         expected = bytes(int(x, 16) for x in re.findall(r'0x([0-9A-F]{2})', raw))
         assert read(int(rva, 16), len(expected)) == expected, rva
         checks += 1
-assert checks == 18, f'Missing native guards ({checks}/18)'
+expected_checks = 27 if delivery else 18
+assert checks == expected_checks, f'Missing native guards ({checks}/{expected_checks})'
 base = int(inventory['image_base'], 16)
 links = re.search(r'links\[\]\[2\] = \{([\s\S]+?)\n    \};', core)[1]
 for at, target in re.findall(r'\{(0x[0-9A-F]+), (0x[0-9A-F]+)\}', links):

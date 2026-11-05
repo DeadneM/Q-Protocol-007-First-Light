@@ -40,4 +40,7 @@
 
 - [ ] Établir le destinataire et le chemin d'attachement des objets créés, à partir du comportement v0.9.7.
 - [ ] Séparer version publique et compteur interne de build dans la prochaine candidate.
+- [x] v0.9.8-beta.1 et build interne 39 affichés séparément dans la candidate.
+- [x] Observer le job natif et comparer l'objet silencieux vivant à l'inventaire après un F3 contrôlé.
+- [ ] Valider en jeu le rattachement natif corrigé, puis AUTO et les munitions.
 - [ ] Obtenir une validation fonctionnelle ciblée avant de reprendre les changements expérimentaux de session/détection.

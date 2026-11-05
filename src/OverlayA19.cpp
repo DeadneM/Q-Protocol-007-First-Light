@@ -2252,6 +2252,7 @@ void DrawUpdatesTab() {
     ImGui::Spacing();
     ImGui::SeparatorText("Version and status");
     ImGui::Text("Installed: %s", updates::Version);
+    ImGui::TextDisabled("Internal build: %d", updates::Build);
     ImGui::Text("Channel: %s", beta ? "Beta" : "Stable");
     if (!update.version.empty()) ImGui::Text("Available: %s", update.version.c_str());
     ImGui::TextWrapped("%s", update.message.c_str());

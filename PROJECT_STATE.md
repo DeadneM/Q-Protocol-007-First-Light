@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — v0.9.8-beta.1 delivery repair in progress
+
+Branch `beta/v0.9.8-delivery`, internal build 39, public beta identity kept separate. [Evidence and contract](docs/V098_BETA_DELIVERY.md). Read-only controlled lobby/F3 comparison confirms Taser/shotgun arrive while the live created silenced Q-Pistol is absent from Bond's inventory. Native loading-job handle changes from -1, then the logical result vector clears. Fix request correlation and add one freshly revalidated native pickup for an owned item absent from the current player. Parallel receipt observation keeps weapon cadence independent and orders AUTO ammo after the observations. Actual new pickup delivery remains unvalidated.
+
+A38 remains physically installed and rejected while the maintainer's game is open. Raw snapshots remain private. Accepted stable v0.9.7/main remains the behavior reference; local-character/session logic carried forward from A38 is still experimental, with same-identity reload unresolved.
+
 ## 2026-11-05 — A38 REJECTED after gameplay test
 
 Maintainer reports that A38 still does not work and flags the confusing replacement of public v0.9.7 by experimental A-numbers. A38 is REJECTED. The actual log passes native-map/EXE validation, reaches PLAYER PLAYABLE, processes all AUTO and F3 roles to spawner idle and publishes AUTO ammo. Those observations do not establish actual inventory receipt. The A36 delivery timeouts are absent in this capture, but the requested functionality remains unvalidated and rejected.

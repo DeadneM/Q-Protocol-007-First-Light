@@ -518,4 +518,6 @@ Compilation `42022238890` réussie et ZIP contrôlé localement. A38 installée 
 
 ## 2026-11-05 — rejet A38
 
+Suite isolée : [v0.9.8-beta.1](V098_BETA_DELIVERY.md), build interne 39. Relevé contrôlé lobby puis F3, Taser/fusil reçus et Q-Pistol silencieux créé vivant mais non rattaché. Correction de la corrélation du chargement natif (-1 vers handle assigné puis clear) et proposition d'un pickup natif unique pour l'objet identifié. Livraison à valider en jeu avant acceptation.
+
 Le mainteneur rejette A38 et signale la confusion entre version publique et numéro interne de build. Le log actuel passe les gardes, détecte le joueur, traite les rôles AUTO/F3 jusqu'au repos du spawner et publie les munitions AUTO. La réception réelle reste non prouvée. A38 retirée du canal bêta par passage en brouillon, historique conservé. La logique expérimentale A35/A37 n'avait pas été validée séparément avant son remap dans A38. Reprendre la comparaison depuis le comportement v0.9.7 accepté et établir la livraison à Bond avant une nouvelle candidate.

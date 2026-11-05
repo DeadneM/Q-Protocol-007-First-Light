@@ -3,6 +3,7 @@
 #include <intrin.h>
 #include <mutex>
 #include "runtime/NativePlayer.h"
+#include "runtime/NativeInventory.h"
 #include "runtime/GameplayMailbox.h"
 
 #include <algorithm>
@@ -85,6 +86,7 @@ struct SpawnResult {
     bool invoked = false;
     unsigned int state = 0xFFFFFFFF;
     ULONGLONG at = 0;
+    runtime::SpawnToken token{};
 };
 
 struct WeaponGraph {
@@ -129,6 +131,24 @@ struct PendingAmmoRequest {
     const char* source = nullptr;
 };
 
+struct NativePickupInput {
+    std::uint32_t playerId = 0, itemId = 0, mode = 0;
+};
+static_assert(sizeof(NativePickupInput) == 12);
+struct PendingPickupRequest {
+    runtime::NativeItem item{};
+    std::uint32_t playerId = 0;
+};
+struct WeaponDelivery {
+    runtime::Ticket spawnTicket{}, pickupTicket{};
+    runtime::SpawnToken token{};
+    runtime::EntityReference created{};
+    std::uintptr_t spawner = 0;
+    std::uint64_t rid = 0;
+    ULONGLONG expiresAt = 0;
+    bool pickupProcessed = false;
+};
+
 enum class BeginWeaponResult {
     Started,
     SpawnerBusy,
@@ -159,6 +179,8 @@ bool g_ltkObserveHookInstalled = false;
 struct SpawnPayload { std::uint64_t rid = 0; WeaponGraph graph{}; };
 runtime::GameplayMailbox<SpawnPayload, SpawnResult> g_spawnMailbox;
 runtime::GameplayMailbox<PendingAmmoRequest, bool> g_ammoMailbox;
+runtime::GameplayMailbox<PendingPickupRequest, bool> g_pickupMailbox;
+std::deque<WeaponDelivery> g_weaponDeliveries;
 std::mutex g_playerMutex;
 runtime::PlayableSession g_playerSession;
 PlayerContext g_publishedPlayer{}, g_workerPlayer{}, g_tickPlayer{};
@@ -298,6 +320,7 @@ bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
 // A28 compatibility gate: verify native code and relocated type links before any hook.
 // This is a static-map check, not proof of runtime gameplay acceptance.
 #include "NativePlayerGuards.inl"
+#include "NativeDeliveryGuards.inl"
 
 bool ValidateNovemberNativeMap() {
     auto code = [](const char* name, std::uintptr_t rva, const BYTE* expected, SIZE_T size) {
@@ -388,7 +411,7 @@ bool ValidateTargetExecutable() {
         return false;
     }
 
-    if (!ValidateNovemberNativeMap() || !ValidateNativePlayerMap()) return false;
+    if (!ValidateNovemberNativeMap() || !ValidateNativePlayerMap() || !ValidateNativeDeliveryMap()) return false;
 
     g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
@@ -988,6 +1011,7 @@ bool BuildGraphIndex() {
             auto& graph = g_graphs[it->second];
             if (!graph.spawner) {
                 graph.spawner = spawner;
+                graph.itemEntry = item;
             }
         }
     }
@@ -1383,7 +1407,16 @@ void FinishActiveWeapon(bool processed) {
 
 void ProcessWeaponQueue() {
     if (g_activeWeapon.active) {
-        if (const auto result = g_spawnMailbox.TakeReply(g_activeWeapon.ticket)) g_activeWeapon.result = *result;
+        if (const auto result = g_spawnMailbox.TakeReply(g_activeWeapon.ticket)) {
+            g_activeWeapon.result = *result;
+            if (result->token.record && g_weaponDeliveries.size() < 16) {
+                g_weaponDeliveries.push_back({g_activeWeapon.ticket, {}, result->token, {},
+                    g_activeWeapon.spawner, g_activeWeapon.requestedRid, result->at + 5000});
+            } else if (result->invoked) {
+                Log("[WARN] No owned spawn record available RID=%016llX; receipt unconfirmed.",
+                    static_cast<unsigned long long>(RotateRid(g_activeWeapon.requestedRid)));
+            }
+        }
         const auto result = g_activeWeapon.result;
         if (result.exception) {
             FailActiveWeapon("native trigger exception");
@@ -1719,7 +1752,60 @@ bool KeyPressedEdge(int vk, SHORT& previous) {
     return downNow && !downBefore;
 }
 
+bool PollWeaponDelivery(WeaponDelivery& delivery) {
+    if (!delivery.spawnTicket.Matches(g_workerPlayer.snapshot) ||
+        GetTickCount64() > delivery.expiresAt || delivery.token.retired) {
+        if (delivery.pickupTicket && !delivery.pickupProcessed) g_pickupMailbox.Cancel();
+        Log("[WARN] Weapon receipt unconfirmed RID=%016llX; request retired without replay.",
+            static_cast<unsigned long long>(RotateRid(delivery.rid)));
+        return true;
+    }
+    if (delivery.pickupTicket) {
+        if (const auto result = g_pickupMailbox.TakeReply(delivery.pickupTicket)) {
+            delivery.pickupProcessed = true;
+            Log("Native pickup publication %s RID=%016llX.",
+                *result ? "processed" : "not confirmed",
+                static_cast<unsigned long long>(RotateRid(delivery.rid)));
+        }
+    }
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    if (!ReadNativeThreadMask(mask)) return false;
+    if (!runtime::LiveEntity(read, g_exeBase, mask, delivery.token.source)) {
+        delivery.token.retired = true;
+        return false;
+    }
+    if (!delivery.created.pointer)
+        delivery.created = runtime::ReadSpawnOutput(read, delivery.spawner, delivery.token);
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, delivery.created);
+    if (!item) return false;
+    const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, g_workerPlayer.playerId, item);
+    if (attachment == runtime::Attachment::Present) {
+        if (delivery.pickupTicket && !delivery.pickupProcessed) g_pickupMailbox.Cancel();
+        Log("Weapon receipt CONFIRMED RID=%016llX itemId=%u playerId=%u.",
+            static_cast<unsigned long long>(RotateRid(delivery.rid)), item.id, g_workerPlayer.playerId);
+        return true;
+    }
+    if (attachment == runtime::Attachment::Absent && !delivery.pickupTicket) {
+        delivery.pickupTicket = g_pickupMailbox.Submit(g_workerPlayer.snapshot,
+            PendingPickupRequest{item, g_workerPlayer.playerId}, GetTickCount64());
+        if (delivery.pickupTicket)
+            Log("Owned created item absent; native pickup queued RID=%016llX itemId=%u.",
+                static_cast<unsigned long long>(RotateRid(delivery.rid)), item.id);
+    }
+    return false;
+}
+
+void ProcessWeaponDeliveries() {
+    for (auto it = g_weaponDeliveries.begin(); it != g_weaponDeliveries.end();) {
+        if (PollWeaponDelivery(*it)) it = g_weaponDeliveries.erase(it);
+        else ++it;
+    }
+}
+
 void ResetWeaponRuntime(const char* reason) {
+    g_pickupMailbox.Cancel();
+    g_weaponDeliveries.clear();
     if (g_activeWeapon.active) {
         ResetActiveWeaponState();
     }
@@ -1758,7 +1844,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol A38 / November 5 Remap TEST");
+    Log("Q Protocol v0.9.8-beta.1 / internal build 39");
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
@@ -1867,7 +1953,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 g_lastAmmoTicket = {};
             }
         }
-        if (ready && AutoStage() == runtime::AutoStage::NeedAmmo &&
+        if (ready && AutoStage() == runtime::AutoStage::NeedAmmo && g_weaponDeliveries.empty() &&
             QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo")) {
             std::lock_guard<std::mutex> lock(g_playerMutex);
             if (g_playerSession.AmmoSubmitted(player.snapshot.session)) g_autoAmmoTicket = g_lastAmmoTicket;
@@ -2028,6 +2114,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (ready) {
             ProcessWeaponQueue();
+            ProcessWeaponDeliveries();
 
             if (g_loadoutPackage.justCompleted) {
                 const LoadoutSource completedSource =
@@ -2094,8 +2181,12 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
     if (!g_nativeSpawn || !ValidateGraph(payload.rid, payload.graph)) return result;
     __try {
         const auto spawner = payload.graph.spawner;
+        bool idle = false;
+        if (!IsSpawnerIdle(spawner, idle) || !idle) return result;
         result.invoked = true;
         g_nativeSpawn(reinterpret_cast<void*>(spawner));
+        NativeMemoryReader read;
+        result.token = runtime::CaptureSpawnToken(read, spawner, payload.graph.itemEntry);
         std::uintptr_t begin = 0, end = 0; BYTE state = 0xFF;
         result.valid = SafeRead(spawner + 0x38, begin) && SafeRead(spawner + 0x40, end) && SafeRead(spawner + 0x50, state);
         result.pending = result.valid && begin != end;
@@ -2104,6 +2195,37 @@ SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
         result.triggered = true; result.at = GetTickCount64();
     } __except (EXCEPTION_EXECUTE_HANDLER) { result.exception = true; }
     return result;
+}
+
+bool PublishPickupGameplayThread(const PendingPickupRequest& request) {
+    if (!RuntimePlayerMatches(request.playerId)) return false;
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    if (!ReadNativeThreadMask(mask)) return false;
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, request.item.created);
+    if (!item || item.id != request.item.id || item.interfacePointer != request.item.interfacePointer) return false;
+    const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, request.playerId, item);
+    if (attachment == runtime::Attachment::Present) return true;
+    if (attachment != runtime::Attachment::Absent) return false;
+    std::uintptr_t owner = 0;
+    if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) return false;
+    using InsertPickupFn = void(__fastcall*)(void*, const NativePickupInput*);
+    const auto insert = reinterpret_cast<InsertPickupFn>(g_exeBase + kNativeAmmoInsertRva);
+    const auto notify = reinterpret_cast<NativeAmmoNotifyFn>(g_exeBase + kNativeAmmoNotifyRva);
+    auto* criticalSection = reinterpret_cast<LPCRITICAL_SECTION>(owner + kAmmoLockOffset);
+    const NativePickupInput input{request.playerId, item.id, 0};
+    bool locked = false, ok = true;
+    __try {
+        EnterCriticalSection(criticalSection);
+        locked = true;
+        insert(reinterpret_cast<void*>(owner + 0x10A68), &input);
+        notify(reinterpret_cast<void*>(owner), 0xF3, reinterpret_cast<void*>(owner + 0x109C8));
+    } __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+    if (locked) {
+        __try { LeaveCriticalSection(criticalSection); }
+        __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+    }
+    return ok;
 }
 }
 extern "C" void QpGameplayTick() {
@@ -2114,6 +2236,11 @@ extern "C" void QpGameplayTick() {
         const auto result = qp::ExecuteSpawn(command->payload);
         qp::g_tickPlayer = qp::ReadDispatchPlayer();
         qp::g_spawnMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
+    }
+    if (const auto command = qp::g_pickupMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
+        const bool result = qp::PublishPickupGameplayThread(command->payload);
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
+        qp::g_pickupMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
     }
     if (const auto command = qp::g_ammoMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
         const bool result = qp::PublishAmmoProfileGameplayThread(command->payload);
