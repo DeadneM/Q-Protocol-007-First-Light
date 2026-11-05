@@ -8,6 +8,8 @@ Runtime code differs from frozen beta.1 only by the visibility guard and version
 
 Beta.2 frozen source `c12ee2d` compiled and checked in run `42070394975`. ZIP and both x64 binaries verified locally. Installed game/updater closed, previous beta.1 pair backed up, installed hashes match the artifact, personal INI unchanged. No game launch or gameplay acceptance. Next test is startup with menu closed, then one explicit menu opening, before F3.
 
+Release `v0.9.8-beta.2` and compatible manifest verified, publication `42071005261` successful. Actual updater public download/hash/channel/current-build checks passed. Stable main remains `62f7521`; beta.1 remains withdrawn. Prepared isolation script was never executed because the maintainer had already confirmed startup without the mod.
+
 ## 2026-11-05 — v0.9.8-beta.1 crash, withdraw candidate
 
 Maintainer reports a startup/loading crash before controlling Bond. Latest mod log ends after DX12 overlay resize/reinitialization, before PLAYER PLAYABLE and before any owned-item pickup dispatch. Two Windows reports and private dumps show breakpoint exception 0x80000003 at EXE+0x00D00D97. Static code at that site is the game's GPUCrashReport fatal path, with ZRenderDevice::OnFrameEnd in the nearby return chain. This identifies the GPU failure path; exact GPU reason and the mod's causal role still require investigation.

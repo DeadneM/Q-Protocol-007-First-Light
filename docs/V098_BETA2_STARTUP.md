@@ -23,3 +23,5 @@ Status **EXPERIMENTAL**. Deferral is a focused change supported by the startup t
 Frozen source `c12ee2de524e7bb2988897f68603205e65d64a3a`, [full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42070394975) successful. ZIP 600042 bytes, SHA-256 `7736c6fd0f65578ddf49861b5a2d9a6bd47047d76b873e64d38cf0577d15e85b`. Local archive, x64 PE and per-file hash checks passed.
 
 Installed game/updater closed with a verified backup of beta.1. Installed binary hashes match the checked artifact; personal INI hash is identical before/after. No game launch by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**. Startup and first-menu acceptance remain pending.
+
+[Beta.2 release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.8-beta.2) verified; publication run `42071005261` successful. The unchanged updater engine discovers/downloads/verifies this ZIP for the current EXE, excludes it on stable and does not reoffer build 40. Beta.1 remains withdrawn in draft.
