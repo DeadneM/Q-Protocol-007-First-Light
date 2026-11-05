@@ -505,3 +505,7 @@ test. Keep the other system's GPU incident OPEN; it is not a universal fix.
 Suite : [contrôle des 31 identités d'armes](audits/20261104/WEAPON_IDENTITIES.md). Les catalogues public et installé correspondent aux 31 ressources TEMP présentes et aux chemins Bond-Hashes dont les hashes ont été recalculés. Aucun RID remplacé. F3/F4 en Tac Sim isolent un défaut de livraison, pas une preuve de joueur absent ; les résultats natifs conservés montrent un cas d'objet vivant non rattaché, avec limite de provenance explicitée. A35 compilée/contrôlée reste séparée de cette réparation.
 
 Deux passes sur la source A34 figée, comparaison et plan de correction : [rapport](audits/20261104/README.md). Détection/session, confirmation de livraison, retries, concurrence UI et durée de vie GPU restent à corriger. AUTO confirmé : une fois à l'arrivée et après mort/rechargement, jamais pour menu/pause. Aucun nouveau binaire ni promotion stable. A35 WIP isolé, non validé.
+
+## 2026-11-05 — A37 Weapon Cadence TEST
+
+[A37](A37_WEAPON_CADENCE.md) rétablit la cadence de v0.9.7 sur la branche pré-A36, avec l'observateur A35 expérimental. La réception ne bloque plus la file. Un résultat incertain après appel natif ne déclenche pas de nouvelle tentative automatique. Build et ZIP contrôlés, validation en jeu à faire. A36 reste rejetée.

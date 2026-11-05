@@ -13,3 +13,9 @@ The test targets the waits and loss of AUTO ammo observed in the A36 Tac Sim lob
 3. Check a story mission and a death/reload. A reload with the same character identity and no observed death remains unresolved. Use the log to distinguish dispatch, spawner idle and uncertain outcomes.
 
 The silenced Q-Pistol's delivery remains open. The audited RID identifies the correct asset. The next investigation should correlate a created object with its own request and establish which native step attaches it to Bond.
+
+## Verified build
+
+Source `ea5073cd83c9506c6d2f73e058da06d6f7de889a`, [full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41967123841) successful. The ZIP contains only `dxgi.dll` and `QProtocol.asi` at the root. Both binaries passed local x64 PE, integrity and hash checks.
+
+ZIP SHA-256 `1662918707abeeaa1c1c864014040eace7f4e6c67139b041c1a1bfe2c6013a9a` (591361 bytes). Status **BUILT / CHECKED / EXPERIMENTAL**, pending the gameplay checklist above.

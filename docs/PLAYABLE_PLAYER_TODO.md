@@ -22,3 +22,9 @@
 - Vérifier ensuite en jeu la cadence indépendante du menu et le réarmement AUTO après mort ; reload sans changement d'identité reste ouvert.
 - Q-Pistol silencieux : les graphes ciblés lus en Tac Sim sont cohérents, mais la livraison n'est pas prouvée. Attendre le résultat F3 réel et établir la preuve de possession ; ne pas changer arbitrairement le RID.
 - Garder séparés les travaux transactionnels, UI/GPU et updater du double audit ; aucune promotion main.
+
+## 2026-11-05 — A37
+
+- [ ] Vérifier la cadence F3 et les munitions AUTO dans le lobby Tac Sim avec [A37](A37_WEAPON_CADENCE.md).
+- [ ] Vérifier AUTO en mission, l'absence de répétition avec menu/pause et le réarmement après mort.
+- [ ] Relier l'objet créé à sa requête et vérifier son rattachement pour le Q-Pistol silencieux, indépendamment de l'avancement de la file.
