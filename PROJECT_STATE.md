@@ -4,7 +4,7 @@
 
 Branch `beta/v0.9.8-delivery`, internal build 39, public beta identity kept separate. [Evidence and contract](docs/V098_BETA_DELIVERY.md). Read-only controlled lobby/F3 comparison confirms Taser/shotgun arrive while the live created silenced Q-Pistol is absent from Bond's inventory. Native loading-job handle changes from -1, then the logical result vector clears. Fix request correlation and add one freshly revalidated native pickup for an owned item absent from the current player. Parallel receipt observation keeps weapon cadence independent and orders AUTO ammo after the observations. Actual new pickup delivery remains unvalidated.
 
-A38 remains physically installed and rejected while the maintainer's game is open. Raw snapshots remain private. Accepted stable v0.9.7/main remains the behavior reference; local-character/session logic carried forward from A38 is still experimental, with same-identity reload unresolved.
+Candidate `96cd470` compiled successfully in run `42064315865`; native reader/job regression tests, lifecycle/mailbox, updater, menu/bootstrap and DXGI checks passed. Public release `v0.9.8-beta.1` verified, publication run `42064879185`. Actual updater discovery/download/hash/channel checks passed. Installed explicitly after the maintainer closed the game, previous A38 pair backed up, installed hashes verified and personal INI unchanged. No gameplay acceptance yet. Raw snapshots remain private. Accepted stable v0.9.7/main remains the behavior reference; local-character/session logic carried forward from A38 is still experimental, with same-identity reload unresolved.
 
 ## 2026-11-05 — A38 REJECTED after gameplay test
 

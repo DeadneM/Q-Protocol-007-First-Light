@@ -43,4 +43,5 @@
 - [x] v0.9.8-beta.1 et build interne 39 affichés séparément dans la candidate.
 - [x] Observer le job natif et comparer l'objet silencieux vivant à l'inventaire après un F3 contrôlé.
 - [ ] Valider en jeu le rattachement natif corrigé, puis AUTO et les munitions.
+- [x] Compiler, vérifier, publier et installer v0.9.8-beta.1 sur demande, en préservant l'INI et une sauvegarde de la paire précédente.
 - [ ] Obtenir une validation fonctionnelle ciblée avant de reprendre les changements expérimentaux de session/détection.
