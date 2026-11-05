@@ -17,3 +17,9 @@ Scope checks compare the whole source/config/updater/test tree with frozen beta.
 3. Only after those two checks, press F3 once and verify the three actual weapons, including the silenced Q-Pistol. Inspect receipt confirmations and AUTO ammo.
 
 Status **EXPERIMENTAL**. Deferral is a focused change supported by the startup trace. It is not proof of a repaired GPU driver/device, and the first explicit menu opening remains part of acceptance. ZIP contains only `dxgi.dll` and `QProtocol.asi`; personal INI and bindings are retained.
+
+## Verified build and installation
+
+Frozen source `c12ee2de524e7bb2988897f68603205e65d64a3a`, [full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42070394975) successful. ZIP 600042 bytes, SHA-256 `7736c6fd0f65578ddf49861b5a2d9a6bd47047d76b873e64d38cf0577d15e85b`. Local archive, x64 PE and per-file hash checks passed.
+
+Installed game/updater closed with a verified backup of beta.1. Installed binary hashes match the checked artifact; personal INI hash is identical before/after. No game launch by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**. Startup and first-menu acceptance remain pending.
