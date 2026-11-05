@@ -33,5 +33,5 @@
 
 - [x] Sauvegarder et comparer les exécutables des builds 26252352 et 26430236.
 - [x] Adapter les adresses et vérifier les gardes natifs A38 sur disque.
-- [ ] Construire/livrer A38 et vérifier sa découverte par l'updater sur le nouvel EXE.
+- [x] Construire/livrer A38 et vérifier sa découverte par l'updater sur le nouvel EXE.
 - [ ] Valider les fonctions en histoire et Tac Sim sur le build 26430236.

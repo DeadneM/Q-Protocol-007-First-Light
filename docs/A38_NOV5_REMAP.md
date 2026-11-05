@@ -26,3 +26,5 @@ Status **EXPERIMENTAL**, gameplay validation pending. Packaging is two root bina
 Frozen source `5bc3ac2d64567328b6ab079bb79599ba890cf5ec`. [Full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42022238890) succeeded. ZIP verified locally, 591373 bytes, SHA-256 `7bc3cd58d903e2bd2fa9f1052119f8d89a7798774b7554bc9e240c16c7944150`.
 
 Installed on 5 November with game/updater closed, a verified private backup of the previous binary pair, and identical personal INI hashes before/after. Installed ASI/DXGI hashes match the checked artifact. No game launch or gameplay validation by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**.
+
+[A38 TEST release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/a38-nov5-remap-test) published from the frozen source; publication run `42022783986` successful. Public ZIP hash and tag verified. The unchanged updater engine, using the new game EXE, discovers A38 with beta enabled, downloads/verifies its ZIP, excludes it from stable discovery and does not offer it again to build 38.
