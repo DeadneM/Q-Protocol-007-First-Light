@@ -6,6 +6,8 @@ Maintainer reports that A38 still does not work and flags the confusing replacem
 
 Withdraw A38 from beta discovery by preserving the release as a draft. Keep installed files and personal INI intact while the game is running. Private log/config snapshot retained outside Git. Main remains the accepted v0.9.7 line. Public version and internal updater Build must be represented separately in the next candidate; the A38 frozen tag remains historical.
 
+Withdrawal verified. Workflow `42045125419` succeeded, release ID `435142368` is draft and named REJECTED. The unchanged updater engine on the new EXE no longer offers A38 (`Next=none`). No game files modified in this rejection turn.
+
 Method correction: A38 carried A35/A37 experimental player/session/queue logic without an independently accepted gameplay checkpoint. A new executable map alone cannot validate that logic. Return to the accepted v0.9.7 function behavior as comparison baseline and establish how the selected native spawner delivers to the current Bond before another gameplay build. Do not force READY, equate idle with receipt, or replay mutations to compensate for unknown results.
 
 ## 2026-11-05 — A38 remap for Steam build 26430236
