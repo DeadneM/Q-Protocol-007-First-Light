@@ -6,6 +6,8 @@ Maintainer explicitly reports startup no longer crashes on beta.2. Preserve that
 
 [beta.3 candidate](docs/V098_BETA3_INSTANT_PICKUP.md), internal build 41, uses native mode 2 proven by `m_skipPickupAnimations` +28 metadata and executable branch, binds F4 alternation to actual receipt, and retries only positively pre-mutation pickup failures. Existing GPU/startup code is byte-for-byte source-preserved from beta.2. The installed version remains beta.2 until a verified candidate is installed with the game closed. Global gameplay acceptance still pending.
 
+Beta.3 source `2f0ef70` built and checked successfully in run `42121467744`. ZIP and both x64 binaries verified locally. Installed game/updater closed, beta.2 pair backed up, installed hashes verified and personal INI unchanged. No game launch or acceptance. The preceding installed-beta.2 statement describes the candidate preparation stage only.
+
 ## 2026-11-05 — beta.2 startup correction candidate
 
 Maintainer confirms the game works without the mod; the proposed temporary isolation was already performed by the maintainer, so the prepared script was not run. [v0.9.8-beta.2](docs/V098_BETA2_STARTUP.md), internal build 40, moves the visibility check before renderer initialization. This avoids hidden-menu startup/font GPU submissions and loading-screen reinitializations. Exact GPU reason/command remains unknown; acceptance must cover startup and the first explicit menu opening before the F3 delivery test.

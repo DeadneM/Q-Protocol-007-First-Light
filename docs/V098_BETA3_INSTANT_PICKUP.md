@@ -23,3 +23,9 @@ Status **EXPERIMENTAL**. Keep the beta.2 startup and menu correction intact.
 3. Check AUTO on a fresh mission arrival and inspect any detailed pre-call failure instead of inferring receipt from a published event.
 
 Scope checks preserve the complete beta.2 overlay/backend, native map, character/session readers, creation tracking, ammo primitive, config and updater. Targeted regressions exercise pre-call retry eligibility, no replay after publication/fault, late/duplicate F4 receipts, failure retaining selection and session cancellation.
+
+## Verified build and installation
+
+Frozen source `2f0ef7054268fda81bb31c70839899f8e42897dd`, [full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42121467744) successful. Local ZIP integrity, x64 PE and per-file hash checks passed. ZIP 601039 bytes, SHA-256 `5d91a9390878220a686f64ce6f81fd898c93655cf09a154569d5009ba6cd51b1`.
+
+Installed game/updater closed, with verified backup of beta.2, exact artifact hashes and identical personal INI before/after. No game launch by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**, acceptance pending F3/F4 tests.
