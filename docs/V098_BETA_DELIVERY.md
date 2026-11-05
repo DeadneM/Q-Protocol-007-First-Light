@@ -1,5 +1,9 @@
 # v0.9.8-beta.1 — owned weapon delivery
 
+## Startup crash, candidate rejected
+
+The maintainer reports a crash while loading before controlling Bond. Windows reports 0x80000003 at EXE+0x00D00D97 in two sessions. The executable's fatal path references GPUCrashReport, with render-frame completion in the nearby return chain. The mod log stops after overlay DX12 resize/reinitialization, before player availability or native pickup dispatch. Exact GPU reason and causal attribution remain open. Withdraw the release to draft and investigate the GPU report before another trial. Installation and CI results below remain historical, not acceptance.
+
 The accepted stable reference is v0.9.7. This candidate repairs delivery on Steam build 26430236, retaining the A38 executable map and experimental local-character/session gate. Main remains on the accepted stable line. Internal updater build 39 is displayed separately from version v0.9.8-beta.1.
 
 ## Reproduced failure and correction

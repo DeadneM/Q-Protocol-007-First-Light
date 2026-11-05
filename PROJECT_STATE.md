@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — v0.9.8-beta.1 crash, withdraw candidate
+
+Maintainer reports a startup/loading crash before controlling Bond. Latest mod log ends after DX12 overlay resize/reinitialization, before PLAYER PLAYABLE and before any owned-item pickup dispatch. Two Windows reports and private dumps show breakpoint exception 0x80000003 at EXE+0x00D00D97. Static code at that site is the game's GPUCrashReport fatal path, with ZRenderDevice::OnFrameEnd in the nearby return chain. This identifies the GPU failure path; exact GPU reason and the mod's causal role still require investigation.
+
+Mark this candidate REJECTED and withdraw its beta release to draft. Keep executable, binaries, INI, logs, dumps and rollback pair available privately. No automatic rollback or game relaunch. Do not infer a pickup crash from a startup log with no delivery dispatch. Main remains v0.9.7.
+
 ## 2026-11-05 — v0.9.8-beta.1 delivery repair in progress
 
 Branch `beta/v0.9.8-delivery`, internal build 39, public beta identity kept separate. [Evidence and contract](docs/V098_BETA_DELIVERY.md). Read-only controlled lobby/F3 comparison confirms Taser/shotgun arrive while the live created silenced Q-Pistol is absent from Bond's inventory. Native loading-job handle changes from -1, then the logical result vector clears. Fix request correlation and add one freshly revalidated native pickup for an owned item absent from the current player. Parallel receipt observation keeps weapon cadence independent and orders AUTO ammo after the observations. Actual new pickup delivery remains unvalidated.

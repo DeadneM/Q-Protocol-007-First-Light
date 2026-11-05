@@ -162,7 +162,7 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
 ## Experimental builds
 
-[v0.9.8-beta.1 delivery repair and acceptance test](docs/V098_BETA_DELIVERY.md)
+[v0.9.8-beta.1 rejected candidate and startup crash record](docs/V098_BETA_DELIVERY.md)
 
 [A38 rejected test and investigation record](docs/A38_NOV5_REMAP.md)
 
