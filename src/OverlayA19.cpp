@@ -4149,6 +4149,12 @@ void RenderOverlayFrameLocked(
         return;
     }
 
+    // GPU objects and the font upload are only needed for a visible menu.
+    // In particular, loading-screen resizes must not initialize them.
+    if (!g_requestedVisible.load(std::memory_order_acquire)) {
+        return;
+    }
+
     if (!g_imguiDx12Initialized) {
         if (!InitializeImGuiForSwapChainLocked(
                 swapChain)) {

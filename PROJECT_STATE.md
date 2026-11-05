@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — beta.2 startup correction candidate
+
+Maintainer confirms the game works without the mod; the proposed temporary isolation was already performed by the maintainer, so the prepared script was not run. [v0.9.8-beta.2](docs/V098_BETA2_STARTUP.md), internal build 40, moves the visibility check before renderer initialization. This avoids hidden-menu startup/font GPU submissions and loading-screen reinitializations. Exact GPU reason/command remains unknown; acceptance must cover startup and the first explicit menu opening before the F3 delivery test.
+
+Runtime code differs from frozen beta.1 only by the visibility guard and version/log identity. Delivery, native compatibility, bindings, config and updater logic are retained. No rollback or new game launch by the agent.
+
 ## 2026-11-05 — v0.9.8-beta.1 crash, withdraw candidate
 
 Maintainer reports a startup/loading crash before controlling Bond. Latest mod log ends after DX12 overlay resize/reinitialization, before PLAYER PLAYABLE and before any owned-item pickup dispatch. Two Windows reports and private dumps show breakpoint exception 0x80000003 at EXE+0x00D00D97. Static code at that site is the game's GPUCrashReport fatal path, with ZRenderDevice::OnFrameEnd in the nearby return chain. This identifies the GPU failure path; exact GPU reason and the mod's causal role still require investigation.

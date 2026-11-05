@@ -1844,7 +1844,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.8-beta.1 / internal build 39");
+    Log("Q Protocol %s / internal build %d", updates::Version, updates::Build);
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {

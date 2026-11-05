@@ -10,8 +10,8 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      QP_BUILD: ${{ github.ref_name == 'beta/v0.9.8-delivery' && '39' || github.ref_name == 'experiment/a38-nov5-remap' && '38' || github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
-      QP_ARTIFACT: ${{ github.ref_name == 'beta/v0.9.8-delivery' && 'Q-Protocol_v0.9.8-beta.1' || github.ref_name == 'experiment/a38-nov5-remap' && 'Q-Protocol_A38_Nov5Remap_TEST' || github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
+      QP_BUILD: ${{ github.ref_name == 'beta/v0.9.8-delivery' && '40' || github.ref_name == 'experiment/a38-nov5-remap' && '38' || github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
+      QP_ARTIFACT: ${{ github.ref_name == 'beta/v0.9.8-delivery' && 'Q-Protocol_v0.9.8-beta.2' || github.ref_name == 'experiment/a38-nov5-remap' && 'Q-Protocol_A38_Nov5Remap_TEST' || github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
 
     steps:
       - name: Check out repository
@@ -301,7 +301,8 @@ jobs:
       - name: Verify native resolver scope and fail-closed conditions
         shell: pwsh
         run: |
-          if ($env:QP_BUILD -eq '39') { python tools/verify_delivery_scope.py }
+          if ($env:QP_BUILD -eq '40') { python tools/verify_beta2_scope.py }
+          elseif ($env:QP_BUILD -eq '39') { python tools/verify_delivery_scope.py }
           elseif ($env:QP_BUILD -eq '38') { python tools/verify_a38_scope.py }
           else { python tools/verify_a35_scope.py $env:QP_BUILD }
           if ($LASTEXITCODE -ne 0) { throw "Scope audit failed" }
@@ -319,7 +320,7 @@ jobs:
           if errorlevel 1 exit /b 1
 
       - name: Test owned native creation and inventory read contracts
-        if: env.QP_BUILD == '39'
+        if: env.QP_BUILD == '39' || env.QP_BUILD == '40'
         shell: cmd
         run: |
           cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\NativeInventoryTests.cpp /Fe:dist\NativeInventoryTests.exe
