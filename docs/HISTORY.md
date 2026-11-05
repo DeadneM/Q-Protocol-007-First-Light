@@ -509,3 +509,7 @@ Deux passes sur la source A34 figée, comparaison et plan de correction : [rappo
 ## 2026-11-05 — A37 Weapon Cadence TEST
 
 [A37](A37_WEAPON_CADENCE.md) rétablit la cadence de v0.9.7 sur la branche pré-A36, avec l'observateur A35 expérimental. La réception ne bloque plus la file. Un résultat incertain après appel natif ne déclenche pas de nouvelle tentative automatique. Build et ZIP contrôlés, validation en jeu à faire. A36 reste rejetée.
+
+## 2026-11-05 — A38 remap du jeu mis à jour
+
+[A38](A38_NOV5_REMAP.md) adapte les adresses et gardes au build Steam 26430236, après comparaison à l'ancien EXE sauvegardé. Les 18 plages de code et six liens de pointeurs sont vérifiés hors jeu. Les 31 identités d'armes restent présentes dans les index mis à jour. Comportement expérimental A37 conservé, validation en jeu à faire.

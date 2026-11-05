@@ -36,26 +36,26 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
         return ref.pointer && table && read(table + std::uintptr_t(index) * 4, cell) &&
             (cell & mask) == generation;
     };
-    if (!read(base + 0x05CF7688, table) || !table ||
-        !read(base + 0x05D1B188, singleton) || !singleton ||
-        !read(singleton, vtable) || vtable != base + 0x02E87648 ||
+    if (!read(base + 0x05CF8750, table) || !table ||
+        !read(base + 0x05D1C288, singleton) || !singleton ||
+        !read(singleton, vtable) || vtable != base + 0x02E86538 ||
         !read(singleton + 0x18, binding) || !binding.component || !valid(binding.reference)) return out;
 
     // The native singleton's +28 cache is already cast to the character type.
     // Restrict its vtable to this supported image; never invoke virtual methods.
-    if (!read(binding.component, vtable) || vtable < base || vtable >= base + 0x06D31000) {
+    if (!read(binding.component, vtable) || vtable < base || vtable >= base + 0x06D32000) {
         out.reason = "local character component unreadable";
         return out;
     }
     std::uint32_t spawnerId = 0, invalidId = 0;
     if (!read(binding.component + 0x200, spawnerId) ||
-        !read(base + 0x067032A0, invalidId) || spawnerId == invalidId) {
+        !read(base + 0x067043A0, invalidId) || spawnerId == invalidId) {
         out.reason = "local character has no player owner";
         return out;
     }
     struct Range { std::uintptr_t begin = 0, end = 0; bool operator==(const Range&) const = default; };
     Range players{}, finalPlayers{};
-    if (!read(base + 0x0671FFC0, players) || players.end < players.begin ||
+    if (!read(base + 0x067210C0, players) || players.end < players.begin ||
         (players.end - players.begin) % sizeof(EntityReference) ||
         players.end - players.begin > 64 * sizeof(EntityReference)) {
         out.reason = "native player registry unavailable";
@@ -68,7 +68,7 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
         EntityReference ref{};
         std::uint32_t id = 0, runtimeId = 0;
         if (!read(at, ref) || !valid(ref) || !read(ref.pointer, vtable) ||
-            vtable != base + 0x02EC90B8 || !read(ref.pointer + 0x1AC, id) || id != spawnerId ||
+            vtable != base + 0x02ECAB28 || !read(ref.pointer + 0x1AC, id) || id != spawnerId ||
             !read(ref.pointer + 0x1A8, runtimeId) || !runtimeId || runtimeId == 0xFFFFFFFF) continue;
         if (owner.pointer) { out.reason = "ambiguous local player owner"; return out; }
         owner = ref; ownerAddress = at; playerId = runtimeId;
@@ -79,7 +79,7 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
     // keyed by the character's +200 spawner ID. Refuse unavailable state.
     std::uintptr_t root = 0, sequence = 0;
     Range sequences{};
-    if (!read(base + 0x06452BF8, root) || !root || !read(root + 0x108, sequence) || !sequence ||
+    if (!read(base + 0x06453CF8, root) || !root || !read(root + 0x108, sequence) || !sequence ||
         !read(sequence + 0x40, sequences) || sequences.end < sequences.begin ||
         (sequences.end - sequences.begin) % 4 || sequences.end - sequences.begin > 4096) {
         out.reason = "player sequence state unavailable";
@@ -108,7 +108,7 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
     }
     if (!read(singleton + 0x18, after) || after != binding || !valid(binding.reference) ||
         !read(ownerAddress, finalOwner) || finalOwner != owner || !valid(owner) ||
-        !read(base + 0x0671FFC0, finalPlayers) || finalPlayers != players) {
+        !read(base + 0x067210C0, finalPlayers) || finalPlayers != players) {
         out.reason = "local player changed during observation";
         return out;
     }
@@ -116,12 +116,12 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
     std::uint32_t finalSpawnerId = 0, finalRuntimeId = 0, finalOwnerId = 0;
     Range finalSequences{}, finalNotAlive{};
     std::uintptr_t finalHealth = 0;
-    if (!read(base + 0x05D1B188, finalSingleton) || finalSingleton != singleton ||
-        !read(base + 0x05CF7688, finalTable) || finalTable != table ||
+    if (!read(base + 0x05D1C288, finalSingleton) || finalSingleton != singleton ||
+        !read(base + 0x05CF8750, finalTable) || finalTable != table ||
         !read(binding.component + 0x200, finalSpawnerId) || finalSpawnerId != spawnerId ||
         !read(owner.pointer + 0x1AC, finalOwnerId) || finalOwnerId != spawnerId ||
         !read(owner.pointer + 0x1A8, finalRuntimeId) || finalRuntimeId != playerId ||
-        !read(base + 0x06452BF8, finalRoot) || finalRoot != root ||
+        !read(base + 0x06453CF8, finalRoot) || finalRoot != root ||
         !read(root + 0x108, finalSequence) || finalSequence != sequence ||
         !read(sequence + 0x40, finalSequences) || finalSequences != sequences ||
         !read(root + 8, finalHealth) || finalHealth != health ||
@@ -137,7 +137,7 @@ NativePlayer ReadNativePlayer(Reader& read, std::uintptr_t base, std::uint32_t m
     out.reason = !alive ? "local player not alive" : inSequence ? "local player in native sequence" : "local character available";
     EntityReference loadout{};
     if (read(owner.pointer + 0x188, loadout) && valid(loadout) &&
-        read(loadout.pointer, vtable) && vtable == base + 0x02EDD278) out.loadout = loadout.pointer;
+        read(loadout.pointer, vtable) && vtable == base + 0x02EDE200) out.loadout = loadout.pointer;
     return out;
 }
 } // namespace qp::runtime

@@ -2,8 +2,8 @@
 #include <string>
 
 namespace qp::updates {
-inline constexpr int Build = 37;
-inline constexpr char Version[] = "A37 TEST";
+inline constexpr int Build = 38;
+inline constexpr char Version[] = "A38 TEST";
 struct Status {
     bool busy = false, available = false, queued = false, checkedBeta = false;
     int build = 0;

@@ -28,3 +28,10 @@
 - [ ] Vérifier la cadence F3 et les munitions AUTO dans le lobby Tac Sim avec [A37](A37_WEAPON_CADENCE.md).
 - [ ] Vérifier AUTO en mission, l'absence de répétition avec menu/pause et le réarmement après mort.
 - [ ] Relier l'objet créé à sa requête et vérifier son rattachement pour le Q-Pistol silencieux, indépendamment de l'avancement de la file.
+
+## 2026-11-05 — mise à jour du jeu
+
+- [x] Sauvegarder et comparer les exécutables des builds 26252352 et 26430236.
+- [x] Adapter les adresses et vérifier les gardes natifs A38 sur disque.
+- [ ] Construire/livrer A38 et vérifier sa découverte par l'updater sur le nouvel EXE.
+- [ ] Valider les fonctions en histoire et Tac Sim sur le build 26430236.

@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — A38 remap for Steam build 26430236
+
+The game update is installed. New EXE SHA-256 `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image `0x06D32000`. Old/new executables and the pre-update mod/INI/logs are privately preserved. Installed ASI last verified A36 (rejected), A37 has not been installed by the agent.
+
+Branch `experiment/a38-nov5-remap` adapts A37's experimental behavior to this EXE. [Map, checks and test plan](docs/A38_NOV5_REMAP.md). All existing native checks refreshed and verified on disk, weapon identities rechecked in current packages. Gameplay acceptance remains pending, including silenced Q-Pistol delivery and same-identity reload without an observed death.
+
 ## 2026-11-05 — A37 Weapon Cadence TEST
 
 Isolated branch `experiment/a37-weapon-cadence`. Behavior reference v0.9.7 (`8722000`); source branch starts before the A36 delivery experiment at `66c91ec`, with A35's experimental player/session handling and the catalog audit. Restore the accepted-spawn-to-idle queue progression and 500 ms inter-weapon cooldown. Native effects with uncertain outcomes are retired without automatic replay. [Test contract and remaining limits](docs/A37_WEAPON_CADENCE.md).

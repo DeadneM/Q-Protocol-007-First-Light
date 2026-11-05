@@ -2,7 +2,7 @@ name: Q Protocol experimental full build
 on:
   workflow_dispatch:
   push:
-    branches: [experiment/a35-session-repair, experiment/a37-weapon-cadence]
+    branches: [experiment/a35-session-repair, experiment/a37-weapon-cadence, experiment/a38-nov5-remap]
     paths: ["src/**", "tools/**", "tests/**", ".github/workflows/build-a35-session.yml"]
 permissions:
   contents: read
@@ -10,8 +10,8 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      QP_BUILD: ${{ github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
-      QP_ARTIFACT: ${{ github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
+      QP_BUILD: ${{ github.ref_name == 'experiment/a38-nov5-remap' && '38' || github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
+      QP_ARTIFACT: ${{ github.ref_name == 'experiment/a38-nov5-remap' && 'Q-Protocol_A38_Nov5Remap_TEST' || github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
 
     steps:
       - name: Check out repository
@@ -301,7 +301,8 @@ jobs:
       - name: Verify native resolver scope and fail-closed conditions
         shell: pwsh
         run: |
-          python tools/verify_a35_scope.py $env:QP_BUILD
+          if ($env:QP_BUILD -eq '38') { python tools/verify_a38_scope.py }
+          else { python tools/verify_a35_scope.py $env:QP_BUILD }
           if ($LASTEXITCODE -ne 0) { throw "Scope audit failed" }
 
       - name: Test native player read contract and shared playable session
