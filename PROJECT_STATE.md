@@ -4,9 +4,9 @@
 
 Maintainer explicitly reports startup no longer crashes on beta.2. Preserve that startup/menu change exactly. Current beta.2 log shows one F3 package with all three inventory receipts, then intermittent silenced F4 receipt despite pickup publication; normal variants confirm consistently. Initial AUTO also has pre-call failures. Several final hotkeys are suppressed by the unchanged 12/30s guard.
 
-[beta.3 candidate](docs/V098_BETA3_INSTANT_PICKUP.md), internal build 41, uses native mode 2 proven by `m_skipPickupAnimations` +28 metadata and executable branch, binds F4 alternation to actual receipt, and retries only positively pre-mutation pickup failures. Existing GPU/startup code is byte-for-byte source-preserved from beta.2. The installed version remains beta.2 until a verified candidate is installed with the game closed. Global gameplay acceptance still pending.
+[beta.3 candidate](docs/V098_BETA3_INSTANT_PICKUP.md), internal build 41, uses native mode 2 proven by `m_skipPickupAnimations` +28 metadata and executable branch, binds F4 alternation to actual receipt, and retries only positively pre-mutation pickup failures. Existing GPU/startup code is byte-for-byte source-preserved from beta.2. Global gameplay acceptance still pending.
 
-Beta.3 source `2f0ef70` built and checked successfully in run `42121467744`. ZIP and both x64 binaries verified locally. Installed game/updater closed, beta.2 pair backed up, installed hashes verified and personal INI unchanged. No game launch or acceptance. The preceding installed-beta.2 statement describes the candidate preparation stage only.
+Beta.3 source `2f0ef70` built and checked successfully in run `42121467744`. ZIP and both x64 binaries verified locally. Installed game/updater closed, beta.2 pair backed up, installed hashes verified and personal INI unchanged. No game launch or acceptance. Release `v0.9.8-beta.3` verified, publication `42122074660` successful. Actual updater discovery/download/hash/channel checks passed. Main remains `62f7521`.
 
 ## 2026-11-05 — beta.2 startup correction candidate
 

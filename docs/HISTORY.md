@@ -518,10 +518,18 @@ Compilation `42022238890` réussie et ZIP contrôlé localement. A38 installée 
 
 ## 2026-11-05 — rejet A38
 
-Le mainteneur confirme ensuite l'absence de nouveau crash sur beta.2. F3 comporte des réceptions réelles confirmées, mais F4 reste intermittent pour le silencieux. [beta.3](V098_BETA3_INSTANT_PICKUP.md) cible le mode natif sans animation, l'alternance F4 après réception et les refus de ramassage strictement antérieurs à toute mutation. Le démarrage graphique beta.2 est conservé exactement.
+Le mainteneur rejette A38 et signale la confusion entre version publique et numéro interne de build. Le log actuel passe les gardes, détecte le joueur, traite les rôles AUTO/F3 jusqu'au repos du spawner et publie les munitions AUTO. La réception réelle reste non prouvée. A38 retirée du canal bêta par passage en brouillon, historique conservé. La logique expérimentale A35/A37 n'avait pas été validée séparément avant son remap dans A38. Reprendre la comparaison depuis le comportement v0.9.7 accepté et établir la livraison à Bond avant une nouvelle candidate.
 
-La tentative v0.9.8-beta.1 crashe pendant le chargement, avant PLAYER PLAYABLE/pickup. Deux dumps convergent vers GPUCrashReport lors d'une attente de frame ; jeu sans mod fonctionnel selon le mainteneur. Bêta retirée, preuves privées sauvegardées. [beta.2](V098_BETA2_STARTUP.md) diffère l'initialisation GPU du menu jusqu'à une demande d'ouverture. Test démarrage puis ouverture du menu nécessaire avant de reprendre F3.
+## 2026-11-05 — v0.9.8-beta.1, livraison
 
 Suite isolée : [v0.9.8-beta.1](V098_BETA_DELIVERY.md), build interne 39. Relevé contrôlé lobby puis F3, Taser/fusil reçus et Q-Pistol silencieux créé vivant mais non rattaché. Correction de la corrélation du chargement natif (-1 vers handle assigné puis clear) et proposition d'un pickup natif unique pour l'objet identifié. Livraison à valider en jeu avant acceptation.
 
-Le mainteneur rejette A38 et signale la confusion entre version publique et numéro interne de build. Le log actuel passe les gardes, détecte le joueur, traite les rôles AUTO/F3 jusqu'au repos du spawner et publie les munitions AUTO. La réception réelle reste non prouvée. A38 retirée du canal bêta par passage en brouillon, historique conservé. La logique expérimentale A35/A37 n'avait pas été validée séparément avant son remap dans A38. Reprendre la comparaison depuis le comportement v0.9.7 accepté et établir la livraison à Bond avant une nouvelle candidate.
+## 2026-11-05 — crash beta.1 et démarrage beta.2
+
+La tentative v0.9.8-beta.1 crashe pendant le chargement, avant PLAYER PLAYABLE/pickup. Deux dumps convergent vers GPUCrashReport lors d'une attente de frame ; jeu sans mod fonctionnel selon le mainteneur. Bêta retirée, preuves privées sauvegardées. [beta.2](V098_BETA2_STARTUP.md) diffère l'initialisation GPU du menu jusqu'à une demande d'ouverture. Test démarrage puis ouverture du menu nécessaire avant de reprendre F3.
+
+## 2026-11-05 — v0.9.8-beta.3, ramassage instantané
+
+Le mainteneur confirme ensuite l'absence de nouveau crash sur beta.2. F3 comporte des réceptions réelles confirmées, mais F4 reste intermittent pour le silencieux. [beta.3](V098_BETA3_INSTANT_PICKUP.md) cible le mode natif sans animation, l'alternance F4 après réception et les refus de ramassage strictement antérieurs à toute mutation. Le démarrage graphique beta.2 est conservé exactement.
+
+Build `42121467744` et publication `42122074660` réussies. ZIP, manifeste, tag et découverte réelle via updater vérifiés. Beta.3 installée avec sauvegarde de beta.2 et INI personnel identique. Réception F3 et six alternances F4 à valider par le mainteneur.

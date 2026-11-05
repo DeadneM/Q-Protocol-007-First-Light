@@ -29,3 +29,5 @@ Scope checks preserve the complete beta.2 overlay/backend, native map, character
 Frozen source `2f0ef7054268fda81bb31c70839899f8e42897dd`, [full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42121467744) successful. Local ZIP integrity, x64 PE and per-file hash checks passed. ZIP 601039 bytes, SHA-256 `5d91a9390878220a686f64ce6f81fd898c93655cf09a154569d5009ba6cd51b1`.
 
 Installed game/updater closed, with verified backup of beta.2, exact artifact hashes and identical personal INI before/after. No game launch by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**, acceptance pending F3/F4 tests.
+
+[Beta.3 release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.8-beta.3) and compatible manifest verified; publication run `42122074660` successful. The unchanged updater engine discovers/downloads/verifies this package, excludes it from stable and does not reoffer build 41.
