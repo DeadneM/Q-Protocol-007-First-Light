@@ -21,3 +21,9 @@ Graph selection also records the actual source entry linked to the selected spaw
 Status **EXPERIMENTAL** until the maintainer confirms actual receipt. First test F3 once in the same controllable Tac Sim lobby with the mod menu closed. All three configured weapons must arrive, including the silenced Q-Pistol. Check the actual inventory and compare the log's receipt confirmations. Then test AUTO on arrival, ammo, menu/pause without repeats, a Tac Sim mission and story/death reload. Same-identity reload without observed death remains open.
 
 Read-contract regression tests cover provisional-to-assigned jobs, clear after an observed assigned job, unknown historical capacity, changed job/source and stale object generations. Compilation, guards, synthetic fixtures and updater discovery are technical checks. The new pickup path remains a gameplay experiment until tested.
+
+## Build verification
+
+Frozen source `96cd47002b18ec07dd418550fc71b4e0526b3457`, [successful full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42064315865). Local checks verified the two root x64 PE binaries and ZIP integrity. ZIP 599997 bytes, SHA-256 `ad5db48b3565474a0f845cf3fa6656b025a39ff5b1646e4d05fc4dce84ee0650`.
+
+Status **BUILT / CHECKED / EXPERIMENTAL**. Gameplay acceptance pending the single F3 inventory test.

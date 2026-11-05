@@ -1,0 +1,76 @@
+name: Publish verified v0.9.8-beta.1 beta artifact
+on:
+  workflow_dispatch:
+  push:
+    branches: [beta/v0.9.8-delivery]
+    paths: [".github/workflows/publish-v098-beta1.yml"]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/beta/v0.9.8-delivery'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check frozen source and successful full build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $source = '96cd47002b18ec07dd418550fc71b4e0526b3457'
+          git diff --exit-code $source HEAD -- src config updater tests tools/package_a35.py tools/verify_a35_scope.py tools/verify_delivery_scope.py tools/verify_a38_executable.py evidence/nov2026/a38-native-map.json .github/workflows/build-a35-session.yml
+          if ($LASTEXITCODE -ne 0) { throw 'Source changed after reviewed build' }
+          $run = gh api repos/${{ github.repository }}/actions/runs/42064315865 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.head_sha -ne $source -or $run.conclusion -ne 'success' -or $run.status -ne 'completed') {
+            throw 'Frozen v0.9.8-beta.1 full build not verified successful'
+          }
+      - uses: actions/download-artifact@v4
+        with:
+          name: Q-Protocol_v0.9.8-beta.1
+          run-id: 42064315865
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Verify ZIP and write compatible beta manifest
+        shell: pwsh
+        run: |
+          @'
+          import hashlib,json,struct,zipfile
+          from pathlib import Path
+          root=Path('candidate')
+          name='Q-Protocol_v0.9.8-beta.1.zip'
+          data=(root/name).read_bytes()
+          assert len(data)==599997 and hashlib.sha256(data).hexdigest()=='ad5db48b3565474a0f845cf3fa6656b025a39ff5b1646e4d05fc4dce84ee0650'
+          expected={'dxgi.dll':(138240,'609f956bcd5ecb691504710291d1b35cecbcf0fddbb4046696825a7a3dbe2a8a'),
+                    'QProtocol.asi':(1039872,'e9086125b0b60a89560a48cc47a68f3e6c60e4ae9e4c0c813771fe1cad6450ae')}
+          with zipfile.ZipFile(root/name) as archive:
+              assert archive.namelist()==list(expected) and archive.testzip() is None
+              for file,(size,sha) in expected.items():
+                  value=archive.read(file)
+                  assert len(value)==size and hashlib.sha256(value).hexdigest()==sha
+                  assert value[:2]==b'MZ'
+                  pe=struct.unpack_from('<I',value,0x3c)[0]
+                  assert value[pe:pe+4]==b'PE\0\0' and struct.unpack_from('<H',value,pe+4)[0]==0x8664
+          tag='v0.9.8-beta.1'
+          manifest={'schema':1,'build':39,'tag':tag,'exe_sha256':'f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43',
+                    'package':name,'url':f'https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/{tag}/{name}',
+                    'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),
+                    'files':{file:{'size':size,'sha256':sha} for file,(size,sha) in expected.items()}}
+          (root/'QProtocol-update.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+          print('Verified frozen v0.9.8-beta.1 ZIP and compatible beta manifest; no rebuild.')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'v0.9.8-beta.1 package/manifest verification failed' }
+      - name: Publish immutable prerelease from frozen source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v0.9.8-beta.1'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'v0.9.8-beta.1 release exists; refusing overwrite' }
+          git ls-remote --exit-code --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 2) { throw 'Tag exists or remote check failed; refusing publication' }
+          gh release create $tag candidate/Q-Protocol_v0.9.8-beta.1.zip candidate/QProtocol-update.json --repo '${{ github.repository }}' --target '96cd47002b18ec07dd418550fc71b4e0526b3457' --prerelease --title 'Q Protocol v0.9.8-beta.1 - Owned weapon delivery' --notes-file docs/V098_BETA_DELIVERY.md
+          if ($LASTEXITCODE -ne 0) { throw 'v0.9.8-beta.1 beta publication failed' }
