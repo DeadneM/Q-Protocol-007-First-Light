@@ -6,6 +6,8 @@ Maintainer reports a startup/loading crash before controlling Bond. Latest mod l
 
 Mark this candidate REJECTED and withdraw its beta release to draft. Keep executable, binaries, INI, logs, dumps and rollback pair available privately. No automatic rollback or game relaunch. Do not infer a pickup crash from a startup log with no delivery dispatch. Main remains v0.9.7.
 
+Withdrawal verified by workflow `42068793011`, release ID `435444689` now draft/REJECTED and actual updater probe `Next=none`. Both dumps were saved privately and analyzed offline. Heap GPU message text is absent from these minidumps; exact removed-device reason remains unknown. A single startup comparison with both mod binaries temporarily disabled has been proposed, pending maintainer authorization. Personal INI and binary hashes verified. The prepared isolation script has not been executed.
+
 ## 2026-11-05 — v0.9.8-beta.1 delivery repair in progress
 
 Branch `beta/v0.9.8-delivery`, internal build 39, public beta identity kept separate. [Evidence and contract](docs/V098_BETA_DELIVERY.md). Read-only controlled lobby/F3 comparison confirms Taser/shotgun arrive while the live created silenced Q-Pistol is absent from Bond's inventory. Native loading-job handle changes from -1, then the logical result vector clears. Fix request correlation and add one freshly revalidated native pickup for an owned item absent from the current player. Parallel receipt observation keeps weapon cadence independent and orders AUTO ammo after the observations. Actual new pickup delivery remains unvalidated.
