@@ -20,3 +20,9 @@ Reproduce the offline checks from the repository with `python tools/verify_a38_s
 Goal for this build is to load on the updated game with the native compatibility guards passing and execute the existing manual/AUTO path. Check recognition in the lobby, F3 with the menu closed, ammo and LTK, then enter a Tac Sim mission and check AUTO once on entry. Also check a story mission and death/reload. Use the [A37 checklist](A37_WEAPON_CADENCE.md) to track the previous regression.
 
 Status **EXPERIMENTAL**, gameplay validation pending. Packaging is two root binaries, `dxgi.dll` and `QProtocol.asi`. Personal INI and bindings are retained. Stable promotion requires explicit acceptance.
+
+## Build and installation
+
+Frozen source `5bc3ac2d64567328b6ab079bb79599ba890cf5ec`. [Full CI run](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42022238890) succeeded. ZIP verified locally, 591373 bytes, SHA-256 `7bc3cd58d903e2bd2fa9f1052119f8d89a7798774b7554bc9e240c16c7944150`.
+
+Installed on 5 November with game/updater closed, a verified private backup of the previous binary pair, and identical personal INI hashes before/after. Installed ASI/DXGI hashes match the checked artifact. No game launch or gameplay validation by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**.

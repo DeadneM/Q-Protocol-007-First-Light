@@ -2,7 +2,7 @@
 
 ## 2026-11-05 — A38 remap for Steam build 26430236
 
-The game update is installed. New EXE SHA-256 `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image `0x06D32000`. Old/new executables and the pre-update mod/INI/logs are privately preserved. Installed ASI last verified A36 (rejected), A37 has not been installed by the agent.
+The game update is installed. New EXE SHA-256 `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image `0x06D32000`. Old/new executables and the pre-update mod/INI/logs are privately preserved. A38 source `5bc3ac2` was built successfully by CI `42022238890` and installed with game/updater closed, previous binary pair backed up and personal INI unchanged. Both installed hashes match the verified artifact. No game launch or gameplay acceptance. A37 was never independently installed.
 
 Branch `experiment/a38-nov5-remap` adapts A37's experimental behavior to this EXE. [Map, checks and test plan](docs/A38_NOV5_REMAP.md). All existing native checks refreshed and verified on disk, weapon identities rechecked in current packages. Gameplay acceptance remains pending, including silenced Q-Pistol delivery and same-identity reload without an observed death.
 

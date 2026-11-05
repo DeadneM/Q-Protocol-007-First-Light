@@ -513,3 +513,5 @@ Deux passes sur la source A34 figée, comparaison et plan de correction : [rappo
 ## 2026-11-05 — A38 remap du jeu mis à jour
 
 [A38](A38_NOV5_REMAP.md) adapte les adresses et gardes au build Steam 26430236, après comparaison à l'ancien EXE sauvegardé. Les 18 plages de code et six liens de pointeurs sont vérifiés hors jeu. Les 31 identités d'armes restent présentes dans les index mis à jour. Comportement expérimental A37 conservé, validation en jeu à faire.
+
+Compilation `42022238890` réussie et ZIP contrôlé localement. A38 installée jeu fermé avec sauvegarde vérifiée de la paire précédente. INI personnel identique avant/après. Aucun lancement du jeu par l'agent.
