@@ -35,3 +35,9 @@
 - [x] Adapter les adresses et vérifier les gardes natifs A38 sur disque.
 - [x] Construire/livrer A38 et vérifier sa découverte par l'updater sur le nouvel EXE.
 - [ ] Valider les fonctions en histoire et Tac Sim sur le build 26430236.
+
+## 2026-11-05 — après rejet A38
+
+- [ ] Établir le destinataire et le chemin d'attachement des objets créés, à partir du comportement v0.9.7.
+- [ ] Séparer version publique et compteur interne de build dans la prochaine candidate.
+- [ ] Obtenir une validation fonctionnelle ciblée avant de reprendre les changements expérimentaux de session/détection.

@@ -515,3 +515,7 @@ Deux passes sur la source A34 figée, comparaison et plan de correction : [rappo
 [A38](A38_NOV5_REMAP.md) adapte les adresses et gardes au build Steam 26430236, après comparaison à l'ancien EXE sauvegardé. Les 18 plages de code et six liens de pointeurs sont vérifiés hors jeu. Les 31 identités d'armes restent présentes dans les index mis à jour. Comportement expérimental A37 conservé, validation en jeu à faire.
 
 Compilation `42022238890` réussie et ZIP contrôlé localement. A38 installée jeu fermé avec sauvegarde vérifiée de la paire précédente. INI personnel identique avant/après. Aucun lancement du jeu par l'agent.
+
+## 2026-11-05 — rejet A38
+
+Le mainteneur rejette A38 et signale la confusion entre version publique et numéro interne de build. Le log actuel passe les gardes, détecte le joueur, traite les rôles AUTO/F3 jusqu'au repos du spawner et publie les munitions AUTO. La réception réelle reste non prouvée. A38 retirée du canal bêta par passage en brouillon, historique conservé. La logique expérimentale A35/A37 n'avait pas été validée séparément avant son remap dans A38. Reprendre la comparaison depuis le comportement v0.9.7 accepté et établir la livraison à Bond avant une nouvelle candidate.

@@ -1,5 +1,11 @@
 # A38 November 5 Remap TEST
 
+## Rejected on 5 November
+
+Maintainer reports no functional improvement. A38 is REJECTED, with beta release withdrawal to draft. The actual log passes compatibility checks, detects the player, advances AUTO/F3 through spawner idle and processes AUTO ammo. Inventory delivery remains unproved. The successful build and remap checks below are historical technical results, not gameplay acceptance. The installed pair is retained while the game is running; no rollback was requested.
+
+Public v0.9.7 is still the accepted stable version. A34 through A38 were internal experimental builds, incorrectly substituted for the public version in the display field. A35/A37 behavior was not independently gameplay-validated before being carried into A38. The next candidate must separate version/build labels and have an evidence-backed delivery correction.
+
 Adaptation to Steam build **26430236**, using the saved executable from build 26252352 for comparison. The accepted behavior reference remains v0.9.7. A38 carries the experimental A37 queue and A35 player/session handling. Those changes still require gameplay acceptance.
 
 The supported EXE SHA-256 is `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image size `0x06D32000`. [Recorded map and instruction comparisons](../evidence/nov2026/a38-native-map.json).

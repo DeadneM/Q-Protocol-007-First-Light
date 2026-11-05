@@ -1,5 +1,13 @@
 # Q Protocol — Project State
 
+## 2026-11-05 — A38 REJECTED after gameplay test
+
+Maintainer reports that A38 still does not work and flags the confusing replacement of public v0.9.7 by experimental A-numbers. A38 is REJECTED. The actual log passes native-map/EXE validation, reaches PLAYER PLAYABLE, processes all AUTO and F3 roles to spawner idle and publishes AUTO ammo. Those observations do not establish actual inventory receipt. The A36 delivery timeouts are absent in this capture, but the requested functionality remains unvalidated and rejected.
+
+Withdraw A38 from beta discovery by preserving the release as a draft. Keep installed files and personal INI intact while the game is running. Private log/config snapshot retained outside Git. Main remains the accepted v0.9.7 line. Public version and internal updater Build must be represented separately in the next candidate; the A38 frozen tag remains historical.
+
+Method correction: A38 carried A35/A37 experimental player/session/queue logic without an independently accepted gameplay checkpoint. A new executable map alone cannot validate that logic. Return to the accepted v0.9.7 function behavior as comparison baseline and establish how the selected native spawner delivers to the current Bond before another gameplay build. Do not force READY, equate idle with receipt, or replay mutations to compensate for unknown results.
+
 ## 2026-11-05 — A38 remap for Steam build 26430236
 
 The game update is installed. New EXE SHA-256 `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image `0x06D32000`. Old/new executables and the pre-update mod/INI/logs are privately preserved. A38 source `5bc3ac2` was built successfully by CI `42022238890` and installed with game/updater closed, previous binary pair backed up and personal INI unchanged. Both installed hashes match the verified artifact. No game launch or gameplay acceptance. A37 was never independently installed.

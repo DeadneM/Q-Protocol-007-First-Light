@@ -162,7 +162,7 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
 ## Experimental builds
 
-[A38 compatibility test for Steam build 26430236](docs/A38_NOV5_REMAP.md)
+[A38 rejected test and investigation record](docs/A38_NOV5_REMAP.md)
 
 [A37 test and gameplay checklist](docs/A37_WEAPON_CADENCE.md)
 
