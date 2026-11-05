@@ -35,7 +35,7 @@ for source, pattern in [
         expected = bytes(int(x, 16) for x in re.findall(r'0x([0-9A-F]{2})', raw))
         assert read(int(rva, 16), len(expected)) == expected, rva
         checks += 1
-expected_checks = 27 if delivery else 18
+expected_checks = 28 if delivery else 18
 assert checks == expected_checks, f'Missing native guards ({checks}/{expected_checks})'
 base = int(inventory['image_base'], 16)
 links = re.search(r'links\[\]\[2\] = \{([\s\S]+?)\n    \};', core)[1]

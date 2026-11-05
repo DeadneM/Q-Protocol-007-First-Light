@@ -1,4 +1,5 @@
 #include "../src/runtime/NativeInventory.h"
+#include "../src/runtime/WeaponSwap.h"
 #include <map>
 #include <cstdio>
 #include <cstdlib>
@@ -132,5 +133,24 @@ int main() {
     m=Good();m.Put(spawner+0x38,SpawnBatch{recordAddress,recordAddress+55,recordAddress+56});
     Require(!CaptureSpawnToken(m,spawner,source.pointer).record,"malformed batch refused");
     m=Good();Require(!ReadNativeItem(m,base,0,output),"missing TLS mask fails closed");
+    Require(CanRetryPickup(PickupResult::InventoryUnknown),"unreadable inventory before mutation may be checked again");
+    Require(CanRetryPickup(PickupResult::ItemChanged),"failed pre-call item revalidation may be checked again");
+    Require(!CanRetryPickup(PickupResult::Published),"published native pickup is never replayed");
+    Require(!CanRetryPickup(PickupResult::NativeFault),"unknown partial native side effect is never replayed");
+    Require(!CanRetryPickup(PickupResult::AlreadyAttached),"already attached item needs no second pickup");
+    WeaponSwap swap;
+    const Ticket first{1,1,1,{1,2,3}}, second{2,1,1,{1,2,3}};
+    swap.pendingRid=99;
+    Require(swap.nextB && !swap.Finish({},true),"queued F4 intent cannot advance without a bound receipt");
+    swap.Bind(99,first);
+    Require(!swap.Finish(second,true) && swap.pendingRid==99 && swap.nextB,"another request cannot complete this F4");
+    Require(swap.Finish(first,false) && !swap.pendingRid && swap.nextB,"failed delivery retains the requested next variant");
+    swap.pendingRid=99;swap.Bind(99,second);
+    Require(swap.Finish(second,true) && !swap.nextB,"confirmed receipt advances exactly once");
+    Require(!swap.Finish(second,true) && !swap.nextB,"duplicate receipt cannot advance twice");
+    swap.pendingRid=101;swap.Bind(101,first);swap.Bind(101,second);
+    Require(!swap.Finish(first,true) && swap.pendingRid==101,"late pre-retry receipt cannot complete the replacement ticket");
+    swap.Cancel();
+    Require(!swap.pendingRid && !swap.nextB && !swap.Finish(second,true),"session cancellation keeps the next variant and rejects late acknowledgement");
     std::printf("Native inventory tests PASS: %d checks. Synthetic read contracts only; pickup delivery requires game validation.\n",checks);
 }

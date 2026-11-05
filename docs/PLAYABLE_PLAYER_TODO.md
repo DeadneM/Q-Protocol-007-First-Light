@@ -44,5 +44,7 @@
 - [x] Observer le job natif et comparer l'objet silencieux vivant à l'inventaire après un F3 contrôlé.
 - [ ] Valider en jeu le rattachement natif corrigé, puis AUTO et les munitions.
 - [ ] beta.2 : valider chargement menu fermé puis première ouverture du menu après le crash GPU beta.1.
+- [x] Le mainteneur rapporte que beta.2 ne crashe plus au cours de son essai.
+- [ ] beta.3 : vérifier six alternances F4 avec réception réelle du silencieux et absence de régression de démarrage.
 - [x] Compiler, vérifier, publier et installer v0.9.8-beta.1 sur demande, en préservant l'INI et une sauvegarde de la paire précédente.
 - [ ] Obtenir une validation fonctionnelle ciblée avant de reprendre les changements expérimentaux de session/détection.

@@ -1,0 +1,16 @@
+{
+  "exeSha256": "f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43",
+  "property": "m_skipPickupAnimations",
+  "propertyNameRva": "0x2e75fd0",
+  "propertyRecords": [
+    {
+      "propertyRecordRva": "0x2e7e398",
+      "memberOffset": "0x28"
+    }
+  ],
+  "nativeBranchRva": "0x15d8482",
+  "nativeBranchBytes": "385e28740ac744243802000000eb0984c00f95c3895c2438",
+  "mode": 2,
+  "meaning": "native scripted pickup with pickup animations skipped",
+  "runtimeAcceptance": "pending"
+}

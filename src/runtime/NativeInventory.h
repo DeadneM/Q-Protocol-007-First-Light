@@ -3,6 +3,24 @@
 #include <array>
 
 namespace qp::runtime {
+enum class PickupResult {
+    None, PlayerChanged, MaskUnavailable, ItemChanged, InventoryUnknown, OwnerUnavailable,
+    AlreadyAttached, Published, NativeFault
+};
+
+inline bool CanRetryPickup(PickupResult result) {
+    switch (result) {
+    case PickupResult::PlayerChanged:
+    case PickupResult::MaskUnavailable:
+    case PickupResult::ItemChanged:
+    case PickupResult::InventoryUnknown:
+    case PickupResult::OwnerUnavailable:
+        return true; // These returns occur before any native mutation.
+    default:
+        return false;
+    }
+}
+
 struct NativeRange {
     std::uintptr_t begin = 0, end = 0;
     bool operator==(const NativeRange&) const = default;
