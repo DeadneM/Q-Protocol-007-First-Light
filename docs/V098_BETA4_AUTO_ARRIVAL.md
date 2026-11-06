@@ -34,4 +34,8 @@ The new native routing is **EXPERIMENTAL**. Static checks and the x64 CPU routin
 - Full Windows build plus existing native readers, lifecycle/mailbox, updater, real DXGI forwarding/dependency, menu/bootstrap and two-binary ZIP checks.
 - Maintainer: fresh launch to Tac Sim lobby, no F3 until AUTO receipt is assessed; verify all three actual weapons, then F3/F4 remain instant. Story and death/reload follow only after that checkpoint succeeds.
 
-Status: source prepared; build, package and gameplay acceptance pending. Install ZIP will contain only `dxgi.dll` and `QProtocol.asi` at root; documentation remains on GitHub.
+Status **BUILT / CHECKED / EXPERIMENTAL**, gameplay acceptance pending. Frozen source `2fd0668e40308e124aaf829b138412ec57c8fb08`; [full Windows CI](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42215454049) successful. The first run stopped on strict MSVC fixture-name shadowing, corrected in the test only. The successful run passes 21 owned-completion checks, the actual assembled hook CPU smoke (11 checks), 43 inventory contracts, 56 session/mailbox checks and the existing updater/menu/DXGI/package checks. Local supported-EXE verification covers 32 code ranges and eight pointer links.
+
+Install ZIP `Q-Protocol_v0.9.8-beta.4.zip`: 605230 bytes, SHA-256 `1bfc12285209c0b088153a40491a89f9f970f5aabd75f76a8d56d2409e9d99d1`. Downloaded from successful artifact `13501001819`, with ZIP CRC, manifest sizes/hashes and both AMD64 binaries verified. Root contains only `dxgi.dll` and `QProtocol.asi`; documentation remains on GitHub.
+
+Beta.3 remains installed. No game launch or installation of beta.4 by the agent. Publication and actual updater discovery checks follow the frozen artifact; no rebuild during publication.
