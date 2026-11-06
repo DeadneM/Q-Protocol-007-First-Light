@@ -48,3 +48,12 @@
 - [ ] beta.3 : vérifier six alternances F4 avec réception réelle du silencieux et absence de régression de démarrage.
 - [x] Compiler, vérifier, publier et installer v0.9.8-beta.1 sur demande, en préservant l'INI et une sauvegarde de la paire précédente.
 - [ ] Obtenir une validation fonctionnelle ciblée avant de reprendre les changements expérimentaux de session/détection.
+
+## 2026-11-06 — acquis beta.3 et priorité AUTO
+
+- [x] Le mainteneur valide le ramassage manuel instantané dans ses essais et rapporte un essai en histoire.
+- [x] Relevé beta.3 : 13 demandes F4 alternées et deux paquets F3, toutes les réceptions manuelles confirmées dans l'inventaire. Voir [bilan et limites](V098_BETA3_INSTANT_PICKUP.md#2026-11-06--gameplay-checkpoint).
+- [ ] Corriger AUTO à la première arrivée : le mainteneur a dû utiliser F3 ; les trois réceptions initiales sont non confirmées, dont deux objets devenus indisponibles avant le pickup. La deuxième session comporte trois réceptions AUTO confirmées.
+- [ ] Établir la cause entre initialisation de scène et durée de vie/corrélation du résultat créé, sans délai arbitraire ni répétition aveugle d'un paquet.
+- [ ] Vérifier ensuite AUTO après mort/rechargement, son absence de répétition pour menu/pause et les quantités de munitions.
+- [ ] Conserver le chemin natif instantané, l'alternance F4 acquittée, le démarrage/menu beta.2 et le profil personnel pendant la correction ciblée ; promotion stable non autorisée par ce seul retour partiel.

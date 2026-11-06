@@ -16,7 +16,7 @@ The log's final beta.2 burst also reaches the existing 12-unitary-requests/30-se
 
 ## Acceptance
 
-Status **EXPERIMENTAL**. Keep the beta.2 startup and menu correction intact.
+Status **PARTIALLY VALIDATED by the maintainer**: instant manual delivery is accepted in the reported trials, including a story test. The overall candidate remains **EXPERIMENTAL** because first-arrival AUTO still fails. Keep the beta.2 startup/menu correction and beta.3 instant-pickup path intact.
 
 1. Enter the Tac Sim lobby and press F3 once with the mod menu closed. Check actual receipt of the configured three weapons.
 2. Press F4 six times at roughly one-second intervals. With the existing INI, the first variant is normal, then silenced, alternating after each confirmed receipt. Each requested variant must actually arrive.
@@ -31,3 +31,15 @@ Frozen source `2f0ef7054268fda81bb31c70839899f8e42897dd`, [full CI run](https://
 Installed game/updater closed, with verified backup of beta.2, exact artifact hashes and identical personal INI before/after. No game launch by the agent. Status **BUILT / CHECKED / INSTALLED / EXPERIMENTAL**, acceptance pending F3/F4 tests.
 
 [Beta.3 release](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/tag/v0.9.8-beta.3) and compatible manifest verified; publication run `42122074660` successful. The unchanged updater engine discovers/downloads/verifies this package, excludes it from stable and does not reoffer build 41.
+
+## 2026-11-06 — gameplay checkpoint
+
+The maintainer reports instant weapon delivery, a clear improvement, and a story test. The targeted AUTO follow-up is negative: F3 was necessary at the first arrival. Preserve manual delivery as an accepted checkpoint; do not mark the whole beta accepted.
+
+The [sanitized log summary](../evidence/nov2026/beta3-gameplay-20261106.json) records:
+
+- First observed player session: F3's three receipts and nine alternating F4 receipts confirmed. Initial AUTO's three receipts remain unconfirmed; two items fail pre-call revalidation as changed/unavailable.
+- Second observed player session: AUTO's three receipts, F3's three receipts and four alternating F4 receipts confirmed.
+- Total: 22 inventory confirmations, all after published pickups; no manual receipt timeout in this capture. Ammo native processing finished for both AUTO requests, without an independent ammunition count check.
+
+The log does not name the game mode, contain per-line timestamps or establish the exact cause of the initial item failures. The reported instant behavior is user validation, not a measured latency. It also does not cover death/reload rearming or prove no repeats on every menu/pause transition. No new build is required to preserve this checkpoint; first-arrival AUTO is the next isolated repair target. Never replay an uncertain package as a substitute for identifying why its items became unavailable.

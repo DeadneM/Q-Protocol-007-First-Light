@@ -10,10 +10,11 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**Experimental A34:** the [playable-player core rebuild](docs/PLAYABLE_PLAYER_CORE.md)
-replaces loadout-based readiness with a shared native-character/session gate for
-AUTO and manual actions. A33 was rejected by the maintainer. A34 requires gameplay
-acceptance in story and Tac Sim; v0.9.7 remains the accepted production base.
+**Current beta: [v0.9.8-beta.3](docs/V098_BETA3_INSTANT_PICKUP.md)** for Steam build
+26430236. The maintainer accepts instant manual delivery in the reported trials,
+including a story test. First-arrival AUTO still fails and needs correction;
+overall gameplay acceptance remains partial. v0.9.7 remains the accepted stable
+base for its supported executable.
 
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
@@ -163,6 +164,11 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 ## Experimental builds
 
 [v0.9.8-beta.3 instant pickup and confirmed F4 test](docs/V098_BETA3_INSTANT_PICKUP.md)
+
+6 November checkpoint: manual instant pickup accepted in the reported trials;
+13 F4 and six F3 inventory receipts confirmed. First AUTO arrival failed and
+required F3; a subsequent AUTO confirmed all three weapons. See the notebook
+for the remaining lifecycle and ammunition checks.
 
 [v0.9.8-beta.2 startup correction and acceptance sequence](docs/V098_BETA2_STARTUP.md)
 

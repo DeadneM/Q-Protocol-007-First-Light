@@ -1,5 +1,13 @@
 # Q Protocol — Project State
 
+## 2026-11-06 — beta.3 instant manual delivery accepted; first AUTO arrival still fails
+
+The maintainer reports that the new method gives the weapon instantly, is much better, and was also tested in story. Keep beta.3's native instant-pickup path as the accepted manual-delivery checkpoint for these trials. This does not accept every weapon or the full session/AUTO lifecycle. After a targeted question, the maintainer explicitly confirms having needed F3 at the first arrival: initial AUTO is still a functional failure.
+
+The privately preserved beta.3 log contains two player sessions: 13 F4 requests with alternating configured Q-Pistol variants and 13 corresponding inventory receipts; two F3 packages with all six receipts; first AUTO with three unconfirmed receipts, including two pre-call `item changed/unavailable` results; second AUTO with all three receipts. All 22 confirmed receipts follow published pickups. The log does not label story versus Tac Sim or measure input-to-receipt latency, so do not assign a mode to a session or present a measured latency. Ammo native processing finished twice; actual ammunition counts remain unverified. [Sanitized observation summary](evidence/nov2026/beta3-gameplay-20261106.json).
+
+Installed ASI/DXGI still match the verified beta.3 artifact, and the personal INI hash is unchanged from installation. No binary, config, game launch, new build or stable promotion in this review. Next objective: determine why the first AUTO's created items become unavailable before pickup, then correct that path while retaining the accepted instant manual delivery, F4 acknowledgement and startup/menu changes. The current log cannot distinguish premature scene initialization from item/result lifetime problems. Do not add blind package replay or change weapon IDs without evidence.
+
 ## 2026-11-05 — beta.2 startup reported working, beta.3 delivery candidate
 
 Maintainer explicitly reports startup no longer crashes on beta.2. Preserve that startup/menu change exactly. Current beta.2 log shows one F3 package with all three inventory receipts, then intermittent silenced F4 receipt despite pickup publication; normal variants confirm consistently. Initial AUTO also has pre-call failures. Several final hotkeys are suppressed by the unchanged 12/30s guard.
