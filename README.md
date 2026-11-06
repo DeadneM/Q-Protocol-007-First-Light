@@ -10,11 +10,11 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**Current beta: [v0.9.8-beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md)** for Steam build
-26430236. It tests a scoped first-AUTO completion repair and preserves beta.3's
-accepted instant manual-delivery path, including the reported story trial.
-Beta.4 is built, checked and installed for testing; first-arrival AUTO acceptance
-is pending. v0.9.7 remains the accepted stable base for its supported executable.
+**v0.9.8 is being promoted from the maintainer-validated
+[beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md)** for Steam build 26430236. It preserves
+instant manual delivery, repairs first-arrival AUTO and retains the startup/menu
+correction. See [stable release notes](packaging/RELEASE_NOTES_V0.9.8.md) and
+[`PROJECT_STATE.md`](PROJECT_STATE.md) for publication status.
 
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.

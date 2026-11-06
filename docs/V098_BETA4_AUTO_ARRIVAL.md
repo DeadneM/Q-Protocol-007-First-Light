@@ -1,5 +1,7 @@
 # v0.9.8-beta.4 — first AUTO item completion
 
+**2026-11-06: VALIDATED by the maintainer**, who reports "c'est parfait" and authorizes stable main promotion. The final log confirms all 12 AUTO receipts across four sessions, including a session after a positive death observation, with no receipt timeout. Historical preparation/check status below describes the stages before this acceptance. Stable promotion keeps this runtime unchanged apart from version identity; exhaustive mode/weapon and unobserved reload coverage is not inferred from this report.
+
 Base: beta.3 source `2f0ef70`, with the maintainer's accepted instant manual-delivery checkpoint recorded at `a06db56`. Branch `beta/v0.9.8-auto-arrival`, internal build 42. Stable behavior reference remains v0.9.7; main is not promoted.
 
 Objective: receive the configured AUTO weapons on the first Tac Sim lobby arrival without needing F3. Success requires actual receipt of all three configured weapons after a fresh launch, followed by preserved instant F3/F4 behavior. AUTO death/reload and pause/menu lifecycle remain separate acceptance checks; this change does not rewrite that state machine.

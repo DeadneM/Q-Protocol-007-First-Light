@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-06 — beta.4 accepted; v0.9.8 stable promotion authorized
+
+The maintainer reports "c'est parfait" and explicitly requests publication on main, a stable build, then recording three future feature requests. Beta.4 source `2fd0668` is now the accepted runtime checkpoint. Its final privately preserved log contains four AUTO packages, 12 inventory receipts, zero unconfirmed receipts and a positive death observation followed by a new session with all three AUTO receipts. This evidence does not name every scene/mode or independently verify ammunition quantities.
+
+Promotion branch `release/v0.9.8` starts from beta.4 documentation tip `9366ba3`. The complete `src`/`config`/`updater` tree is preserved except `src/Updates.h` public version `v0.9.8` and internal build 43. Full PR checks precede merge; main rebuilds and publishes its own immutable stable tag/ZIP/compatible manifest. Main is still `62f7521` while preparation and checks run. No new gameplay feature or local installation is part of this promotion.
+
 ## 2026-11-06 — beta.4 first AUTO completion candidate
 
 User authorizes continuing the first-arrival AUTO repair. Branch `beta/v0.9.8-auto-arrival` starts at the accepted beta.3 manual checkpoint `a06db56`. Read-only first-lobby capture confirms all three AUTO outputs become generation-invalid without entering Bond's inventory; user confirms AUTO absent, then F3 supplies all three. Native source index 0 takes a world-throw completion branch, while later silenced spawns and the manual sources take ordinary placement. [Candidate contract, evidence and limits](docs/V098_BETA4_AUTO_ARRIVAL.md).
