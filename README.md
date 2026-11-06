@@ -10,11 +10,11 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**Current beta: [v0.9.8-beta.3](docs/V098_BETA3_INSTANT_PICKUP.md)** for Steam build
-26430236. The maintainer accepts instant manual delivery in the reported trials,
-including a story test. First-arrival AUTO still fails and needs correction;
-overall gameplay acceptance remains partial. v0.9.7 remains the accepted stable
-base for its supported executable.
+**Current beta: [v0.9.8-beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md)** for Steam build
+26430236. It tests a scoped first-AUTO completion repair and preserves beta.3's
+accepted instant manual-delivery path, including the reported story trial.
+Beta.4 is built, checked and installed for testing; first-arrival AUTO acceptance
+is pending. v0.9.7 remains the accepted stable base for its supported executable.
 
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
@@ -162,6 +162,11 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 - Do not build another numbered compatibility release until the required primitives are understood.
 
 ## Experimental builds
+
+[v0.9.8-beta.4 first AUTO completion test](docs/V098_BETA4_AUTO_ARRIVAL.md)
+— [Download checked TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.8-beta.4/Q-Protocol_v0.9.8-beta.4.zip).
+First-arrival AUTO remains to be validated in game; beta.3 manual pickup/F4 and
+the startup/menu correction are preserved. Beta channel discovery is verified.
 
 [v0.9.8-beta.3 instant pickup and confirmed F4 test](docs/V098_BETA3_INSTANT_PICKUP.md)
 

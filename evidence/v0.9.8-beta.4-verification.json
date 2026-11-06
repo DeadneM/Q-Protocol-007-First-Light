@@ -1,0 +1,42 @@
+{
+  "version": "v0.9.8-beta.4",
+  "internalBuild": 42,
+  "source": "2fd0668e40308e124aaf829b138412ec57c8fb08",
+  "branch": "beta/v0.9.8-auto-arrival",
+  "buildRun": 42215454049,
+  "buildConclusion": "success",
+  "publicationRun": 42215919671,
+  "publicationConclusion": "success",
+  "releaseId": 436461217,
+  "prerelease": true,
+  "draft": false,
+  "artifactId": 13501001819,
+  "artifactSha256": "6c8a7839bdbb3425f09793548b755d9a707e7f2c0a8543cd8ae1ad18d57a7c94",
+  "package": "Q-Protocol_v0.9.8-beta.4.zip",
+  "packageBytes": 605230,
+  "packageSha256": "1bfc12285209c0b088153a40491a89f9f970f5aabd75f76a8d56d2409e9d99d1",
+  "files": {
+    "dxgi.dll": {"size": 138240, "sha256": "71e14d20055574315fa230875417398d3fb93280daee40fa8b3b3ce9b3dead6c"},
+    "QProtocol.asi": {"size": 1051648, "sha256": "7c969589129693d269b920e74a42b79b321d0cfcca2550f72c5a6a72b674398a"}
+  },
+  "checks": {
+    "exactSupportedExeGuardRanges": 32,
+    "nativePointerLinks": 8,
+    "ownedCompletionChecks": 21,
+    "assembledX64HookCpuChecks": 11,
+    "inventoryContractChecks": 43,
+    "sessionMailboxChecks": 56,
+    "zipCrcAndRootAndAmd64AndFileHashes": true,
+    "actualUpdaterCompatibleBetaFound": true,
+    "actualUpdaterDownloadedAndVerified": true,
+    "actualUpdaterStableExcludesBeta": true,
+    "actualUpdaterCurrentBuildNotReoffered": true
+  },
+  "installedAtExplicitMaintainerRequest": true,
+  "installedPairIndependentlyVerified": true,
+  "previousBeta3PairBackupVerified": true,
+  "currentPersonalIniPreservedAndBackupVerified": true,
+  "gameLaunchedByAgent": false,
+  "gameValidated": false,
+  "mainUnchanged": "62f75211256c498562a1727a966c27d551dccfb9"
+}

@@ -63,4 +63,5 @@
 - [x] Observer en lecture seule le premier AUTO dans le lobby : les trois objets deviennent invalides sans rejoindre l'inventaire, résultat confirmé par le mainteneur.
 - [x] Identifier la branche de finalisation native liée à l'index 0 des trois sources AUTO ; distinguer création, lancer physique et ramassage dans l'inventaire.
 - [ ] Construire et contrôler [beta.4](V098_BETA4_AUTO_ARRIVAL.md), puis vérifier ses trois réceptions AUTO au premier lancement sans F3.
+- [x] Beta.4 construite, paquet et publication vérifiés, découverte/téléchargement réel via updater contrôlés ; installée sur demande jeu fermé avec sauvegarde beta.3 et INI actuel conservé. Réception AUTO en jeu encore à valider.
 - [ ] Confirmer en jeu que la finalisation ordinaire demeure intacte pour les objets du jeu et que F3/F4 gardent leur livraison instantanée.
