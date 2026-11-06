@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-06",
+  "version": "v0.9.8-beta.3",
+  "internalBuild": 41,
+  "frozenSource": "2f0ef7054268fda81bb31c70839899f8e42897dd",
+  "status": "PARTIALLY_VALIDATED_MANUAL_DELIVERY; INITIAL_AUTO_FAILED; OVERALL_EXPERIMENTAL",
+  "maintainerReports": {
+    "manualDelivery": "Weapon arrives instantly; method is much better.",
+    "storyTest": "Also tested in story; no separate mode-specific checklist supplied.",
+    "initialAuto": "Did not receive initial AUTO weapons; had to use F3."
+  },
+  "privateLog": {
+    "sha256": "4f958791b0591d040f443e244e320ff54e88779918a721dbe51ed829dd74bf61",
+    "bytes": 21172,
+    "rawLogPublished": false,
+    "modePerSessionKnown": false,
+    "latencyMeasured": false
+  },
+  "observedSessions": [
+    {
+      "ordinal": 1,
+      "autoPackages": 1,
+      "autoReceiptsConfirmed": 0,
+      "autoReceiptsUnconfirmed": 3,
+      "preCallItemChangedResults": 2,
+      "f3Packages": 1,
+      "f3ReceiptsConfirmed": 3,
+      "f4Requests": 9,
+      "f4ReceiptsConfirmed": 9,
+      "f4VariantsAlternate": true,
+      "autoAmmoNativeProcessingFinished": true,
+      "ammoCountsIndependentlyVerified": false
+    },
+    {
+      "ordinal": 2,
+      "autoPackages": 1,
+      "autoReceiptsConfirmed": 3,
+      "autoReceiptsUnconfirmed": 0,
+      "f3Packages": 1,
+      "f3ReceiptsConfirmed": 3,
+      "f4Requests": 4,
+      "f4ReceiptsConfirmed": 4,
+      "f4VariantsAlternate": true,
+      "autoAmmoNativeProcessingFinished": true,
+      "ammoCountsIndependentlyVerified": false
+    }
+  ],
+  "totals": {
+    "inventoryReceiptsConfirmed": 22,
+    "nativePickupPublishedResults": 22,
+    "preCallItemChangedResults": 2,
+    "unconfirmedReceipts": 3,
+    "unconfirmedManualReceipts": 0
+  },
+  "installedHashesMatchBeta3Artifact": {
+    "QProtocol.asi": "9acbed5b378c726bd3c93df12336a8fa5393b7a3c55d969a96bb3593587e3ed5",
+    "dxgi.dll": "b45e3e5838411bf88b9d259def598d1ab9c1ce02e2d3d6886616868c811f75be"
+  },
+  "personalIniUnchangedSinceInstall": true,
+  "runtimeCodeChangedDuringReview": false,
+  "gameLaunchedByAgent": false,
+  "newBuildProduced": false,
+  "mainPromotionAuthorizedByThisFeedback": false,
+  "openQuestions": [
+    "Why initial AUTO items become unavailable before pickup: scene initialization versus created-result lifetime/correlation is not established.",
+    "AUTO rearming after death/reload and no repeats for pause/menu remain unverified.",
+    "Not every weapon has been accepted in each mode."
+  ]
+}

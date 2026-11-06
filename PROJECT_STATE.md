@@ -1,5 +1,109 @@
 # Q Protocol — Project State
 
+## 2026-11-06 — beta.4 accepted; v0.9.8 stable promotion authorized
+
+The maintainer reports "c'est parfait" and explicitly requests publication on main, a stable build, then recording three future feature requests. Beta.4 source `2fd0668` is now the accepted runtime checkpoint. Its final privately preserved log contains four AUTO packages, 12 inventory receipts, zero unconfirmed receipts and a positive death observation followed by a new session with all three AUTO receipts. This evidence does not name every scene/mode or independently verify ammunition quantities.
+
+Promotion branch `release/v0.9.8` starts from beta.4 documentation tip `9366ba3`. The complete `src`/`config`/`updater` tree is preserved except `src/Updates.h` public version `v0.9.8` and internal build 43. Full PR checks precede merge; main rebuilds and publishes its own immutable stable tag/ZIP/compatible manifest. Main is still `62f7521` while preparation and checks run. No new gameplay feature or local installation is part of this promotion.
+
+## 2026-11-06 — beta.4 first AUTO completion candidate
+
+User authorizes continuing the first-arrival AUTO repair. Branch `beta/v0.9.8-auto-arrival` starts at the accepted beta.3 manual checkpoint `a06db56`. Read-only first-lobby capture confirms all three AUTO outputs become generation-invalid without entering Bond's inventory; user confirms AUTO absent, then F3 supplies all three. Native source index 0 takes a world-throw completion branch, while later silenced spawns and the manual sources take ordinary placement. [Candidate contract, evidence and limits](docs/V098_BETA4_AUTO_ARRIVAL.md).
+
+Beta.4/build 42 scopes native placement routing to an explicitly tracked, freshly revalidated AUTO output still in its own logical batch. It also retains that observed job/output for the unchanged instant-pickup worker. No source-policy mutation, arbitrary delay or blind spawn replay. Beta.3 manual pickup/F4, GPU startup/menu and other protected paths preserved. Status BUILT / CHECKED / INSTALLED / EXPERIMENTAL: frozen source `2fd0668`, full CI `42215454049` and publication `42215919671` successful. Artifact and public two-binary ZIP verified locally; actual updater discovery/download/hash/channel/current-build checks pass. Installed at the maintainer's explicit request, game closed, verified beta.3 backup and current personal INI preserved. Independent post-install hash checks pass. No game launch by the agent, no gameplay acceptance or main promotion.
+
+## 2026-11-06 — beta.3 instant manual delivery accepted; first AUTO arrival still fails
+
+The maintainer reports that the new method gives the weapon instantly, is much better, and was also tested in story. Keep beta.3's native instant-pickup path as the accepted manual-delivery checkpoint for these trials. This does not accept every weapon or the full session/AUTO lifecycle. After a targeted question, the maintainer explicitly confirms having needed F3 at the first arrival: initial AUTO is still a functional failure.
+
+The privately preserved beta.3 log contains two player sessions: 13 F4 requests with alternating configured Q-Pistol variants and 13 corresponding inventory receipts; two F3 packages with all six receipts; first AUTO with three unconfirmed receipts, including two pre-call `item changed/unavailable` results; second AUTO with all three receipts. All 22 confirmed receipts follow published pickups. The log does not label story versus Tac Sim or measure input-to-receipt latency, so do not assign a mode to a session or present a measured latency. Ammo native processing finished twice; actual ammunition counts remain unverified. [Sanitized observation summary](evidence/nov2026/beta3-gameplay-20261106.json).
+
+Installed ASI/DXGI still match the verified beta.3 artifact, and the personal INI hash is unchanged from installation. No binary, config, game launch, new build or stable promotion in this review. Next objective: determine why the first AUTO's created items become unavailable before pickup, then correct that path while retaining the accepted instant manual delivery, F4 acknowledgement and startup/menu changes. The current log cannot distinguish premature scene initialization from item/result lifetime problems. Do not add blind package replay or change weapon IDs without evidence.
+
+## 2026-11-05 — beta.2 startup reported working, beta.3 delivery candidate
+
+Maintainer explicitly reports startup no longer crashes on beta.2. Preserve that startup/menu change exactly. Current beta.2 log shows one F3 package with all three inventory receipts, then intermittent silenced F4 receipt despite pickup publication; normal variants confirm consistently. Initial AUTO also has pre-call failures. Several final hotkeys are suppressed by the unchanged 12/30s guard.
+
+[beta.3 candidate](docs/V098_BETA3_INSTANT_PICKUP.md), internal build 41, uses native mode 2 proven by `m_skipPickupAnimations` +28 metadata and executable branch, binds F4 alternation to actual receipt, and retries only positively pre-mutation pickup failures. Existing GPU/startup code is byte-for-byte source-preserved from beta.2. Global gameplay acceptance still pending.
+
+Beta.3 source `2f0ef70` built and checked successfully in run `42121467744`. ZIP and both x64 binaries verified locally. Installed game/updater closed, beta.2 pair backed up, installed hashes verified and personal INI unchanged. No game launch or acceptance. Release `v0.9.8-beta.3` verified, publication `42122074660` successful. Actual updater discovery/download/hash/channel checks passed. Main remains `62f7521`.
+
+## 2026-11-05 — beta.2 startup correction candidate
+
+Maintainer confirms the game works without the mod; the proposed temporary isolation was already performed by the maintainer, so the prepared script was not run. [v0.9.8-beta.2](docs/V098_BETA2_STARTUP.md), internal build 40, moves the visibility check before renderer initialization. This avoids hidden-menu startup/font GPU submissions and loading-screen reinitializations. Exact GPU reason/command remains unknown; acceptance must cover startup and the first explicit menu opening before the F3 delivery test.
+
+Runtime code differs from frozen beta.1 only by the visibility guard and version/log identity. Delivery, native compatibility, bindings, config and updater logic are retained. No rollback or new game launch by the agent.
+
+Beta.2 frozen source `c12ee2d` compiled and checked in run `42070394975`. ZIP and both x64 binaries verified locally. Installed game/updater closed, previous beta.1 pair backed up, installed hashes match the artifact, personal INI unchanged. No game launch or gameplay acceptance. Next test is startup with menu closed, then one explicit menu opening, before F3.
+
+Release `v0.9.8-beta.2` and compatible manifest verified, publication `42071005261` successful. Actual updater public download/hash/channel/current-build checks passed. Stable main remains `62f7521`; beta.1 remains withdrawn. Prepared isolation script was never executed because the maintainer had already confirmed startup without the mod.
+
+## 2026-11-05 — v0.9.8-beta.1 crash, withdraw candidate
+
+Maintainer reports a startup/loading crash before controlling Bond. Latest mod log ends after DX12 overlay resize/reinitialization, before PLAYER PLAYABLE and before any owned-item pickup dispatch. Two Windows reports and private dumps show breakpoint exception 0x80000003 at EXE+0x00D00D97. Static code at that site is the game's GPUCrashReport fatal path, with ZRenderDevice::OnFrameEnd in the nearby return chain. This identifies the GPU failure path; exact GPU reason and the mod's causal role still require investigation.
+
+Mark this candidate REJECTED and withdraw its beta release to draft. Keep executable, binaries, INI, logs, dumps and rollback pair available privately. No automatic rollback or game relaunch. Do not infer a pickup crash from a startup log with no delivery dispatch. Main remains v0.9.7.
+
+Withdrawal verified by workflow `42068793011`, release ID `435444689` now draft/REJECTED and actual updater probe `Next=none`. Both dumps were saved privately and analyzed offline. Heap GPU message text is absent from these minidumps; exact removed-device reason remains unknown. A single startup comparison with both mod binaries temporarily disabled has been proposed, pending maintainer authorization. Personal INI and binary hashes verified. The prepared isolation script has not been executed.
+
+## 2026-11-05 — v0.9.8-beta.1 delivery repair in progress
+
+Branch `beta/v0.9.8-delivery`, internal build 39, public beta identity kept separate. [Evidence and contract](docs/V098_BETA_DELIVERY.md). Read-only controlled lobby/F3 comparison confirms Taser/shotgun arrive while the live created silenced Q-Pistol is absent from Bond's inventory. Native loading-job handle changes from -1, then the logical result vector clears. Fix request correlation and add one freshly revalidated native pickup for an owned item absent from the current player. Parallel receipt observation keeps weapon cadence independent and orders AUTO ammo after the observations. Actual new pickup delivery remains unvalidated.
+
+Candidate `96cd470` compiled successfully in run `42064315865`; native reader/job regression tests, lifecycle/mailbox, updater, menu/bootstrap and DXGI checks passed. Public release `v0.9.8-beta.1` verified, publication run `42064879185`. Actual updater discovery/download/hash/channel checks passed. Installed explicitly after the maintainer closed the game, previous A38 pair backed up, installed hashes verified and personal INI unchanged. No gameplay acceptance yet. Raw snapshots remain private. Accepted stable v0.9.7/main remains the behavior reference; local-character/session logic carried forward from A38 is still experimental, with same-identity reload unresolved.
+
+## 2026-11-05 — A38 REJECTED after gameplay test
+
+Maintainer reports that A38 still does not work and flags the confusing replacement of public v0.9.7 by experimental A-numbers. A38 is REJECTED. The actual log passes native-map/EXE validation, reaches PLAYER PLAYABLE, processes all AUTO and F3 roles to spawner idle and publishes AUTO ammo. Those observations do not establish actual inventory receipt. The A36 delivery timeouts are absent in this capture, but the requested functionality remains unvalidated and rejected.
+
+Withdraw A38 from beta discovery by preserving the release as a draft. Keep installed files and personal INI intact while the game is running. Private log/config snapshot retained outside Git. Main remains the accepted v0.9.7 line. Public version and internal updater Build must be represented separately in the next candidate; the A38 frozen tag remains historical.
+
+Withdrawal verified. Workflow `42045125419` succeeded, release ID `435142368` is draft and named REJECTED. The unchanged updater engine on the new EXE no longer offers A38 (`Next=none`). No game files modified in this rejection turn.
+
+Method correction: A38 carried A35/A37 experimental player/session/queue logic without an independently accepted gameplay checkpoint. A new executable map alone cannot validate that logic. Return to the accepted v0.9.7 function behavior as comparison baseline and establish how the selected native spawner delivers to the current Bond before another gameplay build. Do not force READY, equate idle with receipt, or replay mutations to compensate for unknown results.
+
+## 2026-11-05 — A38 remap for Steam build 26430236
+
+The game update is installed. New EXE SHA-256 `f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43`, timestamp `0x6AEAFDDA`, image `0x06D32000`. Old/new executables and the pre-update mod/INI/logs are privately preserved. A38 source `5bc3ac2` was built successfully by CI `42022238890` and installed with game/updater closed, previous binary pair backed up and personal INI unchanged. Both installed hashes match the verified artifact. No game launch or gameplay acceptance. A37 was never independently installed.
+
+Branch `experiment/a38-nov5-remap` adapts A37's experimental behavior to this EXE. [Map, checks and test plan](docs/A38_NOV5_REMAP.md). All existing native checks refreshed and verified on disk, weapon identities rechecked in current packages. Gameplay acceptance remains pending, including silenced Q-Pistol delivery and same-identity reload without an observed death.
+
+Beta release `a38-nov5-remap-test` verified, publication run `42022783986` successful. The actual updater engine discovers/downloads/verifies it against the new EXE, excludes it on stable and avoids reoffering build 38. Main remains `62f7521`. Next step is the maintainer's lobby/F3/AUTO test on the installed A38, then current log inspection.
+
+## 2026-11-05 — A37 Weapon Cadence TEST
+
+Isolated branch `experiment/a37-weapon-cadence`. Behavior reference v0.9.7 (`8722000`); source branch starts before the A36 delivery experiment at `66c91ec`, with A35's experimental player/session handling and the catalog audit. Restore the accepted-spawn-to-idle queue progression and 500 ms inter-weapon cooldown. Native effects with uncertain outcomes are retired without automatic replay. [Test contract and remaining limits](docs/A37_WEAPON_CADENCE.md).
+
+The installed A36 remains rejected. No installation or rollback as part of preparing this test build.
+
+## 2026-11-03 - A34 playable-player core rebuild
+
+User REJECTS A33 detection and requests one shared playable-player gate for AUTO
+and manual actions. Start again from accepted v0.9.7/main; A32/A33 fallback code
+is not retained. Current branch: experiment/a34-playable-player-core.
+
+Read-only story/Tac Sim captures establish the native local-character binding,
+typed humanoid component, generation and owner association. New gameplay-thread
+observer uses that contract, native sequence/not-alive lists and fresh snapshots.
+Loadout is optional and cannot decide READY. Session/epoch/request-tagged mailboxes
+replace raw-pointer/flag dispatch, and AUTO waits for the ammo result.
+
+See [technical notebook and test plan](docs/PLAYABLE_PLAYER_CORE.md). Scope tests
+preserve native primitives, RIDs, spawn limits/timing, F1, UI/DX12, updater and INI.
+Status EXPERIMENTAL: compile/fixtures/package checks are not gameplay acceptance.
+Actual AUTO and manual receipt in both modes must be verified before promotion.
+
+Delivery verified: source/tag `13a843ae576d082dfaae2d5bb1909b6442dc7da2`,
+CI `41728031516` SUCCESS; native read-contract 14 checks, lifecycle/mailbox 38,
+updater 19, menu/bootstrap and DXGI/dependencies passed. Prerelease
+`a34-playable-player-core-test` includes its in-mod updater manifest. Real unchanged
+updater engine: A33 discovers A34 with beta ON, stable excludes it, A34 does not
+reoffer itself. ZIP 590569 bytes, SHA-256
+`2a8d9fae0e376f05e52f22e51ffaf3699b16eebdd1b7bc33b2e903d2516bd8ec`.
+Only dxgi.dll/QProtocol.asi at root. Installed ASI remains A33; no installation or
+game launch performed. Main and latest stable v0.9.7 verified unchanged.
+Status BUILT / CHECKED / EXPERIMENTAL; user gameplay acceptance pending.
+
 ## 2026-11-02 - v0.9.7 stable released on main
 
 Maintainer-authorized promotion completed via [PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8),

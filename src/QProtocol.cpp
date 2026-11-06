@@ -1,5 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <intrin.h>
+#include <mutex>
+#include "runtime/NativePlayer.h"
+#include "runtime/NativeInventory.h"
+#include "runtime/WeaponSwap.h"
+#include "runtime/OwnedAutoSpawn.h"
+#include "runtime/GameplayMailbox.h"
 
 #include <algorithm>
 #include <atomic>
@@ -18,28 +25,34 @@
 
 namespace qp {
 
-constexpr std::uintptr_t kExpectedSizeOfImage = 0x06D31000;
-constexpr DWORD kExpectedTimeDateStamp = 0x6AE0DF3C;
+constexpr std::uintptr_t kExpectedSizeOfImage = 0x06D32000;
+constexpr DWORD kExpectedTimeDateStamp = 0x6AEAFDDA;
 
-// A28 TEST: Steam build 26252352, SHA-256 6e63df4d2891ea085a71ef9a6f4d24b9db52144879945e8cc1a2e8106fabd3f1.
-constexpr std::uintptr_t kPlayerResolverRva       = 0x0171D2E0;
-constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E80;
-constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x06792438;
-constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06452BF8;
-constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06452BE0;
-constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDD278;
-constexpr std::uintptr_t kLicenseToKillRva         = 0x0191B694;
-constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191B6FB;
-constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191B6B8;
-constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191B6C7;
-constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191B743;
+// A38 TEST: Steam build 26430236, SHA-256 f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43.
+constexpr std::uintptr_t kPlayerResolverRva       = 0x0171D8F0;
+constexpr std::uintptr_t kPlayerRegistryHelperRva = 0x007D6E90;
+constexpr std::uintptr_t kPlayerRegistryGlobalRva = 0x06793B30;
+constexpr std::uintptr_t kRuntimePlayerGlobalRva  = 0x06453CF8;
+constexpr std::uintptr_t kAmmoOwnerGlobalRva      = 0x06453CE0;
+constexpr std::uintptr_t kPlayerLoadoutVtableRva  = 0x02EDE200;
+constexpr std::uintptr_t kLicenseToKillRva         = 0x0191BCF4;
+constexpr std::uintptr_t kLicenseToKillNativeOnRva = 0x0191BD5B;
+constexpr std::uintptr_t kLtkObserveHookRva         = 0x0191BD18;
+constexpr std::uintptr_t kLtkObserveTrueRva         = 0x0191BD27;
+constexpr std::uintptr_t kLtkObserveFalseRva        = 0x0191BDA3;
 
-constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECA0A8;
-constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECA270;
-constexpr std::uintptr_t kNativeSpawnRva          = 0x016B5E90;
-constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x001157B0;
-constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8470;
-constexpr std::uintptr_t kGameplayHookRva         = 0x0194CBD1;
+constexpr std::uintptr_t kItemEntryVtableRva      = 0x02ECB1B0;
+constexpr std::uintptr_t kSpawnerVtableRva        = 0x02ECA630;
+constexpr std::uintptr_t kNativeSpawnRva          = 0x016B64C0;
+constexpr std::uintptr_t kNativeAmmoInsertRva     = 0x00115890;
+constexpr std::uintptr_t kNativeAmmoNotifyRva     = 0x012A8A10;
+constexpr std::uintptr_t kGameplayHookRva         = 0x0194D241;
+constexpr std::uintptr_t kAutoSpawnHookRva         = 0x016B75DB;
+constexpr std::uintptr_t kAutoSpawnCallRva         = 0x016B75F2;
+constexpr BYTE kAutoSpawnHookPreimage[14] = {
+    0xC4, 0xC1, 0x78, 0x10, 0x04, 0x24, 0x48, 0x8B, 0x07,
+    0x48, 0x8D, 0x54, 0x24, 0x20
+};
 
 constexpr std::uintptr_t kAmmoNotifyContextOffset = 0x20AD0;
 constexpr std::uintptr_t kAmmoInputVectorOffset   = 0x20B70;
@@ -70,11 +83,18 @@ constexpr BYTE kGameplayHookPreimage[13] = {
 
 struct PlayerContext {
     void* loadout = nullptr;
+    void* character = nullptr;
     std::uint32_t playerId = 0;
-
-    explicit operator bool() const {
-        return loadout != nullptr && playerId != 0;
-    }
+    runtime::PlayerSnapshot snapshot{};
+    const char* reason = "no gameplay observation";
+    explicit operator bool() const { return snapshot.Fresh(GetTickCount64()); }
+};
+struct SpawnResult {
+    bool triggered = false, exception = false, valid = false, accepted = false, pending = false;
+    bool invoked = false;
+    unsigned int state = 0xFFFFFFFF;
+    ULONGLONG at = 0;
+    runtime::SpawnToken token{};
 };
 
 struct WeaponGraph {
@@ -86,6 +106,9 @@ struct ActiveWeapon {
     bool active = false;
     bool packageOwned = false;
     bool observationLogged = false;
+    bool dispatchDeferredLogged = false;
+    runtime::Ticket ticket{};
+    SpawnResult result{};
     std::uint64_t requestedRid = 0;
     std::uintptr_t spawner = 0;
     ULONGLONG setupAt = 0;
@@ -116,6 +139,27 @@ struct PendingAmmoRequest {
     const char* source = nullptr;
 };
 
+struct NativePickupInput {
+    std::uint32_t playerId = 0, itemId = 0, mode = 0;
+};
+static_assert(sizeof(NativePickupInput) == 12);
+struct PendingPickupRequest {
+    runtime::NativeItem item{};
+    std::uint32_t playerId = 0;
+};
+struct WeaponDelivery {
+    runtime::Ticket spawnTicket{}, pickupTicket{};
+    runtime::SpawnToken token{};
+    runtime::EntityReference created{};
+    std::uintptr_t spawner = 0;
+    std::uint64_t rid = 0;
+    ULONGLONG expiresAt = 0;
+    bool pickupProcessed = false;
+    runtime::PickupResult lastPickupResult = runtime::PickupResult::None;
+    ULONGLONG pickupRetryAt = 0;
+    bool nativeCompletionMerged = false;
+};
+
 enum class BeginWeaponResult {
     Started,
     SpawnerBusy,
@@ -130,10 +174,12 @@ using NativeAmmoNotifyFn = void(__fastcall*)(void*, std::uint32_t, void*);
 
 extern "C" void QpGameplayHook();
 extern "C" void QpLtkObserveHook();
+extern "C" void QpAutoSpawnFinalizationHook();
 
 extern "C" volatile LONG g_qpLtkObservedPacked = 0;
 extern "C" std::uintptr_t g_qpLtkObserveTrueTarget = 0;
 extern "C" std::uintptr_t g_qpLtkObserveFalseTarget = 0;
+extern "C" std::uintptr_t g_qpAutoSpawnCallTarget = 0;
 
 HMODULE g_module = nullptr;
 HANDLE g_log = INVALID_HANDLE_VALUE;
@@ -143,17 +189,19 @@ std::atomic<bool> g_running{true};
 NativeSpawnFn g_nativeSpawn = nullptr;
 bool g_ltkObserveHookInstalled = false;
 
-std::atomic<std::uintptr_t> g_pendingSpawner{0};
-std::atomic<bool> g_spawnTriggered{false};
-std::atomic<bool> g_spawnException{false};
-std::atomic<bool> g_spawnObservationValid{false};
-std::atomic<bool> g_spawnNativeAccepted{false};
-std::atomic<unsigned int> g_spawnPostState{0};
-std::atomic<bool> g_spawnPostPending{false};
-std::atomic<ULONGLONG> g_spawnTriggeredAt{0};
-
-PendingAmmoRequest g_pendingAmmo{};
-std::atomic<bool> g_ammoPending{false};
+struct SpawnPayload { std::uint64_t rid = 0; WeaponGraph graph{}; bool autoOwned = false; };
+runtime::GameplayMailbox<SpawnPayload, SpawnResult> g_spawnMailbox;
+runtime::GameplayMailbox<PendingAmmoRequest, bool> g_ammoMailbox;
+runtime::GameplayMailbox<PendingPickupRequest, runtime::PickupResult> g_pickupMailbox;
+std::deque<WeaponDelivery> g_weaponDeliveries;
+runtime::OwnedAutoSpawns g_ownedAutoSpawns;
+std::atomic<bool> g_autoSpawnHookInstalled{false};
+std::mutex g_playerMutex;
+runtime::PlayableSession g_playerSession;
+PlayerContext g_publishedPlayer{}, g_workerPlayer{}, g_tickPlayer{};
+std::atomic_flag g_tickBusy = ATOMIC_FLAG_INIT;
+runtime::Ticket g_lastAmmoTicket{}, g_autoAmmoTicket{};
+const char* g_lastAmmoSource = "Ammo";
 
 std::unordered_map<std::uint64_t, WeaponGraph> g_graphs;
 bool g_graphIndexBuilt = false;
@@ -176,7 +224,7 @@ constexpr unsigned int kWeaponMaxRetries = 5;
 
 std::uint64_t g_qpistolModeA = 0;
 std::uint64_t g_qpistolModeB = 0;
-bool g_qpistolNextB = true;
+runtime::WeaponSwap g_qpistolSwap;
 std::uint64_t g_hotkeyWeapons[8]{};
 
 struct LoadoutProfile {
@@ -201,6 +249,7 @@ struct LoadoutPackage {
     bool active = false;
     bool justCompleted = false;
     bool justFailed = false;
+    bool hadUnconfirmedRole = false;
     LoadoutSource source = LoadoutSource::None;
     LoadoutProfile profile{};
     std::uint32_t playerId = 0;
@@ -285,6 +334,9 @@ bool WriteCodeBytes(std::uintptr_t address, const BYTE* bytes, SIZE_T size) {
 
 // A28 compatibility gate: verify native code and relocated type links before any hook.
 // This is a static-map check, not proof of runtime gameplay acceptance.
+#include "NativePlayerGuards.inl"
+#include "NativeDeliveryGuards.inl"
+
 bool ValidateNovemberNativeMap() {
     auto code = [](const char* name, std::uintptr_t rva, const BYTE* expected, SIZE_T size) {
         BYTE current[64]{};
@@ -300,36 +352,36 @@ bool ValidateNovemberNativeMap() {
         }
         return true;
     };
-    const BYTE expected0[] = {0x40, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x45, 0x33, 0xC9, 0x48, 0x8B, 0xDA, 0x4C, 0x39, 0x0D, 0x3D, 0x6E, 0xD3, 0x04, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x0F, 0x84, 0xEA, 0x00, 0x00, 0x00, 0x48, 0x8B};
-    if (!code("kPlayerResolverRva", 0x0171D2E0, expected0, sizeof(expected0))) return false;
-    const BYTE expected1[] = {0x48, 0x83, 0xEC, 0x08, 0x44, 0x8B, 0x41, 0x08, 0x4C, 0x8B, 0xDA, 0x48, 0x8B, 0x05, 0xF6, 0x07, 0x52, 0x05, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x46, 0x8B, 0x0C, 0x80, 0x90, 0x65, 0x48, 0x8B, 0x04};
-    if (!code("kPlayerRegistryHelperRva", 0x007D6E80, expected1, sizeof(expected1))) return false;
-    const BYTE expected2[] = {0x40, 0x55, 0x56, 0x41, 0x55, 0x48, 0x8D, 0x6C, 0x24, 0xB9, 0x48, 0x81, 0xEC, 0xF0, 0x00, 0x00, 0x00, 0x8B, 0x05, 0x81, 0x47, 0x05, 0x05, 0x33, 0xF6, 0x4C, 0x8B, 0xE9, 0x89, 0x45, 0x87, 0x8B};
-    if (!code("kNativeSpawnRva", 0x016B5E90, expected2, sizeof(expected2))) return false;
+    const BYTE expected0[] = {0x40, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x45, 0x33, 0xC9, 0x48, 0x8B, 0xDA, 0x4C, 0x39, 0x0D, 0x2D, 0x79, 0xD3, 0x04, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x0F, 0x84, 0xEA, 0x00, 0x00, 0x00, 0x48, 0x8B};
+    if (!code("kPlayerResolverRva", 0x0171D8F0, expected0, sizeof(expected0))) return false;
+    const BYTE expected1[] = {0x48, 0x83, 0xEC, 0x08, 0x44, 0x8B, 0x41, 0x08, 0x4C, 0x8B, 0xDA, 0x48, 0x8B, 0x05, 0xAE, 0x18, 0x52, 0x05, 0xBA, 0xAC, 0x01, 0x00, 0x00, 0x46, 0x8B, 0x0C, 0x80, 0x90, 0x65, 0x48, 0x8B, 0x04};
+    if (!code("kPlayerRegistryHelperRva", 0x007D6E90, expected1, sizeof(expected1))) return false;
+    const BYTE expected2[] = {0x40, 0x55, 0x56, 0x41, 0x55, 0x48, 0x8D, 0x6C, 0x24, 0xB9, 0x48, 0x81, 0xEC, 0xF0, 0x00, 0x00, 0x00, 0x8B, 0x05, 0x21, 0x47, 0x05, 0x05, 0x33, 0xF6, 0x4C, 0x8B, 0xE9, 0x89, 0x45, 0x87, 0x8B};
+    if (!code("kNativeSpawnRva", 0x016B64C0, expected2, sizeof(expected2))) return false;
     const BYTE expected3[] = {0x48, 0x89, 0x5C, 0x24, 0x18, 0x55, 0x56, 0x57, 0x41, 0x54, 0x41, 0x56, 0x48, 0x83, 0xEC, 0x30, 0x4C, 0x8B, 0x51, 0x08, 0x48, 0x8B, 0xEA, 0x4C, 0x8B, 0x61, 0x10, 0x48, 0x8B, 0xD9, 0x49, 0xBB};
-    if (!code("kNativeAmmoInsertRva", 0x001157B0, expected3, sizeof(expected3))) return false;
+    if (!code("kNativeAmmoInsertRva", 0x00115890, expected3, sizeof(expected3))) return false;
     const BYTE expected4[] = {0xB8, 0x01, 0x00, 0x00, 0x00, 0x44, 0x8B, 0xD2, 0x44, 0x8B, 0xC8, 0x87, 0x81, 0x08, 0x39, 0x02, 0x00, 0x85, 0xC0, 0x74, 0x44, 0x8B, 0x81, 0x08, 0x39, 0x02, 0x00, 0x85, 0xC0, 0x74, 0x2B, 0x90};
-    if (!code("kNativeAmmoNotifyRva", 0x012A8470, expected4, sizeof(expected4))) return false;
-    const BYTE expected5[] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0x03, 0x76, 0xB3, 0x04, 0x44, 0x0F, 0xB7, 0xCB, 0x0F, 0xB7, 0xC3, 0x41, 0x8B, 0xC9, 0x48, 0xC1, 0xE8, 0x06, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x49, 0xD3, 0xE0};
-    if (!code("kLicenseToKillRva", 0x0191B694, expected5, sizeof(expected5))) return false;
+    if (!code("kNativeAmmoNotifyRva", 0x012A8A10, expected4, sizeof(expected4))) return false;
+    const BYTE expected5[] = {0x32, 0xD2, 0x4C, 0x8B, 0x15, 0xA3, 0x80, 0xB3, 0x04, 0x44, 0x0F, 0xB7, 0xCB, 0x0F, 0xB7, 0xC3, 0x41, 0x8B, 0xC9, 0x48, 0xC1, 0xE8, 0x06, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x49, 0xD3, 0xE0};
+    if (!code("kLicenseToKillRva", 0x0191BCF4, expected5, sizeof(expected5))) return false;
     const BYTE expected6[] = {0xB2, 0x01, 0xEB, 0x97, 0x48, 0x8B, 0x87, 0x08, 0x07, 0x00, 0x00, 0x4E, 0x85, 0x1C, 0xD0, 0x74, 0x88, 0x41, 0x83, 0x79, 0x0C, 0x00, 0x77, 0xE8, 0x48, 0x8B, 0x87, 0xF0, 0x06, 0x00, 0x00, 0x4E};
-    if (!code("kLicenseToKillNativeOnRva", 0x0191B6FB, expected6, sizeof(expected6))) return false;
+    if (!code("kLicenseToKillNativeOnRva", 0x0191BD5B, expected6, sizeof(expected6))) return false;
     const BYTE expected7[] = {0x49, 0x8B, 0xBB, 0xF0, 0x06, 0x00, 0x00, 0x4C, 0x23, 0x04, 0xC7, 0x84, 0xD2, 0x74, 0x7C, 0x4D, 0x85, 0xC0, 0x0F, 0x84, 0x29, 0x02, 0x00, 0x00, 0x41, 0xB8, 0x4A, 0x00, 0x00, 0x00, 0x0F, 0xB7};
-    if (!code("kLtkObserveHookRva", 0x0191B6B8, expected7, sizeof(expected7))) return false;
-    const BYTE expected8[] = {0x4D, 0x85, 0xC0, 0x0F, 0x84, 0x29, 0x02, 0x00, 0x00, 0x41, 0xB8, 0x4A, 0x00, 0x00, 0x00, 0x0F, 0xB7, 0xD3, 0x49, 0x8B, 0xCA, 0xE8, 0x6F, 0x46, 0x82, 0xFF, 0x48, 0x8B, 0x8C, 0x24, 0x20, 0x01};
-    if (!code("kLtkObserveTrueRva", 0x0191B6C7, expected8, sizeof(expected8))) return false;
+    if (!code("kLtkObserveHookRva", 0x0191BD18, expected7, sizeof(expected7))) return false;
+    const BYTE expected8[] = {0x4D, 0x85, 0xC0, 0x0F, 0x84, 0x29, 0x02, 0x00, 0x00, 0x41, 0xB8, 0x4A, 0x00, 0x00, 0x00, 0x0F, 0xB7, 0xD3, 0x49, 0x8B, 0xCA, 0xE8, 0x4F, 0x3F, 0x82, 0xFF, 0x48, 0x8B, 0x8C, 0x24, 0x20, 0x01};
+    if (!code("kLtkObserveTrueRva", 0x0191BD27, expected8, sizeof(expected8))) return false;
     const BYTE expected9[] = {0x4D, 0x85, 0xC0, 0x0F, 0x85, 0xAD, 0x01, 0x00, 0x00, 0x0F, 0xB7, 0xCB, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x8B, 0xD1, 0x49, 0xD3, 0xE0, 0x48, 0xC1, 0xEA, 0x06, 0x4C, 0x85, 0x04, 0xD7, 0x0F};
-    if (!code("kLtkObserveFalseRva", 0x0191B743, expected9, sizeof(expected9))) return false;
+    if (!code("kLtkObserveFalseRva", 0x0191BDA3, expected9, sizeof(expected9))) return false;
     const BYTE expected10[] = {0x48, 0x81, 0xC4, 0x00, 0x01, 0x00, 0x00, 0x41, 0x5F, 0x41, 0x5E, 0x41, 0x5D, 0x41, 0x5C, 0x5F, 0x5E, 0x5B, 0xC3};
-    if (!code("kGameplayHookRva", 0x0194CBD1, expected10, sizeof(expected10))) return false;
-    const BYTE expected11[] = {0x48, 0x8D, 0x8D, 0x70, 0x0B, 0x02, 0x00, 0x48, 0x8D, 0x54, 0x24, 0x30, 0xE8, 0xDD, 0xFC, 0xB3, 0xFE, 0x4C, 0x8D, 0x85, 0xD0, 0x0A, 0x02, 0x00, 0xBA, 0xDE, 0x01, 0x00, 0x00, 0x48, 0x8B, 0xCD, 0xE8, 0x89, 0x29, 0xCD, 0xFF};
-    if (!code("AmmoPublicationCallsite", 0x015D5AC2, expected11, sizeof(expected11))) return false;
+    if (!code("kGameplayHookRva", 0x0194D241, expected10, sizeof(expected10))) return false;
+    const BYTE expected11[] = {0x48, 0x8D, 0x8D, 0x70, 0x0B, 0x02, 0x00, 0x48, 0x8D, 0x54, 0x24, 0x30, 0xE8, 0x6D, 0xF7, 0xB3, 0xFE, 0x4C, 0x8D, 0x85, 0xD0, 0x0A, 0x02, 0x00, 0xBA, 0xDE, 0x01, 0x00, 0x00, 0x48, 0x8B, 0xCD, 0xE8, 0xD9, 0x28, 0xCD, 0xFF};
+    if (!code("AmmoPublicationCallsite", 0x015D6112, expected11, sizeof(expected11))) return false;
     const std::uintptr_t links[][2] = {
-        {0x03740FB8, 0x06792438},
-        {0x02EDD5D8, 0x0171D2E0},
-        {0x02EDD278, 0x0171BFA0},
-        {0x02ECA0A8, 0x016B8810},
-        {0x02ECA270, 0x016B6A30},
+        {0x03741F18, 0x06793B30},
+        {0x02EDE560, 0x0171D8F0},
+        {0x02EDE200, 0x0171C5B0},
+        {0x02ECB1B0, 0x016B8E40},
+        {0x02ECA630, 0x016B7060},
     };
     for (const auto& link : links) {
         std::uintptr_t value = 0;
@@ -374,76 +426,66 @@ bool ValidateTargetExecutable() {
         return false;
     }
 
-    if (!ValidateNovemberNativeMap()) return false;
+    if (!ValidateNovemberNativeMap() || !ValidateNativePlayerMap() || !ValidateNativeDeliveryMap()) return false;
 
     g_nativeSpawn = reinterpret_cast<NativeSpawnFn>(g_exeBase + kNativeSpawnRva);
     return true;
 }
 
-bool ResolveNativeLoadout(void** outLoadout) {
-    if (!outLoadout || !g_exeBase) {
-        return false;
-    }
-
-    *outLoadout = nullptr;
-
-    auto resolve = reinterpret_cast<ResolveLocalPlayerFn>(g_exeBase + kPlayerResolverRva);
-    auto lookup = reinterpret_cast<LookupPlayerFn>(g_exeBase + kPlayerRegistryHelperRva);
-
-    std::uint64_t handle[2]{};
-
+struct NativeMemoryReader {
+    template<class T> bool operator()(std::uintptr_t address, T& value) const { return SafeRead(address, value); }
+};
+bool ReadNativeThreadMask(std::uint32_t& mask) {
     __try {
-        resolve(0, handle);
-        if (handle[0] == 0) {
-            return false;
-        }
-
-        *outLoadout = lookup(
-            handle,
-            reinterpret_cast<void*>(g_exeBase + kPlayerRegistryGlobalRva));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
-        *outLoadout = nullptr;
-        return false;
-    }
-
-    return *outLoadout != nullptr;
+        const auto tls = static_cast<std::uintptr_t>(__readgsqword(0x58));
+        std::uintptr_t slot = 0;
+        return tls && SafeRead(tls, slot) && slot && SafeRead(slot + 0x1AC, mask) && mask != 0;
+    } __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
-
+runtime::NativePlayer ReadCurrentNativePlayer() {
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    runtime::NativePlayer native{};
+    if (ReadNativeThreadMask(mask)) native = runtime::ReadNativePlayer(read, g_exeBase, mask);
+    else native.reason = "native observer TLS unavailable";
+    return native;
+}
+PlayerContext ObserveWorkerPlayer() {
+    const auto native = ReadCurrentNativePlayer();
+    PlayerContext player{};
+    player.character = reinterpret_cast<void*>(native.character);
+    player.loadout = reinterpret_cast<void*>(native.loadout);
+    player.playerId = native.observation.identity.character;
+    player.reason = native.reason;
+    bool changed = false;
+    {
+        std::lock_guard<std::mutex> lock(g_playerMutex);
+        const auto before = g_playerSession.Snapshot();
+        player.snapshot = g_playerSession.Observe(native.observation, GetTickCount64());
+        changed = player.snapshot.epoch != before.epoch;
+        g_publishedPlayer = player;
+    }
+    if (changed) { g_spawnMailbox.Cancel(); g_ammoMailbox.Cancel(); }
+    return player;
+}
 PlayerContext ResolvePlayer() {
-    PlayerContext result{};
-
-    void* loadout = nullptr;
-    if (!ResolveNativeLoadout(&loadout)) {
-        return result;
-    }
-
-    std::uintptr_t vtable = 0;
-    if (!SafeRead(reinterpret_cast<std::uintptr_t>(loadout), vtable)) {
-        return result;
-    }
-
-    if (vtable != g_exeBase + kPlayerLoadoutVtableRva) {
-        return result;
-    }
-
-    std::uintptr_t root = 0;
-    std::uintptr_t node = 0;
-    std::uint32_t playerId = 0;
-
-    if (!SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) || !root) {
-        return result;
-    }
-    if (!SafeRead(root + 0x10, node) || !node) {
-        return result;
-    }
-    if (!SafeRead(node + 0x30, playerId) || playerId == 0) {
-        return result;
-    }
-
-    result.loadout = loadout;
-    result.playerId = playerId;
-    return result;
+    return ObserveWorkerPlayer();
+}
+PlayerContext ReadDispatchPlayer() {
+    const auto native = ReadCurrentNativePlayer();
+    std::lock_guard<std::mutex> lock(g_playerMutex);
+    auto player = g_publishedPlayer;
+    player.snapshot = runtime::RevalidateDispatch(player.snapshot, native.observation, GetTickCount64());
+    if (!player.snapshot.playable) player.reason = native.reason;
+    return player;
+}
+runtime::AutoStage AutoStage() {
+    std::lock_guard<std::mutex> lock(g_playerMutex);
+    return g_playerSession.Stage();
+}
+bool BeginAuto(const PlayerContext& player) {
+    std::lock_guard<std::mutex> lock(g_playerMutex);
+    return g_playerSession.BeginAuto(player.snapshot.session, g_autoEnabled, GetTickCount64());
 }
 
 bool InstallLicenseToKillObserveHook() {
@@ -984,6 +1026,7 @@ bool BuildGraphIndex() {
             auto& graph = g_graphs[it->second];
             if (!graph.spawner) {
                 graph.spawner = spawner;
+                graph.itemEntry = item;
             }
         }
     }
@@ -1091,19 +1134,8 @@ bool IsSpawnerIdle(std::uintptr_t spawner, bool& idle) {
 }
 
 void ResetActiveWeaponState() {
-    if (!g_activeWeapon.active) {
-        return;
-    }
-
     g_activeWeapon = {};
-    g_pendingSpawner.store(0, std::memory_order_release);
-    g_spawnTriggered.store(false, std::memory_order_release);
-    g_spawnException.store(false, std::memory_order_release);
-    g_spawnObservationValid.store(false, std::memory_order_release);
-    g_spawnNativeAccepted.store(false, std::memory_order_release);
-    g_spawnPostState.store(0, std::memory_order_release);
-    g_spawnPostPending.store(false, std::memory_order_release);
-    g_spawnTriggeredAt.store(0, std::memory_order_release);
+    g_spawnMailbox.Cancel();
 }
 
 BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwned) {
@@ -1133,10 +1165,14 @@ BeginWeaponResult BeginWeaponRequest(std::uint64_t requestedRid, bool packageOwn
     g_activeWeapon.spawner = source.spawner;
     g_activeWeapon.setupAt = GetTickCount64();
 
-    g_spawnTriggered.store(false, std::memory_order_release);
-    g_spawnException.store(false, std::memory_order_release);
-    g_spawnTriggeredAt.store(0, std::memory_order_release);
-    g_pendingSpawner.store(source.spawner, std::memory_order_release);
+    const bool autoOwned = packageOwned && g_loadoutPackage.source == LoadoutSource::Auto;
+    g_activeWeapon.ticket = g_spawnMailbox.Submit(g_workerPlayer.snapshot, SpawnPayload{requestedRid, source, autoOwned}, GetTickCount64());
+    if (!g_activeWeapon.ticket) {
+        g_activeWeapon = {};
+        return BeginWeaponResult::SpawnerBusy;
+    }
+    if (!packageOwned) g_qpistolSwap.Bind(requestedRid, g_activeWeapon.ticket);
+
 
     Log(
         "DIRECT graph prepared RID=%016llX item=0x%p spawner=0x%p",
@@ -1196,7 +1232,7 @@ void FinishLoadoutPackage(bool success, const char* reason) {
     Log(
         "%s PACKAGE %s%s%s",
         source,
-        success ? "COMPLETE" : "FAILED",
+        success ? (g_loadoutPackage.hadUnconfirmedRole ? "PROCESSED WITH WARNINGS" : "PROCESSED") : "FAILED",
         reason ? ": " : "",
         reason ? reason : "");
 }
@@ -1291,6 +1327,7 @@ void RetryUnitaryWeapon(const char* reason) {
             kWeaponMaxRetries,
             static_cast<unsigned long long>(RotateRid(g_weaponQueue.front())),
             reason ? reason : "unknown failure");
+        if (g_weaponQueue.front() == g_qpistolSwap.pendingRid) g_qpistolSwap.Cancel();
         g_weaponQueue.pop_front();
         g_unitaryRetryCount = 0;
         g_unitaryRetryAt = 0;
@@ -1310,6 +1347,8 @@ void RetryUnitaryWeapon(const char* reason) {
         reason ? reason : "unknown failure");
 }
 
+void FinishActiveWeapon(bool processed);
+
 void FailActiveWeapon(const char* reason) {
     if (!g_activeWeapon.active) {
         return;
@@ -1323,6 +1362,13 @@ void FailActiveWeapon(const char* reason) {
         static_cast<unsigned long long>(RotateRid(rid)),
         reason ? reason : "unknown failure");
 
+    // A failed observation cannot undo a native call. Retire the role so the
+    // remaining roles and ammo can proceed for the same session.
+    if (g_activeWeapon.result.invoked) {
+        FinishActiveWeapon(false);
+        return;
+    }
+
     ResetActiveWeaponState();
 
     if (packageOwned) {
@@ -1332,7 +1378,7 @@ void FailActiveWeapon(const char* reason) {
     }
 }
 
-void CompleteActiveWeapon() {
+void FinishActiveWeapon(bool processed) {
     if (!g_activeWeapon.active) {
         return;
     }
@@ -1342,7 +1388,8 @@ void CompleteActiveWeapon() {
     const ULONGLONG now = GetTickCount64();
 
     Log(
-        "DIRECT graph COMPLETE RID=%016llX",
+        "DIRECT graph %s RID=%016llX",
+        processed ? "SPAWNER IDLE" : "OUTCOME UNCONFIRMED; no native replay",
         static_cast<unsigned long long>(RotateRid(rid)));
 
     g_nextWeaponAllowedAt = now + kWeaponInterRequestDelayMs;
@@ -1353,10 +1400,12 @@ void CompleteActiveWeapon() {
     ResetActiveWeaponState();
 
     if (packageOwned) {
+        g_loadoutPackage.hadUnconfirmedRole |= !processed;
         Log(
-            "%s package role %s COMPLETE RID=%016llX",
+            "%s package role %s %s RID=%016llX",
             LoadoutSourceName(g_loadoutPackage.source),
             LoadoutPhaseName(g_loadoutPackage.phase),
+            processed ? "PROCESSED" : "UNCONFIRMED",
             static_cast<unsigned long long>(RotateRid(rid)));
         AdvanceLoadoutPackage();
         return;
@@ -1376,30 +1425,44 @@ void CompleteActiveWeapon() {
 
 void ProcessWeaponQueue() {
     if (g_activeWeapon.active) {
-        if (g_spawnException.load(std::memory_order_acquire)) {
+        if (const auto result = g_spawnMailbox.TakeReply(g_activeWeapon.ticket)) {
+            g_activeWeapon.result = *result;
+            if (result->token.record && g_weaponDeliveries.size() < 16) {
+                g_weaponDeliveries.push_back({g_activeWeapon.ticket, {}, result->token, {},
+                    g_activeWeapon.spawner, g_activeWeapon.requestedRid, result->at + 5000});
+            } else if (result->invoked) {
+                g_qpistolSwap.Finish(g_activeWeapon.ticket, false);
+                Log("[WARN] No owned spawn record available RID=%016llX; receipt unconfirmed.",
+                    static_cast<unsigned long long>(RotateRid(g_activeWeapon.requestedRid)));
+            }
+        }
+        const auto result = g_activeWeapon.result;
+        if (result.exception) {
             FailActiveWeapon("native trigger exception");
             return;
         }
 
         const ULONGLONG now = GetTickCount64();
-        const bool triggered = g_spawnTriggered.load(std::memory_order_acquire);
+        const bool triggered = result.triggered;
 
         if (!triggered) {
-            if (now - g_activeWeapon.setupAt > 2000) {
-                FailActiveWeapon("gameplay trigger timeout");
+            if (!g_activeWeapon.dispatchDeferredLogged && now - g_activeWeapon.setupAt > 2000) {
+                Log("Weapon request=%llu session=%llu waiting for safe gameplay dispatch; no native call repeated.",
+                    g_activeWeapon.ticket.request, g_activeWeapon.ticket.session);
+                g_activeWeapon.dispatchDeferredLogged = true;
             }
             return;
         }
 
         if (!g_activeWeapon.observationLogged) {
             const bool valid =
-                g_spawnObservationValid.load(std::memory_order_acquire);
+                result.valid;
             const bool accepted =
-                g_spawnNativeAccepted.load(std::memory_order_acquire);
+                result.accepted;
             const unsigned int state =
-                g_spawnPostState.load(std::memory_order_acquire);
+                result.state;
             const bool pending =
-                g_spawnPostPending.load(std::memory_order_acquire);
+                result.pending;
 
             Log(
                 "Native Spawn observation RID=%016llX valid=%s accepted=%s state=%u pending=%s",
@@ -1413,12 +1476,12 @@ void ProcessWeaponQueue() {
             g_activeWeapon.observationLogged = true;
         }
 
-        if (!g_spawnObservationValid.load(std::memory_order_acquire)) {
+        if (!result.valid) {
             FailActiveWeapon("native post-call state unreadable");
             return;
         }
 
-        if (!g_spawnNativeAccepted.load(std::memory_order_acquire)) {
+        if (!result.accepted) {
             FailActiveWeapon("native spawner did not accept request");
             return;
         }
@@ -1430,16 +1493,16 @@ void ProcessWeaponQueue() {
         }
 
         if (idle) {
-            CompleteActiveWeapon();
+            FinishActiveWeapon(true);
             return;
         }
 
         const ULONGLONG triggeredAt =
-            g_spawnTriggeredAt.load(std::memory_order_acquire);
+            result.at;
         const ULONGLONG elapsed = triggeredAt ? now - triggeredAt : 0;
 
         if (elapsed > 5000) {
-            FailActiveWeapon("completion timeout");
+            FailActiveWeapon("spawner still busy after timeout");
         }
 
         return;
@@ -1562,57 +1625,26 @@ bool QueueWeapon(std::uint64_t rid, const char* source) {
     return true;
 }
 
-bool QueueAmmoProfile(
-    const AmmoProfile& profile,
-    std::uint32_t playerId,
-    const char* source) {
-
-    if (!playerId) {
-        Log("%s ignored: invalid playerId.", source);
-        return false;
-    }
-
-    if (g_ammoPending.load(std::memory_order_acquire)) {
-        Log("%s ignored: ammo request already pending.", source);
-        return false;
-    }
-
-    g_pendingAmmo.profile = profile;
-    g_pendingAmmo.playerId = playerId;
-    g_pendingAmmo.source = source;
-    g_ammoPending.store(true, std::memory_order_release);
-
-    Log("%s queued for playerId=%u.", source, playerId);
+bool QueueAmmoProfile(const AmmoProfile& profile, std::uint32_t playerId, const char* source) {
+    if (!playerId || !g_workerPlayer || playerId != g_workerPlayer.playerId) return false;
+    const auto ticket = g_ammoMailbox.Submit(g_workerPlayer.snapshot, PendingAmmoRequest{profile, playerId, source}, GetTickCount64());
+    if (!ticket) return false;
+    g_lastAmmoTicket = ticket;
+    g_lastAmmoSource = source;
+    Log("%s queued: session=%llu request=%llu playerId=%u.", source, ticket.session, ticket.request, playerId);
     return true;
 }
-
 bool RuntimePlayerMatches(std::uint32_t playerId) {
-    std::uintptr_t root = 0;
-    std::uintptr_t node = 0;
-    std::uint32_t currentPlayerId = 0;
-
-    return playerId != 0 &&
-           SafeRead(g_exeBase + kRuntimePlayerGlobalRva, root) &&
-           root != 0 &&
-           SafeRead(root + 0x10, node) &&
-           node != 0 &&
-           SafeRead(node + 0x30, currentPlayerId) &&
-           currentPlayerId == playerId;
+    return g_tickPlayer && g_tickPlayer.playerId == playerId;
 }
 
 bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     if (!RuntimePlayerMatches(request.playerId)) {
-        Log(
-            "[ERROR] %s AddAmmo aborted: player identity changed.",
-            request.source ? request.source : "Ammo");
         return false;
     }
 
     std::uintptr_t owner = 0;
     if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) {
-        Log(
-            "[ERROR] %s AddAmmo: native ammo owner unavailable.",
-            request.source ? request.source : "Ammo");
         return false;
     }
 
@@ -1663,12 +1695,6 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
                 &input);
 
             ++published;
-            Log(
-                "%s AddAmmo class=%u (%s) amount=+%u",
-                request.source ? request.source : "Ammo",
-                entry.firearmClass,
-                entry.name,
-                entry.amount);
         }
 
         if (published) {
@@ -1680,9 +1706,6 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         nativeOk = false;
-        Log(
-            "[ERROR] %s AddAmmo: native publication exception.",
-            request.source ? request.source : "Ammo");
     }
 
     if (locked) {
@@ -1691,9 +1714,6 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
         }
         __except (EXCEPTION_EXECUTE_HANDLER) {
             nativeOk = false;
-            Log(
-                "[ERROR] %s AddAmmo: unlock exception.",
-                request.source ? request.source : "Ammo");
         }
     }
 
@@ -1702,17 +1722,8 @@ bool PublishAmmoProfileGameplayThread(const PendingAmmoRequest& request) {
     }
 
     if (!published) {
-        Log(
-            "%s: all configured ammo amounts are zero.",
-            request.source ? request.source : "Ammo");
         return true;
     }
-
-    Log(
-        "%s PUBLISHED through native ammo event 0x%X (%zu class(es)).",
-        request.source ? request.source : "Ammo",
-        kAmmoNotifyEventId,
-        published);
     return true;
 }
 
@@ -1760,7 +1771,136 @@ bool KeyPressedEdge(int vk, SHORT& previous) {
     return downNow && !downBefore;
 }
 
+bool InstallAutoSpawnHook() {
+    BYTE current[sizeof(kAutoSpawnHookPreimage)]{};
+    if (!SafeRead(g_exeBase + kAutoSpawnHookRva, current) ||
+        memcmp(current, kAutoSpawnHookPreimage, sizeof(current))) {
+        Log("[ERROR] AUTO native completion hook preimage mismatch; AUTO disabled.");
+        return false;
+    }
+    BYTE patch[sizeof(kAutoSpawnHookPreimage)] = {0x49, 0xBB};
+    const std::uint64_t target = reinterpret_cast<std::uint64_t>(&QpAutoSpawnFinalizationHook);
+    memcpy(patch + 2, &target, sizeof(target));
+    patch[10] = 0x41; patch[11] = 0xFF; patch[12] = 0xE3; patch[13] = 0x90;
+    g_qpAutoSpawnCallTarget = g_exeBase + kAutoSpawnCallRva;
+    if (!WriteCodeBytes(g_exeBase + kAutoSpawnHookRva, patch, sizeof(patch))) {
+        Log("[ERROR] AUTO native completion hook write failed; AUTO disabled.");
+        return false;
+    }
+    Log("AUTO owned-item completion hook installed; unrelated world throws unchanged.");
+    return true;
+}
+
+bool OwnsAutoSpawnCompletion(std::uintptr_t source, std::uintptr_t reference) {
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    std::uintptr_t vtable = 0;
+    runtime::EntityReference created{};
+    if (!g_autoSpawnHookInstalled || !ReadNativeThreadMask(mask) ||
+        !read(source, vtable) || vtable != g_exeBase + kItemEntryVtableRva ||
+        !read(reference, created)) return false;
+    const auto current = ReadDispatchPlayer();
+    if (!current) return false;
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, created);
+    if (!item || runtime::ReadAttachment(read, g_exeBase, mask, current.playerId, item) ==
+        runtime::Attachment::Unknown) return false;
+    return g_ownedAutoSpawns.Observe(read, g_exeBase, mask, source, created,
+        current.snapshot, GetTickCount64());
+}
+
+const char* PickupResultName(runtime::PickupResult result) {
+    switch (result) {
+    case runtime::PickupResult::PlayerChanged: return "player changed";
+    case runtime::PickupResult::MaskUnavailable: return "TLS mask unavailable";
+    case runtime::PickupResult::ItemChanged: return "item changed/unavailable";
+    case runtime::PickupResult::InventoryUnknown: return "inventory unavailable";
+    case runtime::PickupResult::OwnerUnavailable: return "native owner unavailable";
+    case runtime::PickupResult::AlreadyAttached: return "already attached";
+    case runtime::PickupResult::Published: return "published";
+    case runtime::PickupResult::NativeFault: return "native exception; no replay";
+    default: return "not dispatched";
+    }
+}
+
+bool PollWeaponDelivery(WeaponDelivery& delivery) {
+    if (!delivery.nativeCompletionMerged && !delivery.token.retired) {
+        if (const auto completion = g_ownedAutoSpawns.Find(delivery.spawnTicket, GetTickCount64())) {
+            if (completion->spawner == delivery.spawner && completion->token.record == delivery.token.record &&
+                completion->token.source == delivery.token.source && completion->token.batch == delivery.token.batch &&
+                (!delivery.token.jobKnown || delivery.token.tag == completion->token.tag)) {
+                delivery.token = completion->token;
+                delivery.created = completion->created;
+                delivery.nativeCompletionMerged = true;
+                Log("AUTO owned item finalized without world-throw RID=%016llX; awaiting inventory receipt.",
+                    static_cast<unsigned long long>(RotateRid(delivery.rid)));
+            }
+        }
+    }
+    if (!delivery.spawnTicket.Matches(g_workerPlayer.snapshot) ||
+        GetTickCount64() > delivery.expiresAt || delivery.token.retired) {
+        if (delivery.pickupTicket && !delivery.pickupProcessed) g_pickupMailbox.Cancel();
+        g_qpistolSwap.Finish(delivery.spawnTicket, false);
+        Log("[WARN] Weapon receipt unconfirmed RID=%016llX; request retired without replay.",
+            static_cast<unsigned long long>(RotateRid(delivery.rid)));
+        return true;
+    }
+    if (delivery.pickupTicket) {
+        if (const auto result = g_pickupMailbox.TakeReply(delivery.pickupTicket)) {
+            delivery.pickupProcessed = true;
+            if (*result != delivery.lastPickupResult) {
+                Log("Native pickup result=%s RID=%016llX.",
+                    PickupResultName(*result), static_cast<unsigned long long>(RotateRid(delivery.rid)));
+                delivery.lastPickupResult = *result;
+            }
+            if (runtime::CanRetryPickup(*result)) {
+                delivery.pickupTicket = {};
+                delivery.pickupProcessed = false;
+                delivery.pickupRetryAt = GetTickCount64() + 100;
+            }
+        }
+    }
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    if (!ReadNativeThreadMask(mask)) return false;
+    if (!runtime::LiveEntity(read, g_exeBase, mask, delivery.token.source)) {
+        delivery.token.retired = true;
+        return false;
+    }
+    if (!delivery.created.pointer)
+        delivery.created = runtime::ReadSpawnOutput(read, delivery.spawner, delivery.token);
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, delivery.created);
+    if (!item) return false;
+    const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, g_workerPlayer.playerId, item);
+    if (attachment == runtime::Attachment::Present) {
+        if (delivery.pickupTicket && !delivery.pickupProcessed) g_pickupMailbox.Cancel();
+        g_qpistolSwap.Finish(delivery.spawnTicket, true);
+        Log("Weapon receipt CONFIRMED RID=%016llX itemId=%u playerId=%u.",
+            static_cast<unsigned long long>(RotateRid(delivery.rid)), item.id, g_workerPlayer.playerId);
+        return true;
+    }
+    if (attachment == runtime::Attachment::Absent && !delivery.pickupTicket &&
+        GetTickCount64() >= delivery.pickupRetryAt) {
+        delivery.pickupTicket = g_pickupMailbox.Submit(g_workerPlayer.snapshot,
+            PendingPickupRequest{item, g_workerPlayer.playerId}, GetTickCount64());
+        if (delivery.pickupTicket)
+            Log("Owned created item absent; native pickup queued RID=%016llX itemId=%u.",
+                static_cast<unsigned long long>(RotateRid(delivery.rid)), item.id);
+    }
+    return false;
+}
+
+void ProcessWeaponDeliveries() {
+    for (auto it = g_weaponDeliveries.begin(); it != g_weaponDeliveries.end();) {
+        if (PollWeaponDelivery(*it)) it = g_weaponDeliveries.erase(it);
+        else ++it;
+    }
+}
+
 void ResetWeaponRuntime(const char* reason) {
+    g_ownedAutoSpawns.Clear();
+    g_qpistolSwap.Cancel();
+    g_pickupMailbox.Cancel();
+    g_weaponDeliveries.clear();
     if (g_activeWeapon.active) {
         ResetActiveWeaponState();
     }
@@ -1770,11 +1910,15 @@ void ResetWeaponRuntime(const char* reason) {
     g_unitaryRetryCount = 0;
     g_unitaryRetryAt = 0;
     g_loadoutPackage = {};
-    g_spawnObservationValid.store(false, std::memory_order_release);
-    g_spawnNativeAccepted.store(false, std::memory_order_release);
-    g_spawnPostState.store(0, std::memory_order_release);
-    g_spawnPostPending.store(false, std::memory_order_release);
-    g_ammoPending.store(false, std::memory_order_release);
+    g_spawnMailbox.Cancel();
+    g_ammoMailbox.Cancel();
+    g_lastAmmoTicket = {}; g_autoAmmoTicket = {};
+    {
+        std::lock_guard<std::mutex> lock(g_playerMutex);
+        g_playerSession.InterruptAuto(g_workerPlayer.snapshot.session);
+    }
+
+
     g_graphs.clear();
     g_graphIndexBuilt = false;
     OverlayPublishRuntimeWeaponRids(nullptr, 0);
@@ -1795,7 +1939,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    Log("Q Protocol v0.9.7 / Updater and Readable Menu");
+    Log("Q Protocol %s / internal build %d", updates::Version, updates::Build);
     Log("Scope: accepted A28/A29 core and menu; stable updates by default.");
 
     if (!ValidateTargetExecutable()) {
@@ -1815,6 +1959,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
         Log("[ERROR] Fresh Core disabled: gameplay hook unavailable.");
         return 0;
     }
+    g_autoSpawnHookInstalled = InstallAutoSpawnHook();
 
     if (!InstallLicenseToKillObserveHook()) {
         Log("[ERROR] F1 native-state toggle disabled: observe hook unavailable.");
@@ -1837,22 +1982,22 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
     PlayerContext previousPlayer{};
     bool previousReady = false;
-    bool autoStarted = false;
-    bool autoDone = false;
+
     std::string lastOverlayStatus = OverlayStatus();
 
     SHORT keyPrevious[13]{};
 
     while (g_running.load(std::memory_order_acquire)) {
         const PlayerContext player = ResolvePlayer();
+        g_workerPlayer = player;
         const bool ready = static_cast<bool>(player);
         g_graphScanPlayerLoadout = ready
-            ? reinterpret_cast<std::uintptr_t>(player.loadout)
+            ? reinterpret_cast<std::uintptr_t>(player.loadout ? player.loadout : player.character)
             : 0;
 
         const bool playerIdentityChanged =
             ready && previousReady &&
-            player.playerId != previousPlayer.playerId;
+            player.snapshot.epoch != previousPlayer.snapshot.epoch;
 
         const bool loadoutPointerChanged =
             ready && previousReady &&
@@ -1862,18 +2007,15 @@ DWORD WINAPI WorkerThread(LPVOID) {
         if (ready != previousReady || playerIdentityChanged) {
             if (ready) {
                 Log(
-                    "PLAYER READY loadout=0x%p playerId=%u",
-                    player.loadout,
-                    player.playerId);
+                    "PLAYER PLAYABLE character=0x%p playerId=%u session=%llu epoch=%llu",
+                    player.character, player.playerId, player.snapshot.session, player.snapshot.epoch);
             } else if (previousReady) {
-                Log("PLAYER NOT READY");
+                Log("PLAYER NOT PLAYABLE: %s", player.reason);
             }
 
             ResetWeaponRuntime(
                 ready ? "player identity changed/ready" : "player not ready");
 
-            autoStarted = false;
-            autoDone = false;
             previousPlayer = player;
             previousReady = ready;
         } else if (loadoutPointerChanged) {
@@ -1888,16 +2030,31 @@ DWORD WINAPI WorkerThread(LPVOID) {
             previousPlayer = player;
         }
 
-        if (ready && g_autoEnabled && !autoStarted) {
-            if (StartLoadoutPackage(
-                    g_autoLoadout,
-                    LoadoutSource::Auto,
-                    player.playerId)) {
-
-                autoStarted = true;
-                Log("AUTO package latched for current READY cycle; completion pending.");
+        if (ready && g_autoEnabled && g_autoSpawnHookInstalled && AutoStage() == runtime::AutoStage::Waiting &&
+            !g_loadoutPackage.active && !g_activeWeapon.active && g_weaponQueue.empty()) {
+            if (StartLoadoutPackage(g_autoLoadout, LoadoutSource::Auto, player.playerId)) {
+                if (BeginAuto(player)) Log("AUTO started for playable session=%llu.", player.snapshot.session);
+                else ResetWeaponRuntime("playable session changed before AUTO start");
             }
         }
+        if (g_lastAmmoTicket) {
+            if (const auto result = g_ammoMailbox.TakeReply(g_lastAmmoTicket)) {
+                Log("%s native processing %s: session=%llu request=%llu; inventory delivery not independently verified.",
+                    g_lastAmmoSource, *result ? "finished" : "failed", g_lastAmmoTicket.session, g_lastAmmoTicket.request);
+                if (g_autoAmmoTicket == g_lastAmmoTicket) {
+                    std::lock_guard<std::mutex> lock(g_playerMutex);
+                    g_playerSession.AmmoProcessed(g_autoAmmoTicket.session, *result);
+                    g_autoAmmoTicket = {};
+                }
+                g_lastAmmoTicket = {};
+            }
+        }
+        if (ready && AutoStage() == runtime::AutoStage::NeedAmmo && g_weaponDeliveries.empty() &&
+            QueueAmmoProfile(g_autoAmmo, player.playerId, "AUTO Ammo")) {
+            std::lock_guard<std::mutex> lock(g_playerMutex);
+            if (g_playerSession.AmmoSubmitted(player.snapshot.session)) g_autoAmmoTicket = g_lastAmmoTicket;
+        }
+
 
         const bool overlayTogglePressed =
             OverlayPump(ready);
@@ -2000,9 +2157,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
             if (!ready) {
                 Log("F4 ignored: player not ready.");
+            } else if (g_qpistolSwap.pendingRid) {
+                Log("F4 waiting for the requested Q-Pistol receipt; alternation unchanged.");
             } else {
                 const std::uint64_t rid =
-                    g_qpistolNextB
+                    g_qpistolSwap.nextB
                         ? g_qpistolModeB
                         : g_qpistolModeA;
 
@@ -2010,8 +2169,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                         rid,
                         "F4 Q-Pistol")) {
 
-                    g_qpistolNextB =
-                        !g_qpistolNextB;
+                    g_qpistolSwap.pendingRid = rid;
                 }
             }
         }
@@ -2053,6 +2211,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
         if (ready) {
             ProcessWeaponQueue();
+            ProcessWeaponDeliveries();
 
             if (g_loadoutPackage.justCompleted) {
                 const LoadoutSource completedSource =
@@ -2063,19 +2222,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 g_loadoutPackage.justCompleted = false;
 
                 if (completedSource == LoadoutSource::Auto) {
-                    const bool ammoQueued =
-                        QueueAmmoProfile(
-                            g_autoAmmo,
-                            completedPlayerId,
-                            "AUTO Ammo");
-
-                    autoDone = true;
-
-                    Log(
-                        "AUTO PACKAGE COMMIT after weapon completion: ammo=%s.",
-                        ammoQueued ? "queued" : "not queued");
+                    std::lock_guard<std::mutex> lock(g_playerMutex);
+                    g_playerSession.WeaponsProcessed(player.snapshot.session, completedPlayerId == player.playerId);
                 }
             }
+
 
             if (g_loadoutPackage.justFailed) {
                 const LoadoutSource failedSource =
@@ -2084,8 +2235,11 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 g_loadoutPackage.justFailed = false;
 
                 if (failedSource == LoadoutSource::Auto) {
-                    autoDone = false;
-                    Log("[ERROR] AUTO PACKAGE failed; AUTO remains not-done for this READY cycle.");
+                    {
+                        std::lock_guard<std::mutex> lock(g_playerMutex);
+                        g_playerSession.WeaponsProcessed(player.snapshot.session, false);
+                    }
+                    Log("[ERROR] AUTO PACKAGE failed for this session; partial grants will not be blindly repeated.");
                 }
             }
         } else if (g_activeWeapon.active ||
@@ -2116,59 +2270,91 @@ DWORD WINAPI WorkerThread(LPVOID) {
 
 } // namespace qp
 
-extern "C" void QpGameplayTick() {
-    if (qp::g_ammoPending.load(std::memory_order_acquire)) {
-        const qp::PendingAmmoRequest request = qp::g_pendingAmmo;
-        qp::g_ammoPending.store(false, std::memory_order_release);
-        qp::PublishAmmoProfileGameplayThread(request);
-    }
-
-    const std::uintptr_t spawner =
-        qp::g_pendingSpawner.exchange(0, std::memory_order_acq_rel);
-
-    if (!spawner || !qp::g_nativeSpawn) {
-        return;
-    }
-
+namespace qp {
+SpawnResult ExecuteSpawn(const SpawnPayload& payload) {
+    SpawnResult result{};
+    result.triggered = true;
+    result.at = GetTickCount64();
+    if (!g_nativeSpawn || !ValidateGraph(payload.rid, payload.graph)) return result;
     __try {
-        qp::g_nativeSpawn(reinterpret_cast<void*>(spawner));
+        const auto spawner = payload.graph.spawner;
+        bool idle = false;
+        if (!IsSpawnerIdle(spawner, idle) || !idle) return result;
+        result.invoked = true;
+        g_nativeSpawn(reinterpret_cast<void*>(spawner));
+        NativeMemoryReader read;
+        result.token = runtime::CaptureSpawnToken(read, spawner, payload.graph.itemEntry);
+        std::uintptr_t begin = 0, end = 0; BYTE state = 0xFF;
+        result.valid = SafeRead(spawner + 0x38, begin) && SafeRead(spawner + 0x40, end) && SafeRead(spawner + 0x50, state);
+        result.pending = result.valid && begin != end;
+        result.accepted = result.valid && (state != 0 || result.pending);
+        result.state = result.valid ? state : 0xFFFFFFFF;
+        result.triggered = true; result.at = GetTickCount64();
+    } __except (EXCEPTION_EXECUTE_HANDLER) { result.exception = true; }
+    return result;
+}
 
-        std::uintptr_t begin = 0;
-        std::uintptr_t end = 0;
-        BYTE state = 0xFF;
-
-        const bool observationValid =
-            qp::SafeRead(spawner + 0x38, begin) &&
-            qp::SafeRead(spawner + 0x40, end) &&
-            qp::SafeRead(spawner + 0x50, state);
-
-        const bool pending =
-            observationValid && begin != end;
-        const bool accepted =
-            observationValid && (state != 0 || pending);
-
-        qp::g_spawnObservationValid.store(
-            observationValid,
-            std::memory_order_release);
-        qp::g_spawnNativeAccepted.store(
-            accepted,
-            std::memory_order_release);
-        qp::g_spawnPostState.store(
-            observationValid ? static_cast<unsigned int>(state) : 0xFFFFFFFFu,
-            std::memory_order_release);
-        qp::g_spawnPostPending.store(
-            pending,
-            std::memory_order_release);
-        qp::g_spawnTriggeredAt.store(
-            GetTickCount64(),
-            std::memory_order_release);
-        qp::g_spawnTriggered.store(
-            true,
-            std::memory_order_release);
+runtime::PickupResult PublishPickupGameplayThread(const PendingPickupRequest& request) {
+    if (!RuntimePlayerMatches(request.playerId)) return runtime::PickupResult::PlayerChanged;
+    NativeMemoryReader read;
+    std::uint32_t mask = 0;
+    if (!ReadNativeThreadMask(mask)) return runtime::PickupResult::MaskUnavailable;
+    const auto item = runtime::ReadNativeItem(read, g_exeBase, mask, request.item.created);
+    if (!item || item.id != request.item.id || item.interfacePointer != request.item.interfacePointer)
+        return runtime::PickupResult::ItemChanged;
+    const auto attachment = runtime::ReadAttachment(read, g_exeBase, mask, request.playerId, item);
+    if (attachment == runtime::Attachment::Present) return runtime::PickupResult::AlreadyAttached;
+    if (attachment != runtime::Attachment::Absent) return runtime::PickupResult::InventoryUnknown;
+    std::uintptr_t owner = 0;
+    if (!SafeRead(g_exeBase + kAmmoOwnerGlobalRva, owner) || !owner) return runtime::PickupResult::OwnerUnavailable;
+    using InsertPickupFn = void(__fastcall*)(void*, const NativePickupInput*);
+    const auto insert = reinterpret_cast<InsertPickupFn>(g_exeBase + kNativeAmmoInsertRva);
+    const auto notify = reinterpret_cast<NativeAmmoNotifyFn>(g_exeBase + kNativeAmmoNotifyRva);
+    auto* criticalSection = reinterpret_cast<LPCRITICAL_SECTION>(owner + kAmmoLockOffset);
+    // ZCLTriggerPlayerItemPickup.m_skipPickupAnimations (+28) selects native mode 2.
+    const NativePickupInput input{request.playerId, item.id, 2};
+    bool locked = false, ok = true;
+    __try {
+        EnterCriticalSection(criticalSection);
+        locked = true;
+        insert(reinterpret_cast<void*>(owner + 0x10A68), &input);
+        notify(reinterpret_cast<void*>(owner), 0xF3, reinterpret_cast<void*>(owner + 0x109C8));
+    } __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+    if (locked) {
+        __try { LeaveCriticalSection(criticalSection); }
+        __except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
     }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
-        qp::g_spawnException.store(true, std::memory_order_release);
+    return ok ? runtime::PickupResult::Published : runtime::PickupResult::NativeFault;
+}
+}
+extern "C" bool QpOwnsAutoSpawnCompletion(std::uintptr_t source, std::uintptr_t reference) noexcept {
+    try { return qp::OwnsAutoSpawnCompletion(source, reference); }
+    catch (...) { return false; } // A failed observation leaves the original native call in place.
+}
+extern "C" void QpGameplayTick() {
+    if (qp::g_tickBusy.test_and_set(std::memory_order_acquire)) return;
+    qp::g_tickPlayer = qp::ReadDispatchPlayer();
+    const auto state = qp::g_tickPlayer.snapshot;
+    if (const auto command = qp::g_spawnMailbox.TryTake(state)) {
+        const auto result = qp::ExecuteSpawn(command->payload);
+        if (command->payload.autoOwned && result.invoked && result.token.record) {
+            qp::g_ownedAutoSpawns.Track(command->ticket, command->payload.graph.spawner,
+                command->payload.rid, result.token, result.at);
+        }
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
+        qp::g_spawnMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
     }
+    if (const auto command = qp::g_pickupMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
+        const auto result = qp::PublishPickupGameplayThread(command->payload);
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
+        qp::g_pickupMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
+    }
+    if (const auto command = qp::g_ammoMailbox.TryTake(qp::g_tickPlayer.snapshot)) {
+        const bool result = qp::PublishAmmoProfileGameplayThread(command->payload);
+        qp::g_tickPlayer = qp::ReadDispatchPlayer();
+        qp::g_ammoMailbox.Complete(*command, qp::g_tickPlayer.snapshot, result);
+    }
+    qp::g_tickBusy.clear(std::memory_order_release);
 }
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {

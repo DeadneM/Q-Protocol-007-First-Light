@@ -10,6 +10,12 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
+**v0.9.8 is being promoted from the maintainer-validated
+[beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md)** for Steam build 26430236. It preserves
+instant manual delivery, repairs first-arrival AUTO and retains the startup/menu
+correction. See [stable release notes](packaging/RELEASE_NOTES_V0.9.8.md) and
+[`PROJECT_STATE.md`](PROJECT_STATE.md) for publication status.
+
 > [!IMPORTANT]
 > **Read [`PROJECT_STATE.md`](PROJECT_STATE.md) first.** It is the authoritative current state.
 
@@ -154,6 +160,28 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 - No duplicate manual/AUTO state machines.
 - Map native functions by full semantic evidence, not guessed RVA deltas.
 - Do not build another numbered compatibility release until the required primitives are understood.
+
+## Experimental builds
+
+[v0.9.8-beta.4 first AUTO completion test](docs/V098_BETA4_AUTO_ARRIVAL.md)
+— [Download checked TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.8-beta.4/Q-Protocol_v0.9.8-beta.4.zip).
+First-arrival AUTO remains to be validated in game; beta.3 manual pickup/F4 and
+the startup/menu correction are preserved. Beta channel discovery is verified.
+
+[v0.9.8-beta.3 instant pickup and confirmed F4 test](docs/V098_BETA3_INSTANT_PICKUP.md)
+
+6 November checkpoint: manual instant pickup accepted in the reported trials;
+13 F4 and six F3 inventory receipts confirmed. First AUTO arrival failed and
+required F3; a subsequent AUTO confirmed all three weapons. See the notebook
+for the remaining lifecycle and ammunition checks.
+
+[v0.9.8-beta.2 startup correction and acceptance sequence](docs/V098_BETA2_STARTUP.md)
+
+[v0.9.8-beta.1 rejected candidate and startup crash record](docs/V098_BETA_DELIVERY.md)
+
+[A38 rejected test and investigation record](docs/A38_NOV5_REMAP.md)
+
+[A37 test and gameplay checklist](docs/A37_WEAPON_CADENCE.md)
 
 ## Disclaimer
 

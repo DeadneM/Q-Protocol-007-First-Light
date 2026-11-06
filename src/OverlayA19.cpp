@@ -2252,6 +2252,7 @@ void DrawUpdatesTab() {
     ImGui::Spacing();
     ImGui::SeparatorText("Version and status");
     ImGui::Text("Installed: %s", updates::Version);
+    ImGui::TextDisabled("Internal build: %d", updates::Build);
     ImGui::Text("Channel: %s", beta ? "Beta" : "Stable");
     if (!update.version.empty()) ImGui::Text("Available: %s", update.version.c_str());
     ImGui::TextWrapped("%s", update.message.c_str());
@@ -4145,6 +4146,12 @@ void RenderOverlayFrameLocked(
     if (g_sessionRendererDisabled.load(
             std::memory_order_acquire)) {
 
+        return;
+    }
+
+    // GPU objects and the font upload are only needed for a visible menu.
+    // In particular, loading-screen resizes must not initialize them.
+    if (!g_requestedVisible.load(std::memory_order_acquire)) {
         return;
     }
 

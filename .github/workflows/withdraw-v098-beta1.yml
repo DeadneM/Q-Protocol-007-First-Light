@@ -1,0 +1,22 @@
+name: Withdraw rejected v0.9.8-beta.1 from beta discovery
+on:
+  push:
+    branches: [beta/v0.9.8-delivery]
+    paths: [".github/workflows/withdraw-v098-beta1.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  withdraw:
+    if: github.ref == 'refs/heads/beta/v0.9.8-delivery'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve release as draft so updater no longer offers it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_id=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.tag_name == "v0.9.8-beta.1" or .name == "REJECTED - Q Protocol v0.9.8-beta.1") | .id')
+          test -n "$release_id"
+          test "$(printf '%s\n' "$release_id" | wc -l)" -eq 1
+          gh api --method PATCH repos/${{ github.repository }}/releases/"$release_id" -F draft=true -f name='REJECTED - Q Protocol v0.9.8-beta.1'
+          gh api repos/${{ github.repository }}/releases/"$release_id" --jq '.draft' | grep -x true

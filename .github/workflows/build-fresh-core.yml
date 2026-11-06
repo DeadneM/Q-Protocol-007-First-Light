@@ -1,26 +1,19 @@
-name: Q Protocol v0.9.7 Stable Build and Release
-
+name: Q Protocol v0.9.8 Stable Build and Release
 on:
   workflow_dispatch:
   pull_request:
     branches: [main]
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "updater/**"
-      - "tests/**"
-      - "tools/**"
-      - "config/**"
-      - "packaging/**"
-      - ".github/workflows/build-fresh-core.yml"
-
+    paths: ["src/**", "updater/**", "tests/**", "tools/**", "config/**", "packaging/**", ".github/workflows/build-fresh-core.yml"]
 permissions:
   contents: write
-
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      QP_BUILD: '43'
+      QP_ARTIFACT: Q-Protocol_v0.9.8
 
     steps:
       - name: Check out repository
@@ -307,13 +300,49 @@ jobs:
 
           Write-Host "Protected gameplay/config invariant PASS. A24 queue guard is separately audited."
 
-      - name: Audit A29 scope against the player-accepted A28 baseline
+      - name: Verify native resolver scope and fail-closed conditions
         shell: pwsh
         run: |
-          python tools/verify_a29_scope.py
-          if ($LASTEXITCODE -ne 0) { throw "A28/A29 preservation audit failed" }
-          python tools/verify_release_scope.py
-          if ($LASTEXITCODE -ne 0) { throw "A29 preservation audit failed" }
+          python tools/verify_v098_scope.py
+          if ($LASTEXITCODE -ne 0) { throw "Scope audit failed" }
+
+      - name: Test native player read contract and shared playable session
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT tests\NativePlayerTests.cpp /Fe:dist\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          dist\NativePlayerTests.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /MT tests\PlayableRuntimeTests.cpp /Fe:dist\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1
+          dist\PlayableRuntimeTests.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Test owned native creation and inventory read contracts
+        if: env.QP_BUILD == '43'
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\NativeInventoryTests.cpp /Fe:dist\NativeInventoryTests.exe
+          if errorlevel 1 exit /b 1
+          dist\NativeInventoryTests.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Check owned AUTO completion and actual x64 routing
+        if: env.QP_BUILD == '43'
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\OwnedAutoSpawnTests.cpp /Fe:dist\OwnedAutoSpawnTests.exe
+          if errorlevel 1 exit /b 1
+          dist\OwnedAutoSpawnTests.exe
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHook.obj src\AutoSpawnHook.asm
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHookSmoke.obj tests\AutoSpawnHookSmoke.asm
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\AutoSpawnHookSmoke.cpp dist\AutoSpawnHook.obj dist\AutoSpawnHookSmoke.obj /Fe:dist\AutoSpawnHookSmoke.exe
+          if errorlevel 1 exit /b 1
+          dist\AutoSpawnHookSmoke.exe
+          if errorlevel 1 exit /b 1
 
       - name: Build embedded updater and run transaction tests
         shell: pwsh
@@ -412,6 +441,9 @@ jobs:
         run: |
           if not exist dist mkdir dist
           ml64 /nologo /c /Fo dist\GameplayHook.obj src\GameplayHook.asm
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHook.obj src\AutoSpawnHook.asm
+          if errorlevel 1 exit /b 1
           cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE ^
             /I _deps\imgui ^
             /I _deps\imgui\backends ^
@@ -429,7 +461,7 @@ jobs:
             _deps\minhook\src\hook.c ^
             _deps\minhook\src\trampoline.c ^
             _deps\minhook\src\hde\hde64.c ^
-            dist\GameplayHook.obj dist\QProtocolResources.res ^
+            dist\GameplayHook.obj dist\AutoSpawnHook.obj dist\QProtocolResources.res ^
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 
@@ -517,31 +549,32 @@ jobs:
             dist/A24_DEPENDENTS.txt
           if-no-files-found: error
 
-      - name: Package only binaries and generate compatible updater manifest
+      - name: Package candidate binaries
         shell: pwsh
         run: |
-          python tools/package_release.py
-          if ($LASTEXITCODE -ne 0) { throw "A29 binary-only packaging failed" }
+          python tools/package_v098.py
+          if ($LASTEXITCODE -ne 0) { throw "Package verification failed" }
 
-      - name: Upload A29 package and manifest
+      - name: Upload candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Q-Protocol_v0.9.7
+          name: ${{ env.QP_ARTIFACT }}
           path: |
-            dist/Q-Protocol_v0.9.7.zip
+            dist/${{ env.QP_ARTIFACT }}.zip
+            dist/v0.9.8-package-checks.json
             dist/QProtocol-update.json
           if-no-files-found: error
 
-      - name: Publish v0.9.7 stable without changing older releases
+      - name: Publish stable v0.9.8 from the successful main build
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.9.7"
+          $tag = 'v0.9.8'
           gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) { throw "v0.9.7 release exists; refusing overwrite" }
+          if ($LASTEXITCODE -eq 0) { throw 'Stable release exists; refusing overwrite' }
           git ls-remote --exit-code --tags origin "refs/tags/$tag"
-          if ($LASTEXITCODE -eq 0) { throw "v0.9.7 tag exists; refusing overwrite" }
-          gh release create $tag dist/Q-Protocol_v0.9.7.zip dist/QProtocol-update.json --repo "${{ github.repository }}" --target "${{ github.sha }}" --latest --title "Q Protocol v0.9.7 - Updater and Readable Menu" --notes-file packaging/RELEASE_NOTES_V0.9.7.md
-          if ($LASTEXITCODE -ne 0) { throw "v0.9.7 stable release failed" }
+          if ($LASTEXITCODE -ne 2) { throw 'Tag exists or remote check failed; refusing publication' }
+          gh release create $tag dist/Q-Protocol_v0.9.8.zip dist/QProtocol-update.json --repo '${{ github.repository }}' --target '${{ github.sha }}' --latest --title 'Q Protocol v0.9.8 - Instant weapons and AUTO delivery' --notes-file packaging/RELEASE_NOTES_V0.9.8.md
+          if ($LASTEXITCODE -ne 0) { throw 'Stable v0.9.8 publication failed' }

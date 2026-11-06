@@ -3,6 +3,16 @@
 > Read `/PROJECT_STATE.md` and `/docs/STATUS.md` before using anything in this file.  
 > Gadget-era findings below are preserved for research and must not be treated as current product direction.
 
+## 2026-11-03 - A34 shared playable-player/session core
+
+The maintainer rejects A33 and requests availability from the controllable player,
+followed by shared AUTO/manual primitives. A34 starts from accepted v0.9.7, removes
+the experimental loadout fallbacks, and uses measured native local-character and
+owner references. Coherent session/request mailboxes replace split atomic flags;
+AUTO now awaits ammo processing. Existing native grant primitives and protected
+configuration/rendering/input/updater code are retained. See PLAYABLE_PLAYER_CORE.md.
+Build checks do not establish actual delivery; user gameplay acceptance is pending.
+
 ## 2026-10-05 — Q Protocol v0.9.1 / Fresh Core A19 release
 
 Fresh Core A19 Audit Hardening promoted to public release as `v0.9.1`.
@@ -490,3 +500,46 @@ Old v0.9.6/A28/A29 tags/assets remain unchanged. A29 remains installed locally;
 no game launch or stable installation was performed during publication. Next:
 use A29 Updates > Check now > Update on exit for the first actual exit-cycle
 test. Keep the other system's GPU incident OPEN; it is not a universal fix.
+# 2026-11-04 — double audit A34
+
+Suite : [contrôle des 31 identités d'armes](audits/20261104/WEAPON_IDENTITIES.md). Les catalogues public et installé correspondent aux 31 ressources TEMP présentes et aux chemins Bond-Hashes dont les hashes ont été recalculés. Aucun RID remplacé. F3/F4 en Tac Sim isolent un défaut de livraison, pas une preuve de joueur absent ; les résultats natifs conservés montrent un cas d'objet vivant non rattaché, avec limite de provenance explicitée. A35 compilée/contrôlée reste séparée de cette réparation.
+
+Deux passes sur la source A34 figée, comparaison et plan de correction : [rapport](audits/20261104/README.md). Détection/session, confirmation de livraison, retries, concurrence UI et durée de vie GPU restent à corriger. AUTO confirmé : une fois à l'arrivée et après mort/rechargement, jamais pour menu/pause. Aucun nouveau binaire ni promotion stable. A35 WIP isolé, non validé.
+
+## 2026-11-05 — A37 Weapon Cadence TEST
+
+[A37](A37_WEAPON_CADENCE.md) rétablit la cadence de v0.9.7 sur la branche pré-A36, avec l'observateur A35 expérimental. La réception ne bloque plus la file. Un résultat incertain après appel natif ne déclenche pas de nouvelle tentative automatique. Build et ZIP contrôlés, validation en jeu à faire. A36 reste rejetée.
+
+## 2026-11-05 — A38 remap du jeu mis à jour
+
+[A38](A38_NOV5_REMAP.md) adapte les adresses et gardes au build Steam 26430236, après comparaison à l'ancien EXE sauvegardé. Les 18 plages de code et six liens de pointeurs sont vérifiés hors jeu. Les 31 identités d'armes restent présentes dans les index mis à jour. Comportement expérimental A37 conservé, validation en jeu à faire.
+
+Compilation `42022238890` réussie et ZIP contrôlé localement. A38 installée jeu fermé avec sauvegarde vérifiée de la paire précédente. INI personnel identique avant/après. Aucun lancement du jeu par l'agent.
+
+## 2026-11-05 — rejet A38
+
+Le mainteneur rejette A38 et signale la confusion entre version publique et numéro interne de build. Le log actuel passe les gardes, détecte le joueur, traite les rôles AUTO/F3 jusqu'au repos du spawner et publie les munitions AUTO. La réception réelle reste non prouvée. A38 retirée du canal bêta par passage en brouillon, historique conservé. La logique expérimentale A35/A37 n'avait pas été validée séparément avant son remap dans A38. Reprendre la comparaison depuis le comportement v0.9.7 accepté et établir la livraison à Bond avant une nouvelle candidate.
+
+## 2026-11-05 — v0.9.8-beta.1, livraison
+
+Suite isolée : [v0.9.8-beta.1](V098_BETA_DELIVERY.md), build interne 39. Relevé contrôlé lobby puis F3, Taser/fusil reçus et Q-Pistol silencieux créé vivant mais non rattaché. Correction de la corrélation du chargement natif (-1 vers handle assigné puis clear) et proposition d'un pickup natif unique pour l'objet identifié. Livraison à valider en jeu avant acceptation.
+
+## 2026-11-05 — crash beta.1 et démarrage beta.2
+
+La tentative v0.9.8-beta.1 crashe pendant le chargement, avant PLAYER PLAYABLE/pickup. Deux dumps convergent vers GPUCrashReport lors d'une attente de frame ; jeu sans mod fonctionnel selon le mainteneur. Bêta retirée, preuves privées sauvegardées. [beta.2](V098_BETA2_STARTUP.md) diffère l'initialisation GPU du menu jusqu'à une demande d'ouverture. Test démarrage puis ouverture du menu nécessaire avant de reprendre F3.
+
+## 2026-11-05 — v0.9.8-beta.3, ramassage instantané
+
+Le mainteneur confirme ensuite l'absence de nouveau crash sur beta.2. F3 comporte des réceptions réelles confirmées, mais F4 reste intermittent pour le silencieux. [beta.3](V098_BETA3_INSTANT_PICKUP.md) cible le mode natif sans animation, l'alternance F4 après réception et les refus de ramassage strictement antérieurs à toute mutation. Le démarrage graphique beta.2 est conservé exactement.
+
+Build `42121467744` et publication `42122074660` réussies. ZIP, manifeste, tag et découverte réelle via updater vérifiés. Beta.3 installée avec sauvegarde de beta.2 et INI personnel identique. Réception F3 et six alternances F4 à valider par le mainteneur.
+
+## 2026-11-06 — validation partielle beta.3, AUTO initial encore en échec
+
+Le mainteneur confirme une livraison instantanée nettement meilleure et rapporte un essai en histoire. Le relevé beta.3 confirme les 13 demandes F4 alternées et les six armes de deux paquets F3. Le premier AUTO comporte trois réceptions non confirmées, dont deux objets indisponibles à la revalidation ; le mainteneur confirme avoir dû utiliser F3. Le second AUTO confirme ses trois armes. Le [bilan](V098_BETA3_INSTANT_PICKUP.md#2026-11-06--gameplay-checkpoint) conserve cette distinction : ramassage manuel acquis dans les essais rapportés, AUTO initial à corriger, cycle mort/rechargement et quantités de munitions à vérifier. Le log ne permet pas d'associer un mode aux deux sessions ni de conclure à la cause exacte. Binaires beta.3 et INI personnel vérifiés inchangés ; aucune nouvelle build, installation ou promotion stable.
+
+## 2026-11-06 — beta.4, finalisation des premiers objets AUTO
+
+Relevé ciblé du premier lobby Tac Sim : les trois objets AUTO sont créés puis deviennent invalides sans rattachement ; le mainteneur confirme l'échec, puis la réussite F3. Les trois sources AUTO ont l'index 0 dans leur liste native de lancer au sol. [Beta.4](V098_BETA4_AUTO_ARRIVAL.md) isole une finalisation de placement pour les seules créations AUTO attribuées et revalidées, tout en conservant le pickup instantané beta.3. Cette correction et sa nouvelle dérivation native restent expérimentales jusqu'à réception réelle au premier lancement. Pas de modification des fichiers installés ni de promotion main lors de la préparation.
+
+Source figée `2fd0668`, CI complète `42215454049` et publication `42215919671` réussies. ZIP et découverte réelle via updater contrôlés ; beta.4 installée ensuite sur demande explicite, jeu fermé, avec sauvegarde vérifiée de beta.3 et conservation de l'INI personnel actuel. Contrôle indépendant des empreintes après installation réussi. Aucun lancement du jeu par l'agent ; validation AUTO et absence de régression en jeu encore requises. Main reste `62f7521`.
