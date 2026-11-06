@@ -1,0 +1,35 @@
+{
+  "version": "v0.9.8",
+  "build": 43,
+  "source": "6e795d12a2ca4183dca5a69d49cebd2a9bc0954f",
+  "pr": 9,
+  "prRun": 42218458338,
+  "mainRun": 42218876965,
+  "artifact": 13501729424,
+  "outerSha256": "c4ca5e04c11182f3bb2894a7019c8f24c58692741adf35b42836b9b76bccc680",
+  "package": "Q-Protocol_v0.9.8.zip",
+  "size": 605184,
+  "sha256": "4131518134a3f2512fd1f760cf66973b0004b03903c931721c768700bc4359e9",
+  "files": {
+    "dxgi.dll": {
+      "size": 138240,
+      "sha256": "05bdd192396802b5c867d6e6a30098dd783b6670d0fce994c4dcbdbefb9affa5"
+    },
+    "QProtocol.asi": {
+      "size": 1051648,
+      "sha256": "64f950fd0381627318153ac9d577948a49d643e58e8fc505b4bcb8777241ae07"
+    }
+  },
+  "latestStable": true,
+  "prerelease": false,
+  "releaseId": 436483859,
+  "actualUpdaterStableAndBetaDiscovery": true,
+  "actualUpdaterDownloadAndHashes": true,
+  "currentBuildNotReoffered": true,
+  "acceptedRuntimeBase": "2fd0668e40308e124aaf829b138412ec57c8fb08",
+  "runtimeChanges": [
+    "Version and internal build identity only"
+  ],
+  "localInstallationPerformed": false,
+  "gameLaunchedByAgent": false
+}

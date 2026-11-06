@@ -10,8 +10,8 @@
 
 Q Protocol is an unofficial PC gameplay patch for **007 First Light** built around a small set of game-native actions and a configurable in-game overlay.
 
-**v0.9.8 is being promoted from the maintainer-validated
-[beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md)** for Steam build 26430236. It preserves
+**v0.9.8 is the stable release**, promoted from the maintainer-validated
+[beta.4](docs/V098_BETA4_AUTO_ARRIVAL.md) for Steam build 26430236. It preserves
 instant manual delivery, repairs first-arrival AUTO and retains the startup/menu
 correction. See [stable release notes](packaging/RELEASE_NOTES_V0.9.8.md) and
 [`PROJECT_STATE.md`](PROJECT_STATE.md) for publication status.
@@ -21,16 +21,20 @@ correction. See [stable release notes](packaging/RELEASE_NOTES_V0.9.8.md) and
 
 ## Current state
 
-**Q Protocol v0.9.7** is the current stable public release, promoted from the
-maintainer-accepted A28/A29 on 2 November 2026 through
-[PR #8](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/8).
+**Q Protocol v0.9.8** is the current stable public release, promoted from the
+maintainer-accepted beta.4 on 6 November 2026 through
+[PR #9](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/9).
 
-[Download v0.9.7](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.7/Q-Protocol_v0.9.7.zip)
-| [Release notes](packaging/RELEASE_NOTES_V0.9.7.md)
-| [Successful Windows release build](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/41480287380)
+[Download v0.9.8](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.8/Q-Protocol_v0.9.8.zip)
+| [Release notes](packaging/RELEASE_NOTES_V0.9.8.md)
+| [Successful Windows release build](https://github.com/DeadneM/Q-Protocol-007-First-Light/actions/runs/42218876965)
 
-- November-compatible native core for Steam build 26252352, with PE/native-map
-  compatibility checks retained. Older v0.9.6 targets the October executable.
+- Compatible native core for Steam build 26430236 (game 1.3.2.0), with PE/native-map
+  compatibility checks retained. v0.9.7 remains available for the previous EXE.
+- Instant manual weapon delivery, receipt-based F4 alternation and repaired first
+  AUTO arrival. The final accepted beta.4 log confirms all 12 AUTO weapon receipts
+  across four sessions, including one after a positive death observation.
+- Startup/menu GPU initialization is deferred until the menu is requested.
 - In-menu updater: startup check ON, beta builds OFF by default, manual Check now,
   confirmed Update on exit and cancellation. Existing explicit settings are kept.
 - Only newer compatible releases are offered. Download hashes and binary layout
@@ -44,13 +48,13 @@ and release history remain on GitHub. The ASI embeds default settings and the
 updater helper. A missing INI is created; an existing personal INI is preserved.
 
 Install with the game closed after backing up the two mod binaries and INI.
-Extract beside `Retail/007FirstLight.exe`. A29 users can instead choose
+Extract beside `Retail/007FirstLight.exe`. Beta.4 users can instead choose
 **Updates > Check now > Update on exit**, then close normally after staging.
 The actual post-exit installation cycle still awaits runtime confirmation;
 transaction fixtures and published discovery/download checks passed separately.
 The other configuration's GPU DEVICE_LOST incident remains open.
 
-Previous v0.9.6, A28 and A29 releases are retained for history and compatible
+Previous v0.9.7, v0.9.6 and beta/test releases are retained for history and compatible
 rollback. See [A28 notebook](docs/A28_NOV2026_NATIVE_REMAP.md),
 [A29 notebook](docs/A29_UPDATER_AND_MENU.md) and [history](docs/HISTORY.md).
 
@@ -165,8 +169,8 @@ AUTO is a trigger/profile selection layer, not a second gameplay implementation.
 
 [v0.9.8-beta.4 first AUTO completion test](docs/V098_BETA4_AUTO_ARRIVAL.md)
 — [Download checked TEST ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.8-beta.4/Q-Protocol_v0.9.8-beta.4.zip).
-First-arrival AUTO remains to be validated in game; beta.3 manual pickup/F4 and
-the startup/menu correction are preserved. Beta channel discovery is verified.
+Validated by the maintainer and promoted to stable v0.9.8. This beta link remains
+available for the technical record; use the current stable download above.
 
 [v0.9.8-beta.3 instant pickup and confirmed F4 test](docs/V098_BETA3_INSTANT_PICKUP.md)
 

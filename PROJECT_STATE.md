@@ -1,10 +1,14 @@
 # Q Protocol — Project State
 
-## 2026-11-06 — beta.4 accepted; v0.9.8 stable promotion authorized
+## 2026-11-06 — v0.9.8 stable published on main
 
 The maintainer reports "c'est parfait" and explicitly requests publication on main, a stable build, then recording three future feature requests. Beta.4 source `2fd0668` is now the accepted runtime checkpoint. Its final privately preserved log contains four AUTO packages, 12 inventory receipts, zero unconfirmed receipts and a positive death observation followed by a new session with all three AUTO receipts. This evidence does not name every scene/mode or independently verify ammunition quantities.
 
-Promotion branch `release/v0.9.8` starts from beta.4 documentation tip `9366ba3`. The complete `src`/`config`/`updater` tree is preserved except `src/Updates.h` public version `v0.9.8` and internal build 43. Full PR checks precede merge; main rebuilds and publishes its own immutable stable tag/ZIP/compatible manifest. Main is still `62f7521` while preparation and checks run. No new gameplay feature or local installation is part of this promotion.
+Promotion completed through [PR #9](https://github.com/DeadneM/Q-Protocol-007-First-Light/pull/9), merge/source/tag `6e795d12a2ca4183dca5a69d49cebd2a9bc0954f`. The complete accepted beta.4 `src`/`config`/`updater` tree is preserved except public version `v0.9.8` and internal build 43. PR CI `42218458338` and main build/release CI `42218876965` both succeeded. Public release is verified non-prerelease and GitHub Latest. [ZIP](https://github.com/DeadneM/Q-Protocol-007-First-Light/releases/download/v0.9.8/Q-Protocol_v0.9.8.zip), 605184 bytes, SHA-256 `4131518134a3f2512fd1f760cf66973b0004b03903c931721c768700bc4359e9`.
+
+Main artifact, public ZIP, CRC, two AMD64 root binaries and manifest hashes agree. The actual unchanged updater finds v0.9.8 from beta.4 through both stable and beta channels, downloads/verifies the package and does not reoffer build 43. [Verification record](evidence/v0.9.8-verification.json). Current local installation remains the accepted beta.4; no local installation or game launch during promotion. Prior stable/beta tags and assets are retained.
+
+After publication, the maintainer's three future requests were added to the [cumulative TODO](docs/PLAYABLE_PLAYER_TODO.md): weapons on the ground in front of Bond, a weapon-drop key and controller keybinds. They are not implemented in this release. Next gameplay work starts in an experimental branch from this stable checkpoint.
 
 ## 2026-11-06 — beta.4 first AUTO completion candidate
 

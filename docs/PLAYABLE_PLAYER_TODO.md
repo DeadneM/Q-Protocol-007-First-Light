@@ -62,6 +62,14 @@
 
 - [x] Observer en lecture seule le premier AUTO dans le lobby : les trois objets deviennent invalides sans rejoindre l'inventaire, résultat confirmé par le mainteneur.
 - [x] Identifier la branche de finalisation native liée à l'index 0 des trois sources AUTO ; distinguer création, lancer physique et ramassage dans l'inventaire.
-- [ ] Construire et contrôler [beta.4](V098_BETA4_AUTO_ARRIVAL.md), puis vérifier ses trois réceptions AUTO au premier lancement sans F3.
-- [x] Beta.4 construite, paquet et publication vérifiés, découverte/téléchargement réel via updater contrôlés ; installée sur demande jeu fermé avec sauvegarde beta.3 et INI actuel conservé. Réception AUTO en jeu encore à valider.
+- [x] Construire et contrôler [beta.4](V098_BETA4_AUTO_ARRIVAL.md), puis vérifier ses trois réceptions AUTO au premier lancement sans F3. Le mainteneur valide ; le relevé final confirme 12 réceptions AUTO sur quatre sessions, sans échec, dont une après mort.
+- [x] Beta.4 construite, paquet et publication vérifiés, découverte/téléchargement réel via updater contrôlés ; installée sur demande jeu fermé avec sauvegarde beta.3 et INI actuel conservé. Promue ensuite en v0.9.8 stable sur demande explicite.
 - [ ] Confirmer en jeu que la finalisation ordinaire demeure intacte pour les objets du jeu et que F3/F4 gardent leur livraison instantanée.
+
+## 2026-11-06 — demandes ajoutées après la release v0.9.8
+
+Base validée pour les prochains travaux : v0.9.8/main. Ces évolutions restent à réaliser sur une branche expérimentale.
+
+- [ ] Faire apparaître les armes devant Bond, au sol.
+- [ ] Ajouter une touche pour lâcher une arme.
+- [ ] Ajouter les keybinds manette.
