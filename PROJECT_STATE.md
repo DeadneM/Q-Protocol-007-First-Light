@@ -1,5 +1,11 @@
 # Q Protocol — Project State
 
+## 2026-11-06 — beta.4 first AUTO completion candidate
+
+User authorizes continuing the first-arrival AUTO repair. Branch `beta/v0.9.8-auto-arrival` starts at the accepted beta.3 manual checkpoint `a06db56`. Read-only first-lobby capture confirms all three AUTO outputs become generation-invalid without entering Bond's inventory; user confirms AUTO absent, then F3 supplies all three. Native source index 0 takes a world-throw completion branch, while later silenced spawns and the manual sources take ordinary placement. [Candidate contract, evidence and limits](docs/V098_BETA4_AUTO_ARRIVAL.md).
+
+Beta.4/build 42 scopes native placement routing to an explicitly tracked, freshly revalidated AUTO output still in its own logical batch. It also retains that observed job/output for the unchanged instant-pickup worker. No source-policy mutation, arbitrary delay or blind spawn replay. Beta.3 manual pickup/F4, GPU startup/menu and other protected paths preserved. Status EXPERIMENTAL; source checks pass, Windows build/package/gameplay acceptance pending. Beta.3 remains installed and main remains separate.
+
 ## 2026-11-06 — beta.3 instant manual delivery accepted; first AUTO arrival still fails
 
 The maintainer reports that the new method gives the weapon instantly, is much better, and was also tested in story. Keep beta.3's native instant-pickup path as the accepted manual-delivery checkpoint for these trials. This does not accept every weapon or the full session/AUTO lifecycle. After a targeted question, the maintainer explicitly confirms having needed F3 at the first arrival: initial AUTO is still a functional failure.

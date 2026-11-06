@@ -35,7 +35,7 @@ for source, pattern in [
         expected = bytes(int(x, 16) for x in re.findall(r'0x([0-9A-F]{2})', raw))
         assert read(int(rva, 16), len(expected)) == expected, rva
         checks += 1
-expected_checks = 28 if delivery else 18
+expected_checks = 32 if 'expected13[]' in delivery else (28 if delivery else 18)
 assert checks == expected_checks, f'Missing native guards ({checks}/{expected_checks})'
 base = int(inventory['image_base'], 16)
 links = re.search(r'links\[\]\[2\] = \{([\s\S]+?)\n    \};', core)[1]
@@ -44,5 +44,10 @@ for at, target in re.findall(r'\{(0x[0-9A-F]+), (0x[0-9A-F]+)\}', links):
 method = re.search(r'g_exeBase \+ (0x[0-9A-F]+), method\).*?method != g_exeBase \+ (0x[0-9A-F]+)', player)
 assert struct.unpack('<Q', read(int(method[1], 16), 8))[0] == base + int(method[2], 16)
 assert all(x['old_site_matches'] for x in inventory['preimages'].values())
+if expected_checks == 32:
+    assert read(0x016B75DB, 14) == bytes.fromhex('c4c178100424488b07488d542420')
+    assert read(0x016B75F2, 6) == bytes.fromhex('ff90b0010000')
+    assert struct.unpack('<Q', read(0x02ECB338, 8))[0] == base+0x016B9200
+    assert struct.unpack('<Q', read(0x02ECB360, 8))[0] == base+0x016B93A0
 print(json.dumps({'sha256': inventory['sha256'], 'guardByteRanges': checks,
-                  'pointerLinks': 6, 'hookPreimages': 'verified', 'runtimeValidated': False}))
+                  'pointerLinks': 8 if expected_checks == 32 else 6, 'hookPreimages': 'verified', 'runtimeValidated': False}))

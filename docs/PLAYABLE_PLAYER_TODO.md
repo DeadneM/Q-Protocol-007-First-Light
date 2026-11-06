@@ -57,3 +57,10 @@
 - [ ] Établir la cause entre initialisation de scène et durée de vie/corrélation du résultat créé, sans délai arbitraire ni répétition aveugle d'un paquet.
 - [ ] Vérifier ensuite AUTO après mort/rechargement, son absence de répétition pour menu/pause et les quantités de munitions.
 - [ ] Conserver le chemin natif instantané, l'alternance F4 acquittée, le démarrage/menu beta.2 et le profil personnel pendant la correction ciblée ; promotion stable non autorisée par ce seul retour partiel.
+
+## 2026-11-06 — correction AUTO beta.4
+
+- [x] Observer en lecture seule le premier AUTO dans le lobby : les trois objets deviennent invalides sans rejoindre l'inventaire, résultat confirmé par le mainteneur.
+- [x] Identifier la branche de finalisation native liée à l'index 0 des trois sources AUTO ; distinguer création, lancer physique et ramassage dans l'inventaire.
+- [ ] Construire et contrôler [beta.4](V098_BETA4_AUTO_ARRIVAL.md), puis vérifier ses trois réceptions AUTO au premier lancement sans F3.
+- [ ] Confirmer en jeu que la finalisation ordinaire demeure intacte pour les objets du jeu et que F3/F4 gardent leur livraison instantanée.

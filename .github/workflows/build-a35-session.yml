@@ -2,7 +2,7 @@ name: Q Protocol experimental full build
 on:
   workflow_dispatch:
   push:
-    branches: [experiment/a35-session-repair, experiment/a37-weapon-cadence, experiment/a38-nov5-remap, beta/v0.9.8-delivery]
+    branches: [experiment/a35-session-repair, experiment/a37-weapon-cadence, experiment/a38-nov5-remap, beta/v0.9.8-delivery, beta/v0.9.8-auto-arrival]
     paths: ["src/**", "tools/**", "tests/**", ".github/workflows/build-a35-session.yml"]
 permissions:
   contents: read
@@ -10,8 +10,8 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      QP_BUILD: ${{ github.ref_name == 'beta/v0.9.8-delivery' && '41' || github.ref_name == 'experiment/a38-nov5-remap' && '38' || github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
-      QP_ARTIFACT: ${{ github.ref_name == 'beta/v0.9.8-delivery' && 'Q-Protocol_v0.9.8-beta.3' || github.ref_name == 'experiment/a38-nov5-remap' && 'Q-Protocol_A38_Nov5Remap_TEST' || github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
+      QP_BUILD: ${{ github.ref_name == 'beta/v0.9.8-auto-arrival' && '42' || github.ref_name == 'beta/v0.9.8-delivery' && '41' || github.ref_name == 'experiment/a38-nov5-remap' && '38' || github.ref_name == 'experiment/a37-weapon-cadence' && '37' || '35' }}
+      QP_ARTIFACT: ${{ github.ref_name == 'beta/v0.9.8-auto-arrival' && 'Q-Protocol_v0.9.8-beta.4' || github.ref_name == 'beta/v0.9.8-delivery' && 'Q-Protocol_v0.9.8-beta.3' || github.ref_name == 'experiment/a38-nov5-remap' && 'Q-Protocol_A38_Nov5Remap_TEST' || github.ref_name == 'experiment/a37-weapon-cadence' && 'Q-Protocol_A37_WeaponCadence_TEST' || 'Q-Protocol_A35_SessionRepair_TEST' }}
 
     steps:
       - name: Check out repository
@@ -301,7 +301,8 @@ jobs:
       - name: Verify native resolver scope and fail-closed conditions
         shell: pwsh
         run: |
-          if ($env:QP_BUILD -eq '41') { python tools/verify_beta3_scope.py }
+          if ($env:QP_BUILD -eq '42') { python tools/verify_beta4_scope.py }
+          elseif ($env:QP_BUILD -eq '41') { python tools/verify_beta3_scope.py }
           elseif ($env:QP_BUILD -eq '40') { python tools/verify_beta2_scope.py }
           elseif ($env:QP_BUILD -eq '39') { python tools/verify_delivery_scope.py }
           elseif ($env:QP_BUILD -eq '38') { python tools/verify_a38_scope.py }
@@ -321,12 +322,29 @@ jobs:
           if errorlevel 1 exit /b 1
 
       - name: Test owned native creation and inventory read contracts
-        if: env.QP_BUILD == '39' || env.QP_BUILD == '40' || env.QP_BUILD == '41'
+        if: env.QP_BUILD == '39' || env.QP_BUILD == '40' || env.QP_BUILD == '41' || env.QP_BUILD == '42'
         shell: cmd
         run: |
           cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\NativeInventoryTests.cpp /Fe:dist\NativeInventoryTests.exe
           if errorlevel 1 exit /b 1
           dist\NativeInventoryTests.exe
+          if errorlevel 1 exit /b 1
+
+      - name: Check owned AUTO completion and actual x64 routing
+        if: env.QP_BUILD == '42'
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\OwnedAutoSpawnTests.cpp /Fe:dist\OwnedAutoSpawnTests.exe
+          if errorlevel 1 exit /b 1
+          dist\OwnedAutoSpawnTests.exe
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHook.obj src\AutoSpawnHook.asm
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHookSmoke.obj tests\AutoSpawnHookSmoke.asm
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++20 /O2 /EHsc /W4 /WX /MT tests\AutoSpawnHookSmoke.cpp dist\AutoSpawnHook.obj dist\AutoSpawnHookSmoke.obj /Fe:dist\AutoSpawnHookSmoke.exe
+          if errorlevel 1 exit /b 1
+          dist\AutoSpawnHookSmoke.exe
           if errorlevel 1 exit /b 1
 
       - name: Build embedded updater and run transaction tests
@@ -426,6 +444,9 @@ jobs:
         run: |
           if not exist dist mkdir dist
           ml64 /nologo /c /Fo dist\GameplayHook.obj src\GameplayHook.asm
+          if errorlevel 1 exit /b 1
+          ml64 /nologo /c /Fo dist\AutoSpawnHook.obj src\AutoSpawnHook.asm
+          if errorlevel 1 exit /b 1
           cl /nologo /std:c++20 /O2 /EHsc /W4 /MT /LD /DUNICODE /D_UNICODE ^
             /I _deps\imgui ^
             /I _deps\imgui\backends ^
@@ -443,7 +464,7 @@ jobs:
             _deps\minhook\src\hook.c ^
             _deps\minhook\src\trampoline.c ^
             _deps\minhook\src\hde\hde64.c ^
-            dist\GameplayHook.obj dist\QProtocolResources.res ^
+            dist\GameplayHook.obj dist\AutoSpawnHook.obj dist\QProtocolResources.res ^
             user32.lib kernel32.lib d3d12.lib dxgi.lib ^
             /link /OUT:dist\QProtocol.asi
 

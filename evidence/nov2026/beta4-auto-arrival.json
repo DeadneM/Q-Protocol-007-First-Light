@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-06",
+  "version": "v0.9.8-beta.4",
+  "internalBuild": 42,
+  "base": "2f0ef7054268fda81bb31c70839899f8e42897dd",
+  "supportedExeSha256": "f92c0e8600aa3b692a437f2c0795068f509db1a73a4794b619e6d60bd5d35c43",
+  "status": "EXPERIMENTAL; NOT GAME VALIDATED",
+  "privateCaptures": [
+    {"name": "initial-auto", "sha256": "3ef57e5fdbe14c4bb77e9317574cc98b745f7c8e6c7d6a80e923d439aa157da5", "readCalls": 28062},
+    {"name": "manual-wait-without-input", "sha256": "574f8b8329db46d4d2d09e9497d376bd1f7072d4d95509d4daa067fdd823a2e2"},
+    {"name": "manual-after-first-receipt", "sha256": "f175f224430024d7ef7a96bdf2a79a4742508d66ac6211c9ea842286e18abf55"},
+    {"name": "source-policy-state", "sha256": "5421bc8eb7999739feeb400a77b5cff0e64651c76ca18225354473c2c0a5751c", "readCalls": 2609}
+  ],
+  "observations": {
+    "mode": "Tac Sim lobby, reported by maintainer",
+    "initialAuto": "Three created outputs became generation-invalid; none joined the player inventory. Maintainer confirms no AUTO weapons.",
+    "initialInventoryCount": 4,
+    "finalInventoryCountBeforeManual": 4,
+    "firstManual": "Maintainer and log confirm all three received. Creation transitions were not captured for this first F3.",
+    "manualTimingLimit": "Replacement observer attached after first F3; later F3 profile changes and F4 inputs were also observed. Not a clean one-input manual timing comparison.",
+    "sources": [
+      {"rid": "019973508A5E327B", "specialIndices": [0], "initialOutputExpired": true},
+      {"rid": "010D8295A99561AB", "specialIndices": [0], "initialOutputExpired": true},
+      {"rid": "0110285AF7A95A01", "specialIndices": [0], "initialOutputExpired": true},
+      {"rid": "01702FE09FEA3596", "specialIndices": [], "manualReceiptConfirmed": true},
+      {"rid": "01833561121578C4", "specialIndices": [], "manualReceiptConfirmed": true}
+    ]
+  },
+  "nativeRouting": {
+    "finalizationRva": "0x016B7450",
+    "specialIndexVectorOffset": "0xF0",
+    "createdJobVectorOffset": "0xB0",
+    "hookRva": "0x016B75DB",
+    "patchBytes": 14,
+    "originalCallRva": "0x016B75F2",
+    "ordinaryPlacementMethodOffset": "0x188",
+    "ordinaryPlacementMethodRva": "0x016B9200",
+    "worldThrowMethodOffset": "0x1B0",
+    "worldThrowMethodRva": "0x016B93A0",
+    "worldThrowEvent": "0x19D",
+    "originalCallAndReturnRetained": true,
+    "sourceOrVtableModified": false,
+    "pickupMode": 2,
+    "pickupImplementationChanged": false
+  },
+  "interpretation": "First-index source policy is a concrete difference consistent with initial AUTO item loss. Scoped routing is an experimental repair, not gameplay proof or a universal explanation of every deletion.",
+  "rawCapturesPublished": false,
+  "installedFilesChangedDuringPreparation": false
+}
